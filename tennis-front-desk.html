@@ -587,9 +587,11 @@
   // run of consecutive failures has lasted long enough to actually
   // matter, and only once (not every cycle after that).
   let consecutiveLoadFailures = 0;
-  // Applies one registrantsDashboard-shaped payload, whatever it came
-  // from — the poll below via fetchJSON, or a live Firebase push via
-  // subscribeLive() further down — so both paths render identically.
+  // Applies one registrantsDashboard-shaped payload to the UI — called
+  // by loadAll() below on every poll response, including one triggered
+  // early by a live Firebase "touch" signal (see attachLiveActivity()
+  // further down, which only ever triggers a fetch, never hands data
+  // to this function directly).
   function applyDashboardPayload(res, activity){
     if(activity.key !== currentActivity.key) return; // switched while in flight/in transit
     approvedEntries = res.registrations || [];
@@ -618,22 +620,33 @@
 
   // ---- Live sync (optional) ----
   // If FIREBASE_CONFIG.databaseURL is set (see the top of this script),
-  // this desk gets the fresh registrantsDashboard payload pushed to it
-  // the instant ANY desk writes something for this activity — see
-  // Code.gs's touchActivity()/pushLiveState(). scheduleAutoRefresh()'s
-  // poll keeps running regardless, as a fallback for a dropped
-  // connection — this only makes the common case feel instant instead
-  // of "up to AUTO_REFRESH_MS away".
+  // this desk finds out the instant ANY desk writes something for this
+  // activity — see Code.gs's touchActivity()/pushLiveState(). What
+  // Firebase carries is deliberately just a tiny "something changed"
+  // timestamp, not the dashboard data itself — pushing the whole
+  // payload from inside every write action used to add real latency to
+  // every check-in/out/approval (extra sheet reads plus a bigger
+  // network call before the person doing it saw a response), which is
+  // the opposite of what this app needs. So a "touch" here just
+  // triggers the exact same fetch loadAll() already does — this only
+  // removes the up-to-AUTO_REFRESH_MS wait for THAT fetch to happen.
+  // The poll itself keeps running regardless, as a fallback for a
+  // dropped connection.
   let liveActivityRef = null;
   function attachLiveActivity(){
     if(typeof firebase === 'undefined' || !firebase.apps.length) return;
     if(liveActivityRef) liveActivityRef.off();
     const activity = currentActivity;
-    liveActivityRef = firebase.database().ref('live/' + activity.key);
-    liveActivityRef.on('value', snap => {
-      const val = snap.val();
-      if(!val) return;
-      applyDashboardPayload(val, activity);
+    liveActivityRef = firebase.database().ref('live/' + activity.key + '/touch');
+    // Firebase fires 'value' immediately with whatever's already there,
+    // which would otherwise trigger an extra, redundant fetch right on
+    // top of the one loadAll() already did at startup/switch — skip
+    // that first firing.
+    let first = true;
+    liveActivityRef.on('value', () => {
+      if(first){ first = false; return; }
+      if(activity.key !== currentActivity.key) return; // switched since attaching
+      loadAll();
     });
   }
   function subscribeLive(){

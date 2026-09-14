@@ -1344,61 +1344,42 @@ function firebasePut(path, data) {
   }
 }
 
-// Pushes the same shape doGet's "dashboard" view computes for one
-// activity (a strict superset of what "registrantsDashboard" needs —
-// the satellite front desks just ignore the "pending"/"visits" fields
-// they don't use) to live/<activityKey>. Called by touchActivity()
-// below, right after every write that could change what a front desk
-// is currently showing for this activity.
+// Pushes a lightweight "something changed" signal for one activity —
+// deliberately NOT the dashboard payload itself. An earlier version of
+// this function rebuilt the whole thing (Pending + getVisibleRegistrations
+// + getRecentVisits + getAlerts, then a larger PUT) right here, which
+// meant every single check-in/out, approval, and submission paid for
+// several extra sheet reads and a bigger network call BEFORE the
+// person doing it ever saw a response — directly working against the
+// whole point of this app being fast to use at the front desk. A front
+// desk with a live listener open treats any change under this
+// activity's "touch" path as "go re-fetch this activity's dashboard
+// view the normal way" (see front-desk-dashboard.html's
+// attachLiveActivity()) — reusing the exact same doGet()/
+// getVisibleRegistrations() path (and its cache) the poll already
+// uses, instead of the write path building and shipping that payload
+// itself. The write path's own cost is now just one tiny PUT.
 function pushLiveState(activityKey) {
   if (!firebaseConfig()) return;
   try {
-    const activity = ACTIVITIES[activityKey];
-    if (!activity) return;
-    const pendingSheet = getOrCreateSheet(PENDING_SHEET_NAME, PENDING_HEADERS);
-    const registrations = getVisibleRegistrations(activity);
-    firebasePut("live/" + activityKey, {
-      pending: sheetToObjects(pendingSheet).filter(r => r.activity === activityKey),
-      registrations: registrations.rows,
-      clearedAt: registrations.clearedAt,
-      visits: getRecentVisits(activity),
-      visitsDateLabel: formatDateDMY(new Date()),
-      alerts: getAlerts(activity),
-      updatedAt: new Date().toISOString()
-    });
+    firebasePut("live/" + activityKey + "/touch", { t: Date.now() });
   } catch (err) {
     Logger.log("pushLiveState(" + activityKey + ") failed: " + err);
   }
 }
 
-// Pending counts across every activity, for the badge row the main
-// front desk's header shows — mirrors doGet's "allPendingCounts" view.
-// Cheap enough (Pending only ever holds outstanding requests, not
-// history) to just recompute in full on every touchActivity() call
-// rather than tracking deltas.
-function pushLivePendingCounts() {
-  if (!firebaseConfig()) return;
-  try {
-    const sheet = getOrCreateSheet(PENDING_SHEET_NAME, PENDING_HEADERS);
-    const counts = {};
-    Object.keys(ACTIVITIES).forEach(key => { counts[key] = 0; });
-    sheetToObjects(sheet).forEach(r => { if (counts[r.activity] !== undefined) counts[r.activity]++; });
-    firebasePut("live/pendingCounts", counts);
-  } catch (err) {
-    Logger.log("pushLivePendingCounts failed: " + err);
-  }
-}
-
 // The one call every write path below should make: keeps the
 // getVisibleRegistrations cache correct (see
-// invalidateVisibleRegistrationsCache's own comment above) AND pushes
-// the fresh live state to Firebase, so this app's two "don't show
-// stale data" mechanisms stay wired together in one place instead of
-// drifting apart as new write paths get added over time.
+// invalidateVisibleRegistrationsCache's own comment above) AND, if
+// Firebase is configured, tells any listening front desk to refetch —
+// cheaply (see pushLiveState's own comment for why this isn't a full
+// payload push). Pending-count badges piggyback on the same signal —
+// see front-desk-dashboard.html's attachLiveBadges(), which listens to
+// every activity's touch path and just re-fetches the small
+// allPendingCounts view, not this activity's full dashboard view.
 function touchActivity(activityKey) {
   invalidateVisibleRegistrationsCache(activityKey);
   pushLiveState(activityKey);
-  pushLivePendingCounts();
 }
 
 // One activity's Registrations rows, deduplicated to one (current) row

@@ -52,7 +52,7 @@ See the large header comment at the top of `Code.gs` for details on photo/signat
 
 Without this section, the three front-desk dashboards already work exactly as before: each one polls the Apps Script backend every `AUTO_REFRESH_MS` (5 seconds) and only re-renders whatever actually changed. That means a change made at one desk can take up to a few seconds to show up at another.
 
-Setting this up adds a push: the instant any desk writes something (an approval, a sign-in/out, a walk-in, a renewal...), Code.gs pushes the fresh dashboard payload to a small Firebase Realtime Database tree, and every open dashboard with a live listener gets it immediately instead of waiting for its next poll. The poll itself is never removed — it keeps running as a fallback for a dropped connection, so a Firebase outage or a typo in the config just silently falls back to "polls every 5 seconds," not "broken."
+Setting this up adds a push: the instant any desk writes something (an approval, a sign-in/out, a walk-in, a renewal...), Code.gs pushes a tiny "something changed" timestamp for that activity to a small Firebase Realtime Database tree — deliberately not the dashboard data itself, so the write action a staff member is waiting on doesn't pay for building and shipping it. Every open dashboard with a live listener sees that timestamp change and immediately does the exact same fetch its poll would have done anyway, just without waiting for the next `AUTO_REFRESH_MS` tick. The poll itself is never removed — it keeps running as a fallback for a dropped connection, so a Firebase outage or a typo in the config just silently falls back to "polls every 5 seconds," not "broken."
 
 **It's entirely optional.** Skip this section and nothing else in this repo changes behavior.
 

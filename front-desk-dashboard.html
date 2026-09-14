@@ -998,11 +998,13 @@
     visitEntries = visitEntries.filter(v => v.date !== label).concat(todayRows);
   }
   // Applies one dashboard-shaped payload (pending/registrations/visits/
-  // alerts/clearedAt) to the UI, whatever it came from — the poll below
-  // via fetchJSON, or a live Firebase push via subscribeLive() (see
-  // that function further down). Keeping this in one place means a
-  // live update renders exactly the same way a poll response always
-  // has, instead of the two paths slowly drifting apart.
+  // alerts/clearedAt) to the UI — called by loadAll() below on every
+  // poll response, and by that same loadAll() when a live Firebase
+  // "touch" signal (see attachLiveActivity() further down) triggers an
+  // early re-fetch. Firebase never hands this function data directly —
+  // it only ever triggers the same fetch loadAll() already does — so
+  // there's exactly one code path that turns server data into UI,
+  // whichever reason triggered the fetch.
   function applyDashboardPayload(res, activity){
     if(activity.key !== currentActivity.key) return; // switched while in flight/in transit
 
@@ -1092,22 +1094,53 @@
 
   // ---- Live sync (optional) ----
   // If FIREBASE_CONFIG.databaseURL is set (see the top of this script),
-  // this front desk gets the fresh dashboard payload pushed to it the
-  // instant ANY desk writes something — see Code.gs's touchActivity()/
-  // pushLiveState(). scheduleAutoRefresh()'s poll keeps running
-  // regardless, as a fallback for a dropped connection — this only
-  // makes the common case (nothing dropped) feel instant instead of
-  // "up to AUTO_REFRESH_MS away".
-  let liveActivityRef = null, livePendingCountsRef = null;
+  // this front desk finds out the instant ANY desk writes something —
+  // see Code.gs's touchActivity()/pushLiveState(). What Firebase
+  // carries is deliberately just a tiny "something changed" timestamp
+  // per activity, not the dashboard data itself — pushing the whole
+  // payload from inside every single write action used to add real
+  // latency to every check-in/out/approval/submission (extra sheet
+  // reads plus a bigger network call before the person doing it saw a
+  // response), which is the opposite of what this app needs. So a
+  // "touch" here just triggers the exact same fetch loadAll() already
+  // does — this only removes the up-to-AUTO_REFRESH_MS wait for THAT
+  // fetch to happen, it doesn't change what it costs. The poll itself
+  // keeps running regardless, as a fallback for a dropped connection.
+  let liveActivityRef = null;
+  const liveBadgeRefs = [];
+  function onLiveRef(ref, handler){
+    // Firebase fires 'value' immediately with whatever's already
+    // there, which would otherwise trigger an extra, redundant fetch
+    // right on top of the one loadAll()/refreshAllPendingCounts()
+    // already did at startup/switch — skip that first firing.
+    let first = true;
+    ref.on('value', () => {
+      if(first){ first = false; return; }
+      handler();
+    });
+  }
   function attachLiveActivity(){
     if(typeof firebase === 'undefined' || !firebase.apps.length) return;
     if(liveActivityRef) liveActivityRef.off();
     const activity = currentActivity;
-    liveActivityRef = firebase.database().ref('live/' + activity.key);
-    liveActivityRef.on('value', snap => {
-      const val = snap.val();
-      if(!val) return;
-      applyDashboardPayload(val, activity);
+    liveActivityRef = firebase.database().ref('live/' + activity.key + '/touch');
+    onLiveRef(liveActivityRef, () => {
+      if(activity.key !== currentActivity.key) return; // switched since attaching
+      loadAll();
+      refreshAllPendingCounts();
+    });
+  }
+  // One tiny listener per activity, purely to keep the pending-count
+  // badges live even for activities this desk isn't currently looking
+  // at — cheap (refreshAllPendingCounts() is a single small sheet
+  // read), unlike re-rendering a dashboard nobody's looking at.
+  function attachLiveBadges(){
+    liveBadgeRefs.forEach(ref => ref.off());
+    liveBadgeRefs.length = 0;
+    Object.keys(ACTIVITIES).forEach(key => {
+      const ref = firebase.database().ref('live/' + key + '/touch');
+      onLiveRef(ref, () => { if(key !== currentActivity.key) refreshAllPendingCounts(); });
+      liveBadgeRefs.push(ref);
     });
   }
   function subscribeLive(){
@@ -1117,13 +1150,7 @@
       try{ firebase.initializeApp(FIREBASE_CONFIG); }catch(e){ return; }
     }
     attachLiveActivity();
-    livePendingCountsRef = firebase.database().ref('live/pendingCounts');
-    livePendingCountsRef.on('value', snap => {
-      const counts = snap.val();
-      if(!counts) return;
-      Object.keys(counts).forEach(k => { pendingCounts[k] = counts[k]; });
-      renderActivitySwitcher();
-    });
+    attachLiveBadges();
   }
 
   // Self-rescheduling instead of setInterval: the next cycle is only
