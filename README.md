@@ -25,7 +25,7 @@ A Swimming Lessons session is only counted as "used" when the member **signs out
 ## Files
 
 - **`Code.gs`** — the Google Apps Script backend (JSON API). Deploy this as a Web App; every front-end below talks to the same `/exec` URL.
-- **`registration-app.html`** — the public-facing app: pick a program, then Register / Renew / Sign In / Sign Out. Share this one link with members.
+- **`index.html`** (formerly `registration-app.html`) — the public-facing app: pick a program, then Register / Renew / Sign In / Sign Out. Share this one link with members. Named `index.html` so it's the default page GitHub Pages (or any static host) serves at the bare repo/domain root.
 - **`front-desk-dashboard.html`** — the main front desk. Approves/rejects everything, for all 5 activities (switch between them with the activity pills at the top), plus registration tables, visit logs, and Excel export.
 - **`tennis-front-desk.html`** — satellite front desk for Leisure Tennis + Tennis Lessons. Shows full registrant detail and the visit log; can only approve/reject **walk-ins** (enforced by the backend, not just hidden in the UI) — new registrations and renewals still need the main front desk.
 - **`swimming-front-desk.html`** — same, for Leisure Swimming + Swimming Lessons.
@@ -40,8 +40,8 @@ A Swimming Lessons session is only counted as "used" when the member **signs out
    - Who has access: **Anyone**
    
    Deploy, authorize (Drive access is needed for photos/exports), copy the URL ending in `/exec`.
-5. Paste that URL into `SCRIPT_URL` near the top of **each** of the four HTML files (`registration-app.html`, `front-desk-dashboard.html`, `tennis-front-desk.html`, `swimming-front-desk.html`) — they all share the same backend.
-6. Host the four HTML files wherever you like (a static host, or just open them locally) and distribute the links: `registration-app.html` to members, `front-desk-dashboard.html` to the main desk, `tennis-front-desk.html` to the tennis court desk, `swimming-front-desk.html` to the pool desk.
+5. Paste that URL into `SCRIPT_URL` near the top of **each** of the four HTML files (`index.html`, `front-desk-dashboard.html`, `tennis-front-desk.html`, `swimming-front-desk.html`) — they all share the same backend.
+6. Host the four HTML files wherever you like (a static host, or just open them locally) and distribute the links: `index.html` to members, `front-desk-dashboard.html` to the main desk, `tennis-front-desk.html` to the tennis court desk, `swimming-front-desk.html` to the pool desk.
 7. Any time `Code.gs` is edited again: Deploy → Manage deployments → pencil icon → Version: New version → Deploy, or the live URL won't see the change.
 
 Default staff PIN on every front-desk app is `1234` — change the `STAFF_PIN` constant near the top of each file's `<script>` before going live.
@@ -76,11 +76,11 @@ In the Apps Script editor: Project Settings (gear icon) → Script Properties �
 | `FIREBASE_DB_URL` | The `databaseURL` from step 1.5, e.g. `https://your-project-default-rtdb.firebaseio.com` |
 | `FIREBASE_DB_SECRET` | The legacy database secret from step 1.4 (leave unset if your rules don't need one) |
 
-Nothing else changes — `touchActivity()` in `Code.gs` (called from every action that writes to Pending/Registrations/Visits) already calls `pushLiveState()`/`pushLivePendingCounts()`, which no-op silently until `FIREBASE_DB_URL` is set.
+Nothing else changes — `touchActivity()` in `Code.gs` (called from every action that writes to Pending/Registrations/Visits) already calls `pushLiveState()`, which no-ops silently until `FIREBASE_DB_URL` is set.
 
 ### 3. Configure each dashboard
 
-Paste the same `apiKey`/`databaseURL` from step 1.5 into the `FIREBASE_CONFIG` object near the top of each front-desk file's `<script>` — `front-desk-dashboard.html`, `swimming-front-desk.html`, `tennis-front-desk.html` (not `registration-app.html` — the public registration form doesn't need this). This config is safe to leave in client-side code; it identifies the project, it isn't a secret — access is controlled by the database rules from step 1.3, not by hiding this object.
+Paste the same `apiKey`/`databaseURL` from step 1.5 into the `FIREBASE_CONFIG` object near the top of each front-desk file's `<script>` — `front-desk-dashboard.html`, `swimming-front-desk.html`, `tennis-front-desk.html` (not `index.html` — the public registration form doesn't need this). This config is safe to leave in client-side code; it identifies the project, it isn't a secret — access is controlled by the database rules from step 1.3, not by hiding this object.
 
 ```js
 const FIREBASE_CONFIG = {
