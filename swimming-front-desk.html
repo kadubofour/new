@@ -6,6 +6,12 @@
 <title>Swimming Front Desk</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<!-- Optional live-sync layer (see FIREBASE_CONFIG below and README.md's
+     "Live sync (optional)" section) — if FIREBASE_CONFIG.databaseURL is
+     never filled in, subscribeLive() just no-ops and this dashboard
+     behaves exactly like before: the AUTO_REFRESH_MS poll alone. -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 <style>
   :root{
     --bg:#FFFFFF; --panel:#FFFFFF; --panel-alt:#F2F6FC;
@@ -351,6 +357,18 @@
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwUCJRzZC--3sh2uOi9bRfLjgtMCNlZE4BmCJSURohckusFCxRatuemTUB1XpP-Al6vDQ/exec";
   // ----------------------------------------------------------------------------------
 
+  // ---- OPTIONAL: paste your Firebase web app config here for instant
+  // cross-desk sync (see README.md's "Live sync (optional)" section).
+  // Leave databaseURL blank and this dashboard just polls every
+  // AUTO_REFRESH_MS like before. Safe to leave in client-side code —
+  // this identifies the project, it isn't a secret; access is
+  // controlled by the database's security rules, not by hiding this. ----
+  const FIREBASE_CONFIG = {
+    apiKey: "",
+    databaseURL: ""
+  };
+  // ----------------------------------------------------------------------------------
+
   // Wraps fetch+json with a couple of quick, silent retries before
   // giving up — a single dropped packet or a slow Apps Script cold
   // start used to surface immediately as a scary "couldn't reach the
@@ -511,6 +529,7 @@
       renderActivitySwitcher();
       loadAll();
       scheduleAutoRefresh();
+      subscribeLive();
     } else {
       pinError.textContent = "Incorrect PIN — try again.";
       pinDots.forEach(d => d.classList.add('error'));
@@ -545,6 +564,7 @@
     searchTerm = ""; document.getElementById('searchBox').value = "";
     renderActivitySwitcher();
     loadAll();
+    attachLiveActivity();
   }
 
   const toast = document.getElementById('toast');
@@ -566,6 +586,17 @@
   // run of consecutive failures has lasted long enough to actually
   // matter, and only once (not every cycle after that).
   let consecutiveLoadFailures = 0;
+  // Applies one registrantsDashboard-shaped payload, whatever it came
+  // from — the poll below via fetchJSON, or a live Firebase push via
+  // subscribeLive() further down — so both paths render identically.
+  function applyDashboardPayload(res, activity){
+    if(activity.key !== currentActivity.key) return; // switched while in flight/in transit
+    approvedEntries = res.registrations || [];
+    alertEntries = res.alerts || [];
+    renderTally();
+    renderRegistrants();
+    renderAlerts();
+  }
   function loadAll(){
     const activity = currentActivity;
     return fetchJSON(SCRIPT_URL + "?activity=" + activity.key + "&view=registrantsDashboard&t=" + Date.now())
@@ -573,11 +604,7 @@
         consecutiveLoadFailures = 0;
         if(activity.key !== currentActivity.key) return;
         if(res.status !== "ok"){ showToast(res.message || "Couldn't reach the sheet — check connection", true); return; }
-        approvedEntries = res.registrations || [];
-        alertEntries = res.alerts || [];
-        renderTally();
-        renderRegistrants();
-        renderAlerts();
+        applyDashboardPayload(res, activity);
       })
       .catch(() => {
         consecutiveLoadFailures++;
@@ -587,6 +614,35 @@
       });
   }
   document.getElementById('refreshBtn').addEventListener('click', loadAll);
+
+  // ---- Live sync (optional) ----
+  // If FIREBASE_CONFIG.databaseURL is set (see the top of this script),
+  // this desk gets the fresh registrantsDashboard payload pushed to it
+  // the instant ANY desk writes something for this activity — see
+  // Code.gs's touchActivity()/pushLiveState(). scheduleAutoRefresh()'s
+  // poll keeps running regardless, as a fallback for a dropped
+  // connection — this only makes the common case feel instant instead
+  // of "up to AUTO_REFRESH_MS away".
+  let liveActivityRef = null;
+  function attachLiveActivity(){
+    if(typeof firebase === 'undefined' || !firebase.apps.length) return;
+    if(liveActivityRef) liveActivityRef.off();
+    const activity = currentActivity;
+    liveActivityRef = firebase.database().ref('live/' + activity.key);
+    liveActivityRef.on('value', snap => {
+      const val = snap.val();
+      if(!val) return;
+      applyDashboardPayload(val, activity);
+    });
+  }
+  function subscribeLive(){
+    if(!FIREBASE_CONFIG.databaseURL) return; // not configured — polling only
+    if(typeof firebase === 'undefined') return;
+    if(!firebase.apps.length){
+      try{ firebase.initializeApp(FIREBASE_CONFIG); }catch(e){ return; }
+    }
+    attachLiveActivity();
+  }
 
   // Self-rescheduling instead of setInterval: the next cycle is only
   // queued once the current one has fully settled, and is skipped

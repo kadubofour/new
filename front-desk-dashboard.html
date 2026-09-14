@@ -7,6 +7,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- Optional live-sync layer (see FIREBASE_CONFIG below and README.md's
+     "Live sync (optional)" section) — if FIREBASE_CONFIG.databaseURL is
+     never filled in, subscribeLive() just no-ops and this dashboard
+     behaves exactly like before: the AUTO_REFRESH_MS poll alone. -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 <style>
   :root{
     --bg:#FFFFFF; --panel:#FFFFFF; --panel-alt:#F2F6FC;
@@ -574,6 +580,20 @@
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwUCJRzZC--3sh2uOi9bRfLjgtMCNlZE4BmCJSURohckusFCxRatuemTUB1XpP-Al6vDQ/exec";
   // -------------------------------------------------------------------------------------------
 
+  // ---- OPTIONAL: paste your Firebase web app config here for instant
+  // cross-desk sync (see README.md's "Live sync (optional)" section for
+  // how to set this up). Leave databaseURL blank/unset and this
+  // dashboard just polls every AUTO_REFRESH_MS like before — nothing
+  // breaks either way. This config is safe to leave in client-side code
+  // — it identifies the project, it isn't a secret; access is controlled
+  // by the database's security rules (read-only for everyone, write-only
+  // via the server's own secret), not by hiding this object. ----
+  const FIREBASE_CONFIG = {
+    apiKey: "",
+    databaseURL: ""
+  };
+  // -------------------------------------------------------------------------------------------
+
   // Wraps fetch+json with a couple of quick, silent retries before
   // giving up — a single dropped packet or a slow Apps Script cold
   // start used to surface immediately as a scary "couldn't reach the
@@ -784,6 +804,7 @@
       loadFullVisitHistory();
       refreshAllPendingCounts();
       scheduleAutoRefresh();
+      subscribeLive();
     } else {
       pinError.textContent = "Incorrect PIN — try again.";
       pinDots.forEach(d => d.classList.add('error'));
@@ -895,6 +916,7 @@
     renderActivitySwitcher();
     loadAll();
     loadFullVisitHistory();
+    attachLiveActivity();
   }
 
   // ---- Dashboard tabs ----
@@ -975,6 +997,50 @@
     const label = todayLabel || formatDateDMY(new Date());
     visitEntries = visitEntries.filter(v => v.date !== label).concat(todayRows);
   }
+  // Applies one dashboard-shaped payload (pending/registrations/visits/
+  // alerts/clearedAt) to the UI, whatever it came from — the poll below
+  // via fetchJSON, or a live Firebase push via subscribeLive() (see
+  // that function further down). Keeping this in one place means a
+  // live update renders exactly the same way a poll response always
+  // has, instead of the two paths slowly drifting apart.
+  function applyDashboardPayload(res, activity){
+    if(activity.key !== currentActivity.key) return; // switched while in flight/in transit
+
+    const newPendingJSON = JSON.stringify(res.pending || []);
+    const newApprovedJSON = JSON.stringify(res.registrations || []);
+    const newVisitsJSON = JSON.stringify(res.visits || []);
+    const newAlertsJSON = JSON.stringify(res.alerts || []);
+    const newClearedAt = res.clearedAt || null;
+
+    const pendingChanged = newPendingJSON !== lastPendingJSON;
+    const approvedChanged = newApprovedJSON !== lastApprovedJSON || newClearedAt !== lastClearedAtSeen;
+    const visitsChanged = newVisitsJSON !== lastVisitsJSON;
+    const alertsChanged = newAlertsJSON !== lastAlertsJSON;
+
+    pendingEntries = res.pending || [];
+    approvedEntries = res.registrations || [];
+    registrationsClearedAt = newClearedAt;
+    if(visitsChanged) mergeTodayVisits(res.visits || [], res.visitsDateLabel);
+    alertEntries = res.alerts || [];
+
+    // Every render() below rebuilds its panel's full innerHTML from
+    // scratch — skip whichever ones the sheet hasn't actually
+    // changed since last time, so a poll (or live push) that comes
+    // back identical (the common case) is nearly free instead of
+    // tearing down and rebuilding tables that can run to hundreds of
+    // rows.
+    if(pendingChanged || approvedChanged) renderTally();
+    if(pendingChanged) renderApprovals();
+    if(approvedChanged) renderTable();
+    if(visitsChanged) renderVisitsTable();
+    if(alertsChanged) renderAlerts();
+
+    lastPendingJSON = newPendingJSON;
+    lastApprovedJSON = newApprovedJSON;
+    lastVisitsJSON = newVisitsJSON;
+    lastAlertsJSON = newAlertsJSON;
+    lastClearedAtSeen = newClearedAt;
+  }
   function loadAll(){
     const activity = currentActivity;
     return fetchJSON(SCRIPT_URL + "?activity=" + activity.key + "&view=dashboard&t=" + Date.now())
@@ -982,40 +1048,7 @@
         consecutiveLoadFailures = 0;
         if(activity.key !== currentActivity.key) return; // switched while in flight
         if(res.status !== "ok"){ showToast(res.message || "Couldn't reach the sheet — check connection", true); return; }
-
-        const newPendingJSON = JSON.stringify(res.pending || []);
-        const newApprovedJSON = JSON.stringify(res.registrations || []);
-        const newVisitsJSON = JSON.stringify(res.visits || []);
-        const newAlertsJSON = JSON.stringify(res.alerts || []);
-        const newClearedAt = res.clearedAt || null;
-
-        const pendingChanged = newPendingJSON !== lastPendingJSON;
-        const approvedChanged = newApprovedJSON !== lastApprovedJSON || newClearedAt !== lastClearedAtSeen;
-        const visitsChanged = newVisitsJSON !== lastVisitsJSON;
-        const alertsChanged = newAlertsJSON !== lastAlertsJSON;
-
-        pendingEntries = res.pending || [];
-        approvedEntries = res.registrations || [];
-        registrationsClearedAt = newClearedAt;
-        if(visitsChanged) mergeTodayVisits(res.visits || [], res.visitsDateLabel);
-        alertEntries = res.alerts || [];
-
-        // Every render() below rebuilds its panel's full innerHTML from
-        // scratch — skip whichever ones the sheet hasn't actually
-        // changed since last time, so a poll that comes back identical
-        // (the common case) is nearly free instead of tearing down and
-        // rebuilding tables that can run to hundreds of rows.
-        if(pendingChanged || approvedChanged) renderTally();
-        if(pendingChanged) renderApprovals();
-        if(approvedChanged) renderTable();
-        if(visitsChanged) renderVisitsTable();
-        if(alertsChanged) renderAlerts();
-
-        lastPendingJSON = newPendingJSON;
-        lastApprovedJSON = newApprovedJSON;
-        lastVisitsJSON = newVisitsJSON;
-        lastAlertsJSON = newAlertsJSON;
-        lastClearedAtSeen = newClearedAt;
+        applyDashboardPayload(res, activity);
       })
       .catch(() => {
         consecutiveLoadFailures++;
@@ -1055,6 +1088,42 @@
         renderActivitySwitcher();
       })
       .catch(() => {});
+  }
+
+  // ---- Live sync (optional) ----
+  // If FIREBASE_CONFIG.databaseURL is set (see the top of this script),
+  // this front desk gets the fresh dashboard payload pushed to it the
+  // instant ANY desk writes something — see Code.gs's touchActivity()/
+  // pushLiveState(). scheduleAutoRefresh()'s poll keeps running
+  // regardless, as a fallback for a dropped connection — this only
+  // makes the common case (nothing dropped) feel instant instead of
+  // "up to AUTO_REFRESH_MS away".
+  let liveActivityRef = null, livePendingCountsRef = null;
+  function attachLiveActivity(){
+    if(typeof firebase === 'undefined' || !firebase.apps.length) return;
+    if(liveActivityRef) liveActivityRef.off();
+    const activity = currentActivity;
+    liveActivityRef = firebase.database().ref('live/' + activity.key);
+    liveActivityRef.on('value', snap => {
+      const val = snap.val();
+      if(!val) return;
+      applyDashboardPayload(val, activity);
+    });
+  }
+  function subscribeLive(){
+    if(!FIREBASE_CONFIG.databaseURL) return; // not configured — polling only, nothing else to do
+    if(typeof firebase === 'undefined') return;
+    if(!firebase.apps.length){
+      try{ firebase.initializeApp(FIREBASE_CONFIG); }catch(e){ return; }
+    }
+    attachLiveActivity();
+    livePendingCountsRef = firebase.database().ref('live/pendingCounts');
+    livePendingCountsRef.on('value', snap => {
+      const counts = snap.val();
+      if(!counts) return;
+      Object.keys(counts).forEach(k => { pendingCounts[k] = counts[k]; });
+      renderActivitySwitcher();
+    });
   }
 
   // Self-rescheduling instead of setInterval: the next cycle is only

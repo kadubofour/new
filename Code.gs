@@ -1159,7 +1159,6 @@ function approvePendingRow(activity, pending, registrations, idx) {
   // regroupAllRegistrations() backstop. Cheap: touches only the one block.
   insertRegistrationIntoDateGroup(registrations, REGISTRATIONS_HEADERS, regRowValues, formatDateDMY(approvedNow));
   pending.deleteRow(idx);
-  invalidateVisibleRegistrationsCache(activity.key);
   return idNo;
 }
 
@@ -1183,6 +1182,7 @@ function doApprove(activity, idNo) {
 
   const registrations = getOrCreateSheet(activity.registrationsSheet, REGISTRATIONS_HEADERS);
   const approvedIdNos = rowIndices.map(rowIdx => approvePendingRow(activity, pending, registrations, rowIdx));
+  touchActivity(activity.key);
 
   return ok({ idNo: idNo, approvedIdNos: approvedIdNos });
 }
@@ -1210,6 +1210,7 @@ function doReject(activity, idNo) {
     pending.deleteRow(rowIdx);
     return rejectedIdNo;
   });
+  touchActivity(activity.key);
 
   return ok({ rejectedIdNos: rejectedIdNos });
 }
@@ -1294,6 +1295,110 @@ const VISIBLE_REGISTRATIONS_CACHE_TTL_SECONDS = 20;
 
 function invalidateVisibleRegistrationsCache(activityKey) {
   try { CacheService.getScriptCache().remove("visibleRegs_" + activityKey); } catch (err) { /* cache unavailable — nothing to invalidate */ }
+}
+
+// ------------------------------------------------------------------
+// Firebase Realtime Database live-sync layer
+// ------------------------------------------------------------------
+// Entirely optional and additive: Sheets stays the one source of
+// truth for everything, and every front desk's existing 5-second poll
+// keeps working completely unchanged. If FIREBASE_DB_URL isn't set in
+// Script Properties (Project Settings > Script Properties in the Apps
+// Script editor), firebaseConfig() returns null and every function
+// below becomes a silent no-op — nothing breaks, the app just behaves
+// exactly as it did before this layer existed.
+//
+// What this adds on top: the instant a write actually happens
+// (approval, sign-in/out, a walk-in, a renewal, a detail edit...) the
+// fresh payload doGet's "dashboard"/"registrantsDashboard" views would
+// compute is pushed to a small Firebase Realtime Database tree. A
+// front desk tab with a live listener open (see the front-end's
+// subscribeLive()) gets that update pushed to it immediately —
+// instead of waiting for its next poll, which could be several
+// seconds away even with AUTO_REFRESH_MS turned down. The poll itself
+// is kept as a fallback for a dropped connection, not replaced.
+function firebaseConfig() {
+  const props = PropertiesService.getScriptProperties();
+  const dbUrl = props.getProperty("FIREBASE_DB_URL");
+  if (!dbUrl) return null;
+  return { dbUrl: dbUrl.replace(/\/+$/, ""), secret: props.getProperty("FIREBASE_DB_SECRET") || "" };
+}
+
+// One PUT to a Realtime Database path. Never throws — a Firebase
+// outage or misconfiguration should never break the Sheets write it's
+// reporting on; the worst case is a front desk falling back to its
+// next poll, exactly like before this layer existed.
+function firebasePut(path, data) {
+  const cfg = firebaseConfig();
+  if (!cfg) return;
+  try {
+    const url = cfg.dbUrl + "/" + path + ".json" + (cfg.secret ? "?auth=" + encodeURIComponent(cfg.secret) : "");
+    UrlFetchApp.fetch(url, {
+      method: "put",
+      contentType: "application/json",
+      payload: JSON.stringify(data),
+      muteHttpExceptions: true
+    });
+  } catch (err) {
+    Logger.log("firebasePut(" + path + ") failed: " + err);
+  }
+}
+
+// Pushes the same shape doGet's "dashboard" view computes for one
+// activity (a strict superset of what "registrantsDashboard" needs —
+// the satellite front desks just ignore the "pending"/"visits" fields
+// they don't use) to live/<activityKey>. Called by touchActivity()
+// below, right after every write that could change what a front desk
+// is currently showing for this activity.
+function pushLiveState(activityKey) {
+  if (!firebaseConfig()) return;
+  try {
+    const activity = ACTIVITIES[activityKey];
+    if (!activity) return;
+    const pendingSheet = getOrCreateSheet(PENDING_SHEET_NAME, PENDING_HEADERS);
+    const registrations = getVisibleRegistrations(activity);
+    firebasePut("live/" + activityKey, {
+      pending: sheetToObjects(pendingSheet).filter(r => r.activity === activityKey),
+      registrations: registrations.rows,
+      clearedAt: registrations.clearedAt,
+      visits: getRecentVisits(activity),
+      visitsDateLabel: formatDateDMY(new Date()),
+      alerts: getAlerts(activity),
+      updatedAt: new Date().toISOString()
+    });
+  } catch (err) {
+    Logger.log("pushLiveState(" + activityKey + ") failed: " + err);
+  }
+}
+
+// Pending counts across every activity, for the badge row the main
+// front desk's header shows — mirrors doGet's "allPendingCounts" view.
+// Cheap enough (Pending only ever holds outstanding requests, not
+// history) to just recompute in full on every touchActivity() call
+// rather than tracking deltas.
+function pushLivePendingCounts() {
+  if (!firebaseConfig()) return;
+  try {
+    const sheet = getOrCreateSheet(PENDING_SHEET_NAME, PENDING_HEADERS);
+    const counts = {};
+    Object.keys(ACTIVITIES).forEach(key => { counts[key] = 0; });
+    sheetToObjects(sheet).forEach(r => { if (counts[r.activity] !== undefined) counts[r.activity]++; });
+    firebasePut("live/pendingCounts", counts);
+  } catch (err) {
+    Logger.log("pushLivePendingCounts failed: " + err);
+  }
+}
+
+// The one call every write path below should make: keeps the
+// getVisibleRegistrations cache correct (see
+// invalidateVisibleRegistrationsCache's own comment above) AND pushes
+// the fresh live state to Firebase, so this app's two "don't show
+// stale data" mechanisms stay wired together in one place instead of
+// drifting apart as new write paths get added over time.
+function touchActivity(activityKey) {
+  invalidateVisibleRegistrationsCache(activityKey);
+  pushLiveState(activityKey);
+  pushLivePendingCounts();
 }
 
 // One activity's Registrations rows, deduplicated to one (current) row
@@ -1637,6 +1742,7 @@ function doPost(e) {
       // to back.
       const allNewRows = [primaryRow].concat(familyMemberRows);
       sheet.getRange(sheet.getLastRow() + 1, 1, allNewRows.length, PENDING_HEADERS.length).setValues(allNewRows);
+      touchActivity(activity.key);
 
       const response = { idNo: idNo };
       if (data.class === FAMILY_CATEGORY) {
@@ -1681,6 +1787,7 @@ function doPost(e) {
         if (h === "phone") return sheetSafeText(data.phone || "");
         return ""; // timeOut
       }));
+      touchActivity(activity.key);
       return ok({ name: data.name, idNo: idNo });
     }
 
@@ -1723,6 +1830,7 @@ function doPost(e) {
           date: formatDateDMY(now),
           time: formatTime(now)
         });
+        touchActivity(activity.key);
         const cfg = getDurationConfig(activity, match.duration);
         const usedUp = cfg && cfg.sessionCap && (Number(match.sessionsUsed) || 0) >= cfg.sessionCap;
         return ok({
@@ -1749,6 +1857,7 @@ function doPost(e) {
         if (h === "timeIn") return forceLiteralText(formatTime(now));
         return ""; // timeOut, phone stay blank at check-in
       }));
+      touchActivity(activity.key);
       return ok({ member: match });
     }
 
@@ -1808,9 +1917,9 @@ function doPost(e) {
           const newUsed = (Number(match.sessionsUsed) || 0) + 1;
           registrations.getRange(regIdx, REGISTRATIONS_HEADERS.indexOf("sessionsUsed") + 1).setValue(newUsed);
           match.sessionsUsed = String(newUsed);
-          invalidateVisibleRegistrationsCache(activity.key);
         }
       }
+      touchActivity(activity.key);
       return ok({ member: match });
     }
 
@@ -1856,6 +1965,7 @@ function doPost(e) {
       const rowValues = visits.getRange(targetRow, 1, 1, VISIT_HEADERS.length).getValues()[0];
       const visit = {};
       VISIT_HEADERS.forEach((h, i) => visit[h] = rowValues[i]);
+      touchActivity(activity.key);
       return ok({ member: visit });
     }
 
@@ -2033,6 +2143,7 @@ function doPost(e) {
         if (h === "time") return forceLiteralText(formatTime(now));
         return "";
       }));
+      touchActivity(activity.key);
       return ok({ submitted: true, idNo: finalIdNo });
     }
 
@@ -2166,7 +2277,7 @@ function doPost(e) {
         registrations.getRange(idx, REGISTRATIONS_HEADERS.indexOf(h) + 1).setValue(val);
       });
 
-      invalidateVisibleRegistrationsCache(activity.key);
+      touchActivity(activity.key);
       const rowValues = registrations.getRange(idx, 1, 1, REGISTRATIONS_HEADERS.length).getValues()[0];
       const member = {};
       REGISTRATIONS_HEADERS.forEach((h, i) => member[h] = rowValues[i]);
@@ -2178,6 +2289,7 @@ function doPost(e) {
       const alertId = String(data.alertId || "").trim();
       if (!alertId) return errorMsg("Missing alert id.");
       dismissAlert(activity, alertId);
+      touchActivity(activity.key);
       return ok({});
     }
 
@@ -2191,13 +2303,13 @@ function doPost(e) {
     if (action === "clearRegistrationsView") {
       const clearedAt = new Date().toISOString();
       PropertiesService.getScriptProperties().setProperty(VIEW_CLEARED_AT_PREFIX + activity.key, clearedAt);
-      invalidateVisibleRegistrationsCache(activity.key);
+      touchActivity(activity.key);
       return ok({ clearedAt: clearedAt });
     }
 
     if (action === "restoreRegistrationsView") {
       PropertiesService.getScriptProperties().deleteProperty(VIEW_CLEARED_AT_PREFIX + activity.key);
-      invalidateVisibleRegistrationsCache(activity.key);
+      touchActivity(activity.key);
       return ok({});
     }
 
@@ -2340,7 +2452,7 @@ function splitSharedRegistrationsAndVisits() {
         }));
         movedRegistrations++;
       });
-      if (byActivity[key].length) invalidateVisibleRegistrationsCache(key);
+      if (byActivity[key].length) touchActivity(key);
     });
   }
 
@@ -2554,7 +2666,7 @@ function regroupRegistrationsByDate(activity) {
 function regroupAllRegistrations() {
   Object.keys(ACTIVITIES).forEach(key => {
     regroupRegistrationsByDate(ACTIVITIES[key]);
-    invalidateVisibleRegistrationsCache(key);
+    touchActivity(key);
   });
 }
 
@@ -2817,7 +2929,7 @@ function autoSignOutAt10pm() {
           if (regIdx !== -1) {
             const newUsed = (Number(match.sessionsUsed) || 0) + 1;
             registrations.getRange(regIdx, REGISTRATIONS_HEADERS.indexOf("sessionsUsed") + 1).setValue(newUsed);
-            invalidateVisibleRegistrationsCache(activity.key);
+            touchActivity(activity.key);
           }
         }
       }

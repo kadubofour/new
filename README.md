@@ -47,3 +47,46 @@ A Swimming Lessons session is only counted as "used" when the member **signs out
 Default staff PIN on every front-desk app is `1234` — change the `STAFF_PIN` constant near the top of each file's `<script>` before going live.
 
 See the large header comment at the top of `Code.gs` for details on photo/signature storage, the date-grouped Registrations sheet, walk-ins, renewals, and the Excel export.
+
+## Live sync (optional)
+
+Without this section, the three front-desk dashboards already work exactly as before: each one polls the Apps Script backend every `AUTO_REFRESH_MS` (5 seconds) and only re-renders whatever actually changed. That means a change made at one desk can take up to a few seconds to show up at another.
+
+Setting this up adds a push: the instant any desk writes something (an approval, a sign-in/out, a walk-in, a renewal...), Code.gs pushes the fresh dashboard payload to a small Firebase Realtime Database tree, and every open dashboard with a live listener gets it immediately instead of waiting for its next poll. The poll itself is never removed — it keeps running as a fallback for a dropped connection, so a Firebase outage or a typo in the config just silently falls back to "polls every 5 seconds," not "broken."
+
+**It's entirely optional.** Skip this section and nothing else in this repo changes behavior.
+
+### 1. Create the Firebase project
+
+1. Go to the [Firebase console](https://console.firebase.google.com/) → Add project (the free Spark plan is plenty for this scale).
+2. Build → Realtime Database → Create Database. Pick a location close to your users. Start in **locked mode**.
+3. Rules tab — paste this (open read, so any front desk can listen; writes blocked entirely for normal clients):
+   ```json
+   { "rules": { ".read": true, ".write": false } }
+   ```
+4. Project settings (gear icon) → Service accounts tab → **Database secrets** → copy the legacy secret shown there. A legacy secret is treated as full-admin by Firebase and bypasses `.write: false` automatically when passed as `?auth=<secret>` on a REST call — that's what `Code.gs`'s `firebasePut()` does, and it's what `FIREBASE_DB_SECRET` below is for. No further rules-writing needed.
+5. Project settings (gear icon) → General → "Your apps" → Add app → Web (`</>`). Register it (no hosting needed). Copy the `firebaseConfig` object it shows you — you only need `apiKey` and `databaseURL` out of it.
+
+### 2. Configure the backend
+
+In the Apps Script editor: Project Settings (gear icon) → Script Properties → Add property, twice:
+
+| Property | Value |
+|---|---|
+| `FIREBASE_DB_URL` | The `databaseURL` from step 1.5, e.g. `https://your-project-default-rtdb.firebaseio.com` |
+| `FIREBASE_DB_SECRET` | The legacy database secret from step 1.4 (leave unset if your rules don't need one) |
+
+Nothing else changes — `touchActivity()` in `Code.gs` (called from every action that writes to Pending/Registrations/Visits) already calls `pushLiveState()`/`pushLivePendingCounts()`, which no-op silently until `FIREBASE_DB_URL` is set.
+
+### 3. Configure each dashboard
+
+Paste the same `apiKey`/`databaseURL` from step 1.5 into the `FIREBASE_CONFIG` object near the top of each front-desk file's `<script>` — `front-desk-dashboard.html`, `swimming-front-desk.html`, `tennis-front-desk.html` (not `registration-app.html` — the public registration form doesn't need this). This config is safe to leave in client-side code; it identifies the project, it isn't a secret — access is controlled by the database rules from step 1.3, not by hiding this object.
+
+```js
+const FIREBASE_CONFIG = {
+  apiKey: "AIza...",
+  databaseURL: "https://your-project-default-rtdb.firebaseio.com"
+};
+```
+
+Reload the dashboard — a change at any desk (or the registration app) should now appear at every other open dashboard within a second or so, instead of on the next poll.
