@@ -1,0 +1,1871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Front Desk — Check-In Log</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#FFFFFF; --panel:#FFFFFF; --panel-alt:#F2F6FC;
+    --line:#DCE4F0; --line-strong:#B9C7DE;
+    --text:#0F1D3B; --text-dim:#5B6B85; --text-faint:#8B98AC;
+    /* University of Ghana crest colors: deep navy + gold. */
+    --blue:#232559; --blue-dark:#14152F; --blue-dim:rgba(35,37,89,0.08); --blue-dim-strong:rgba(35,37,89,0.14);
+    --gold:#BA8F4A; --gold-dark:#8F6B32; --gold-dim:rgba(186,143,74,0.12);
+    --danger:#C0392B; --danger-dim:rgba(192,57,43,0.09);
+    --yellow:#CA8A04; --yellow-dark:#8A5D03; --yellow-dim:rgba(202,138,4,0.12);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1100px 560px at 88% -8%, var(--blue-dim), transparent 60%),
+      radial-gradient(900px 500px at 8% 108%, var(--gold-dim), transparent 55%),
+      var(--bg);
+    color:var(--text); font-family:'Inter',sans-serif; min-height:100vh;
+  }
+  .screen{display:none;}
+  .screen.active{display:block;}
+  .screen-out{animation:screenFadeOut .22s ease forwards;}
+  .screen-in{animation:screenFadeIn .3s ease;}
+  @keyframes screenFadeOut{ from{opacity:1; transform:scale(1);} to{opacity:0; transform:scale(0.98);} }
+  @keyframes screenFadeIn{ from{opacity:0; transform:scale(1.015);} to{opacity:1; transform:scale(1);} }
+
+  /* PIN gate */
+  #pinScreen{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:32px 20px; }
+  .kiosk-card{
+    width:100%; max-width:340px; background:var(--panel); border:1px solid var(--line);
+    border-top:4px solid var(--gold); border-radius:16px; padding:34px 30px 30px;
+    box-shadow:0 1px 3px rgba(15,29,59,0.04), 0 10px 30px rgba(15,29,59,0.06);
+  }
+  .brand-eyebrow{
+    font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.18em;
+    text-transform:uppercase; color:var(--blue); margin:0 0 6px; text-align:center;
+  }
+  .brand-lockup{ display:flex; align-items:center; justify-content:center; gap:10px; margin:0 0 6px; }
+  .brand-lockup .brand-eyebrow{ margin:0; }
+  .header-left .brand-lockup{ justify-content:flex-start; }
+  .brand-logo{
+    width:30px; height:36px; flex-shrink:0; display:inline-block;
+    background-image:url("data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjxzdmcKICAgeG1sbnM6ZGM9Imh0dHA6Ly9wdXJsLm9yZy9kYy9lbGVtZW50cy8xLjEvIgogICB4bWxuczpjYz0iaHR0cDovL2NyZWF0aXZlY29tbW9ucy5vcmcvbnMjIgogICB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiCiAgIHhtbG5zOnN2Zz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciCiAgIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICAgaWQ9InN2ZzExMjYiCiAgIHZlcnNpb249IjEuMSIKICAgdmlld0JveD0iMCAwIDc5LjM3NSA5NS4xNTI1MzQiCiAgIGhlaWdodD0iOTUuMTUyNTM0bW0iCiAgIHdpZHRoPSI3OS4zNzVtbSI+CiAgPGRlZnMKICAgICBpZD0iZGVmczExMjAiPgogICAgPGNsaXBQYXRoCiAgICAgICBjbGlwUGF0aFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIKICAgICAgIGlkPSJjbGlwUGF0aDg4MSI+CiAgICAgIDxwYXRoCiAgICAgICAgIGQ9Im0gMTIwLjIyNCwzMTEuNjg2IGggNTcuMTkgdiA2My4wNjggaCAtNTcuMTkgeiIKICAgICAgICAgaWQ9InBhdGg4NzkiIC8+CiAgICA8L2NsaXBQYXRoPgogIDwvZGVmcz4KICA8bWV0YWRhdGEKICAgICBpZD0ibWV0YWRhdGExMTIzIj4KICAgIDxyZGY6UkRGPgogICAgICA8Y2M6V29yawogICAgICAgICByZGY6YWJvdXQ9IiI+CiAgICAgICAgPGRjOmZvcm1hdD5pbWFnZS9zdmcreG1sPC9kYzpmb3JtYXQ+CiAgICAgICAgPGRjOnR5cGUKICAgICAgICAgICByZGY6cmVzb3VyY2U9Imh0dHA6Ly9wdXJsLm9yZy9kYy9kY21pdHlwZS9TdGlsbEltYWdlIiAvPgogICAgICAgIDxkYzp0aXRsZT48L2RjOnRpdGxlPgogICAgICA8L2NjOldvcms+CiAgICA8L3JkZjpSREY+CiAgPC9tZXRhZGF0YT4KICA8ZwogICAgIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0yNzcuMzM5MDMsLTc5LjM3NDk5MikiCiAgICAgaWQ9ImxheWVyMSI+CiAgICA8ZwogICAgICAgdHJhbnNmb3JtPSJtYXRyaXgoMS41MjczMjMyLDAsMCwtMS41MjczMjMyLDg5LjgxMzExNyw2NTEuNzQ1NDcpIgogICAgICAgY2xpcC1wYXRoPSJ1cmwoI2NsaXBQYXRoODgxKSIKICAgICAgIGlkPSJnODc3Ij4KICAgICAgPGcKICAgICAgICAgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTYyLjI0NjksMzE4LjkzMjkpIgogICAgICAgICBpZD0iZzg4MyI+CiAgICAgICAgPHBhdGgKICAgICAgICAgICBpZD0icGF0aDg4NSIKICAgICAgICAgICBzdHlsZT0iZmlsbDojYmE4ZjRhO2ZpbGwtb3BhY2l0eToxO2ZpbGwtcnVsZTpldmVub2RkO3N0cm9rZTpub25lIgogICAgICAgICAgIGQ9Ik0gMCwwIEMgMC4wNjYsMC40MTUgMC4wNzcsMC41NjkgMC4xNDQsMC45ODQgMS4yMjgsMS4wNDggMi4yNTgsMC44NTIgMy4yODcsMC42NTYgMi41ODQsMC4xMjEgMS4xNjgsLTAuMDU4IDAsMCBtIC0yNi44NzcsLTAuMjc3IGMgLTEuMTc3LDAuMDg3IC0yLjU0OSwwLjQzNSAtMy4xMzcsMS4wNDQgMS4wNjcsMC4wNjUgMi4xMzUsMC4xMyAzLjIwMiwtMC4wNjUgLTAuMDIyLC0wLjQxNCAtMC4wNDMsLTAuNTY2IC0wLjA2NSwtMC45NzkgTSA0LjExMywxLjEwMiBDIDIuMDg1LDEuNzMxIDEuMDIyLDEuNTU5IC0wLjM5NiwxLjU3OSBMIC0wLjU5LC0wLjQyOSBjIC04LjI2LC0xLjQ2NyAtMTYuOTI2LC0xLjM0NyAtMjUuNTMsMC4wNCAtMC4xMzQsMC44NTIgLTAuMDExLDEuMjIzIC0wLjE1MSwxLjc2OSAtMi42NCwwLjE2NyAtNC43MjQsMC4wNzMgLTQuNzQ4LC0wLjgwNSAwLC0xLjMxNiAwLC0zLjQ4NSAwLC00LjggMTEuNTA3LC0zLjAwNSAyMy42MjUsLTMuMDQ2IDM1LjEzMiwwLjEyMSAwLDEuMDk3IDAsNC4xMSAwLDUuMjA2IiAvPgogICAgICA8L2c+CiAgICAgIDxnCiAgICAgICAgIHRyYW5zZm9ybT0idHJhbnNsYXRlKDE3NC43MjEzLDMyMy4yOTM4KSIKICAgICAgICAgaWQ9Imc4ODciPgogICAgICAgIDxwYXRoCiAgICAgICAgICAgaWQ9InBhdGg4ODkiCiAgICAgICAgICAgc3R5bGU9ImZpbGw6I2JhOGY0YTtmaWxsLW9wYWNpdHk6MTtmaWxsLXJ1bGU6ZXZlbm9kZDtzdHJva2U6bm9uZSIKICAgICAgICAgICBkPSJtIDAsMCBjIDAuMTEsMS41NTYgLTMuMjY4LDIuNDU4IC02LjA0MywwLjg0NCAtMy4yNDUsLTIuNzEzIDMuMjExLC0zLjQxMyA0LjQyOSwtMS40MzMgMC4zNSwwLjcxMiAtMC4yNTYsMC44NjcgLTAuNzk4LDAuNTExIC0xLjAwOCwtMC42NjMgLTMuMzY5LC0wLjg4OSAtMy4xMzcsMC4xMjMgMC42ODMsMC44NyAzLjM1MiwwLjg1IDMuODE0LDAuNTg1IDMuNDEyLC0xLjY5MSAtMy40MzgsLTMuODcyIC01LjA5NiwtMi44MjMgLTQuMTkzLDEuNDQzIC01Ljg5NCwwLjU3NiAtNS44NTYsMC40NCAtMC4wNDgsLTAuNjQ2IDAuNDc1LC0wLjYwMiAxLjY1NSwtMC41NTMgMS4wNDEsMC4wNDIgMi4yMiwtMC4wNjggMy4xMjIsLTAuNTc5IDAsLTEuMzAyIDAuMTEzLC0yLjg4NiAwLjExMywtNC4xODcgMi43NjUsLTAuMTQgNS4xOTUsMC4yMjggNy4zMDksMS43MTIgQyAtMC40OTQsLTMuNzQyIDAuMTc2LC0wLjQzNCAwLDAiIC8+CiAgICAgIDwvZz4KICAgICAgPGcKICAgICAgICAgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTYzLjMyNjQsMzE1Ljg0ODMpIgogICAgICAgICBpZD0iZzg5MSI+CiAgICAgICAgPHBhdGgKICAgICAgICAgICBpZD0icGF0aDg5MyIKICAgICAgICAgICBzdHlsZT0iZmlsbDojMjMyNTU5O2ZpbGwtb3BhY2l0eToxO2ZpbGwtcnVsZTpldmVub2RkO3N0cm9rZTpub25lIgogICAgICAgICAgIGQ9Im0gMCwwIDAuMzc5LDAuMTE3IGMgMC4xMDMsLTAuMjg3IDAuMjc2LC0wLjQwOSAwLjUxOSwtMC4zNjMgMC4xMTksMC4wMjIgMC4yMDgsMC4wNyAwLjI2NCwwLjE0NCBDIDEuMjE5LC0wLjAyOSAxLjIzOCwwLjA1MyAxLjIyLDAuMTQyIDEuMjEsMC4xOTUgMS4xODksMC4yMzcgMS4xNTgsMC4yNyAxLjEyNiwwLjMwMiAxLjA4MywwLjMyNSAxLjAyOSwwLjM0IDAuOTc1LDAuMzU0IDAuODQ5LDAuMzcyIDAuNjQ4LDAuMzkyIDAuNDY5LDAuNDEgMC4zMzQsMC40NCAwLjI0NCwwLjQ4NCAwLjE1NCwwLjUyNyAwLjA3NiwwLjU5MSAwLjAxLDAuNjc2IC0wLjA1NSwwLjc2MiAtMC4wOTgsMC44NTkgLTAuMTIsMC45NjcgLTAuMTQ2LDEuMDk0IC0wLjEzOSwxLjIxMyAtMC4xLDEuMzI1IC0wLjA2MSwxLjQzNyAwLjAwNiwxLjUyOSAwLjEsMS42IDAuMTk1LDEuNjcxIDAuMzE5LDEuNzIxIDAuNDczLDEuNzUgMC43MDUsMS43OTQgMC44OTcsMS43NjcgMS4wNTEsMS42NyAxLjIwNiwxLjU3NCAxLjMxLDEuNDEzIDEuMzYyLDEuMTg5IEwgMC45NjksMS4wOTQgQyAwLjkyNiwxLjIxNiAwLjg3MSwxLjI5NSAwLjgwMywxLjMzNCAwLjczNiwxLjM3MiAwLjY0OCwxLjM4MSAwLjU0MSwxLjM2MSAwLjQzNCwxLjM0MSAwLjM1NiwxLjMwNCAwLjMwNywxLjI1MSAwLjI1OCwxLjE5NiAwLjIzOSwxLjEzOCAwLjI1MiwxLjA3MyAwLjI2NSwxLjAxIDAuMzAyLDAuOTYyIDAuMzYzLDAuOTI5IDAuNDI1LDAuODk1IDAuNTU1LDAuODcxIDAuNzU0LDAuODU0IDAuOTY1LDAuODM2IDEuMTIxLDAuODA0IDEuMjIyLDAuNzU5IDEuMzI0LDAuNzE0IDEuNDA4LDAuNjQ3IDEuNDc0LDAuNTU5IDEuNTQxLDAuNDcgMS41ODgsMC4zNTcgMS42MTYsMC4yMTggMS42NTcsMC4wMTcgMS42MjYsLTAuMTY0IDEuNTI2LC0wLjMyNSAxLjQyNSwtMC40ODYgMS4yMzgsLTAuNTkyIDAuOTY2LC0wLjY0MyAwLjQ4MywtMC43MzMgMC4xNjEsLTAuNTE5IDAsMCBtIC0yLjE2MywxLjI1NSAwLjM5NywwLjA2NyAwLjIzLC0xLjI1NyBjIDAuMDM2LC0wLjE5NiAwLjA2NCwtMC4zMjIgMC4wODUsLTAuMzggMC4wMzYsLTAuMDk5IDAuMDkyLC0wLjE3MSAwLjE2OSwtMC4yMTYgMC4wNzYsLTAuMDQ1IDAuMTY5LC0wLjA1OCAwLjI3NywtMC4wMzkgMC4wOTIsMC4wMTUgMC4xNjMsMC4wNDggMC4yMTUsMC4wOTcgMC4wNSwwLjA1IDAuMDgsMC4xMTIgMC4wODgsMC4xODYgMC4wMDksMC4wNzMgLTAuMDA4LDAuMjI2IC0wLjA1LDAuNDU3IGwgLTAuMjM1LDEuMjg1IDAuMzk5LDAuMDY4IDAuMjIzLC0xLjIyIGMgMC4wNTcsLTAuMzEyIDAuMDgxLC0wLjU0IDAuMDcyLC0wLjY4NCAtMC4wMSwtMC4xNDUgLTAuMDY2LC0wLjI3MSAtMC4xNzIsLTAuMzc3IC0wLjEwNSwtMC4xMDggLTAuMjU3LC0wLjE3NyAtMC40NTUsLTAuMjExIC0wLjIwNiwtMC4wMzUgLTAuMzczLC0wLjAyNyAtMC41MDIsMC4wMjUgLTAuMTI4LDAuMDUxIC0wLjIzLDAuMTM4IC0wLjMwNiwwLjI1OCAtMC4wNzYsMC4xMiAtMC4xNDUsMC4zNTQgLTAuMjA5LDAuNzAyIHogbSAtMS44NzYsLTIuNjI5IC0wLjI5OCwyLjM0IDAuNjAxLDAuMDcxIDAuNTY1LC0xLjU1NCAwLjE1NCwxLjYzOSAwLjYwMiwwLjA3MiAwLjI5OCwtMi4zNDEgLTAuMzcyLC0wLjA0NCAtMC4yMzUsMS44NDMgLTAuMTYxLC0xLjg5IC0wLjM4NywtMC4wNDUgLTAuNjI3LDEuNzk1IDAuMjM0LC0xLjg0MiB6IE0gLTUuMSwtMC42MDYgLTUuNDY5LDAuMjM3IC01LjY0NCwtMC42NjEgWiBtIDAuODQzLC0wLjg1MiAtMC40MzgsLTAuMDQ1IC0wLjIzMiwwLjUxNiAtMC43OTcsLTAuMDgxIC0wLjEwNiwtMC41NSAtMC40MjgsLTAuMDQzIDAuNTIxLDIuNDI0IDAuNDI2LDAuMDQzIHogbSAtMy41NjMsMS42MzUgMC4xNDEsLTEuNTU2IDAuMzAzLDAuMDI2IGMgMC4xMjksMC4wMSAwLjIyMywwLjAzIDAuMjc4LDAuMDU4IDAuMDU3LDAuMDI5IDAuMTAxLDAuMDY4IDAuMTM0LDAuMTE5IDAuMDMzLDAuMDUxIDAuMDU3LDAuMTI4IDAuMDcyLDAuMjMzIDAuMDE1LDAuMTA1IDAuMDE0LDAuMjQxIC0xMGUtNCwwLjQwOSAtMC4wMTYsMC4xNzMgLTAuMDQxLDAuMzEgLTAuMDc0LDAuNDA4IC0wLjAzNSwwLjA5OCAtMC4wOCwwLjE3NCAtMC4xMzgsMC4yMjcgLTAuMDU4LDAuMDU0IC0wLjEyNSwwLjA4NiAtMC4yMDIsMC4wOTggLTAuMDU5LDAuMDA5IC0wLjE2OCwwLjAwNyAtMC4zMywtMC4wMDcgeiBtIC0wLjQzNywwLjM2MyAwLjczNSwwLjA2MiBjIDAuMTg2LDAuMDE2IDAuMzI5LDAuMDA4IDAuNDI3LC0wLjAyNCAwLjA5OCwtMC4wMzIgMC4xOTIsLTAuMDkzIDAuMjgsLTAuMTgxIDAuMDg5LC0wLjA4OCAwLjE2MiwtMC4yMDYgMC4yMjIsLTAuMzU0IDAuMDU5LC0wLjE0OCAwLjA5OSwtMC4zMzQgMC4xMTksLTAuNTYgMC4wMTksLTAuMjAzIDAuMDExLC0wLjM4MSAtMC4wMjMsLTAuNTM2IC0wLjAzNCwtMC4xNTQgLTAuMDg0LC0wLjI3NyAtMC4xNDksLTAuMzcyIC0wLjA2NiwtMC4wOTMgLTAuMTQ4LC0wLjE2NiAtMC4yNDcsLTAuMjE5IC0wLjEsLTAuMDUzIC0wLjIzMSwtMC4wODcgLTAuMzk0LC0wLjEwMSBsIC0wLjc1NywtMC4wNjQgeiBtIC0xLjY1MiwtMi40NTQgLTAuMTI4LDIuMzU0IDEuNDg2LDAuMDc2IDAuMDIyLC0wLjM5OSAtMS4wODQsLTAuMDU1IDAuMDI5LC0wLjUyMiAxLjAwNiwwLjA1MSAwLjAyMiwtMC4zOTYgLTEuMDA3LC0wLjA1MSAwLjAzNSwtMC42NDEgMS4xMiwwLjA1NyAwLjAyMSwtMC4zOTcgeiBtIC0wLjc3MSwwLjg0IDAuMzk3LC0wLjEzMyBjIC0wLjA1MiwtMC4yNjYgLTAuMTQ2LC0wLjQ2MiAtMC4yODQsLTAuNTg4IC0wLjEzOCwtMC4xMjcgLTAuMzExLC0wLjE5MyAtMC41MTksLTAuMiAtMC4yNjEsLTAuMDA5IC0wLjQ3NiwwLjA4MSAtMC42NDUsMC4yNjkgLTAuMTk2LDAuMjE4IC0wLjMsMC41MTcgLTAuMzE0LDAuODk3IC0wLjAxNCwwLjQwMiAwLjA2OCwwLjcyIDAuMjQ4LDAuOTUzIDAuMTU2LDAuMjAzIDAuMzcyLDAuMzA5IDAuNjQ4LDAuMzE4IDAuMjI0LDAuMDA4IDAuNDE1LC0wLjA2IDAuNTcxLC0wLjIwMiAwLjExMiwtMC4xMDIgMC4xOTYsLTAuMjU1IDAuMjU0LC0wLjQ2IGwgLTAuMzk2LC0wLjEyNiBjIC0wLjAzLDAuMTI3IC0wLjA4NCwwLjIyMiAtMC4xNjMsMC4yODggLTAuMDc5LDAuMDY1IC0wLjE3LDAuMDk2IC0wLjI3MywwLjA5MyAtMC4xNDgsLTAuMDA1IC0wLjI2NiwtMC4wNzEgLTAuMzU1LC0wLjE5OSAtMC4wODksLTAuMTI3IC0wLjEyOCwtMC4zMzQgLTAuMTE4LC0wLjYyIDAuMDExLC0wLjI5NyAwLjA2NCwtMC41MDcgMC4xNiwtMC42MjkgMC4wOTUsLTAuMTIyIDAuMjE2LC0wLjE4MSAwLjM2MiwtMC4xNzYgMC4xMDcsMC4wMDQgMC4xOTcsMC4wNDcgMC4yNzIsMC4xMjkgMC4wNzUsMC4wODMgMC4xMjcsMC4yMTEgMC4xNTUsMC4zODYgbSAtMy4wOTYsMC4yNjQgYyAwLC0wLjI3MSAwLjA1NCwtMC40NzQgMC4xNiwtMC42MSAwLjEwNywtMC4xMzYgMC4yMzksLTAuMjA0IDAuMzk4LC0wLjIwNCAwLjE1OCwwIDAuMjksMC4wNjggMC4zOTUsMC4yMDIgMC4xMDUsMC4xMzUgMC4xNTYsMC4zNDEgMC4xNTYsMC42MiAwLDAuMjc0IC0wLjA1LDAuNDc2IC0wLjE1MiwwLjYwNyAtMC4xMDIsMC4xMyAtMC4yMzUsMC4xOTYgLTAuMzk5LDAuMTk2IC0wLjE2NSwwIC0wLjI5OSwtMC4wNjYgLTAuNDAzLC0wLjE5OCAtMC4xMDMsLTAuMTMyIC0wLjE1NSwtMC4zMzYgLTAuMTU1LC0wLjYxMyBtIC0wLjQxNywtMC4wMTYgYyAwLDAuMjgxIDAuMDQzLDAuNTEyIDAuMTMsMC42OTQgMC4wODYsMC4xODIgMC4xOTgsMC4zMTcgMC4zMzcsMC40MDYgMC4xMzksMC4wODkgMC4zMDgsMC4xMzQgMC41MDYsMC4xMzQgMC4yODcsMCAwLjUyLC0wLjEwNiAwLjcwMSwtMC4zMTcgMC4xODEsLTAuMjExIDAuMjcxLC0wLjUxMiAwLjI3MSwtMC45MDMgMCwtMC4zOTQgLTAuMDk1LC0wLjcwMiAtMC4yODcsLTAuOTI0IC0wLjE2OCwtMC4xOTcgLTAuMzk1LC0wLjI5NSAtMC42ODMsLTAuMjk1IC0wLjI5MSwwIC0wLjUyLDAuMDk4IC0wLjY4OCwwLjI5MSAtMC4xOTEsMC4yMjIgLTAuMjg3LDAuNTI3IC0wLjI4NywwLjkxNCBtIC0xLjUxMiwwLjIxOSAwLjMwMSwtMC4wMDUgYyAwLjE4MywtMC4wMDMgMC4zLDAuMDAzIDAuMzUsMC4wMTcgMC4wNTEsMC4wMTUgMC4wOTIsMC4wNDUgMC4xMjQsMC4wOTIgMC4wMzEsMC4wNDcgMC4wNDgsMC4xMDkgMC4wNSwwLjE4NyAwLjAwMSwwLjA3NiAtMC4wMTQsMC4xMzYgLTAuMDQ0LDAuMTgyIC0wLjAzLDAuMDQ3IC0wLjA3MiwwLjA3OSAtMC4xMjUsMC4wOTYgLTAuMDM3LDAuMDEzIC0wLjE0NywwLjAyIC0wLjMyOCwwLjAyMyBsIC0wLjMxNywwLjAwNiB6IG0gLTAuNDI4LC0xLjM1NCAwLjA0MiwyLjM1OCAwLjg1MywtMC4wMTUgYyAwLjIxOCwtMC4wMDMgMC4zNzMsLTAuMDI3IDAuNDY2LC0wLjA3MSAwLjA5MywtMC4wNDQgMC4xNjgsLTAuMTE5IDAuMjI2LC0wLjIyNCAwLjA1OCwtMC4xMDYgMC4wODYsLTAuMjMyIDAuMDgzLC0wLjM3NyAtMC4wMDMsLTAuMTg1IC0wLjA1MiwtMC4zMzMgLTAuMTQ1LC0wLjQ0NCAtMC4wOTQsLTAuMTExIC0wLjIyNiwtMC4xNzkgLTAuMzk1LC0wLjIwNSAwLjA4NSwtMC4wNjIgMC4xNTYsLTAuMTI4IDAuMjExLC0wLjIwMSAwLjA1NSwtMC4wNzIgMC4xMzEsLTAuMjAxIDAuMjI1LC0wLjM4NyBsIDAuMjM1LC0wLjQ2NCAtMC40ODIsMC4wMDggLTAuMjg0LDAuNTE4IGMgLTAuMTAyLDAuMTg3IC0wLjE3MiwwLjMwNCAtMC4yMDksMC4zNTIgLTAuMDM3LDAuMDQ3IC0wLjA3NywwLjA3OSAtMC4xMTgsMC4wOTggLTAuMDQyLDAuMDE5IC0wLjExLDAuMDI4IC0wLjIwMywwLjAzIGwgLTAuMDg0LDAuMDAxIC0wLjAxOCwtMC45ODQgeiBtIC0xLjM5NiwyLjAwNyAtMC4wMjQsLTAuNjY5IDAuMjIzLC0wLjAwNyBjIDAuMTUxLC0wLjAwNSAwLjI1MywwLjAwMSAwLjMwOCwwLjAyIDAuMDU0LDAuMDE4IDAuMSwwLjA1MyAwLjEzNiwwLjEwNiAwLjAzNiwwLjA1MiAwLjA1NiwwLjExNiAwLjA1OSwwLjE5MyAwLjAwMiwwLjA3OCAtMC4wMTMsMC4xNDUgLTAuMDQ2LDAuMTk5IC0wLjAzNCwwLjA1NSAtMC4wNzcsMC4wOTMgLTAuMTI4LDAuMTEzIC0wLjA1MiwwLjAyIC0wLjE2MiwwLjAzMiAtMC4zMzEsMC4wMzggeiBtIC0wLjQ3NCwtMS45NDQgMC4wODUsMi4zNTYgMC42NSwtMC4wMjIgYyAwLjI0MywtMC4wMDggMC40MDEsLTAuMDI1IDAuNDc0LC0wLjA1IDAuMTE4LC0wLjA0IDAuMjEzLC0wLjEyMSAwLjI4NiwtMC4yNDIgMC4wNzMsLTAuMTIyIDAuMTA2LC0wLjI3NiAwLjEsLTAuNDY0IC0wLjAwNywtMC4xNzEgLTAuMDQ1LC0wLjMxMiAtMC4xMTYsLTAuNDI1IC0wLjA3MSwtMC4xMTMgLTAuMTU3LC0wLjE5MSAtMC4yNTksLTAuMjM0IC0wLjEwMiwtMC4wNDQgLTAuMjc1LC0wLjA2MSAtMC41MTksLTAuMDUzIGwgLTAuMjY2LDAuMDA5IC0wLjAzMiwtMC44ODkgeiBtIC0xLjU3LDAuMDkyIDAuMTcxLDIuMzUzIDAuNDAyLC0wLjAyOCAtMC4xNywtMi4zNTIgeiBtIC0xLjQ4NCwxLjQ4MyAwLjMsLTAuMDI2IGMgMC4xODIsLTAuMDE1IDAuMjk5LC0wLjAxNyAwLjM1LC0wLjAwNiAwLjA1MiwwLjAxMSAwLjA5NSwwLjAzOSAwLjEzLDAuMDgzIDAuMDM1LDAuMDQ1IDAuMDU3LDAuMTA2IDAuMDY0LDAuMTg0IDAuMDA3LDAuMDc1IC0wLjAwNCwwLjEzNiAtMC4wMywwLjE4NCAtMC4wMjcsMC4wNDggLTAuMDY2LDAuMDgzIC0wLjExOCwwLjEwNCAtMC4wMzcsMC4wMTYgLTAuMTQ2LDAuMDMgLTAuMzI2LDAuMDQ2IGwgLTAuMzE2LDAuMDI2IHogbSAtMC41MjUsLTEuMzIyIDAuMjEzLDIuMzQ5IDAuODQ5LC0wLjA3MiBjIDAuMjE3LC0wLjAxOCAwLjM3MSwtMC4wNTMgMC40NiwtMC4xMDMgMC4wODksLTAuMDUgMC4xNTksLTAuMTI5IDAuMjA5LC0wLjIzOCAwLjA1MSwtMC4xMSAwLjA2OSwtMC4yMzcgMC4wNTYsLTAuMzgyIC0wLjAxNywtMC4xODQgLTAuMDc1LC0wLjMyOCAtMC4xNzcsLTAuNDMzIC0wLjEwMiwtMC4xMDQgLTAuMjM4LC0wLjE2MyAtMC40MDksLTAuMTc4IDAuMDgxLC0wLjA2NyAwLjE0NywtMC4xMzggMC4xOTYsLTAuMjE0IDAuMDUsLTAuMDc2IDAuMTE2LC0wLjIxIDAuMTk3LC0wLjQwMiBsIDAuMjAxLC0wLjQ3OSAtMC40OCwwLjA0MSAtMC4yNDcsMC41MzYgYyAtMC4wODgsMC4xOTMgLTAuMTQ5LDAuMzE1IC0wLjE4MywwLjM2NSAtMC4wMzMsMC4wNDkgLTAuMDcsMC4wODQgLTAuMTExLDAuMTA2IC0wLjA0LDAuMDIxIC0wLjEwNywwLjAzNSAtMC4yLDAuMDQzIGwgLTAuMDgzLDAuMDA3IC0wLjA4OSwtMC45OCB6IG0gLTEuMTU5LDAuOTk1IDAuMDQzLDAuMzk1IDAuODY3LC0wLjA4OCAtMC4xMDEsLTAuOTM0IGMgLTAuMDk5LC0wLjA5IC0wLjIzMiwtMC4xNjMgLTAuNCwtMC4yMTggLTAuMTY4LC0wLjA1NiAtMC4zMzMsLTAuMDc1IC0wLjQ5NSwtMC4wNTggLTAuMTk2LDAuMDIgLTAuMzY1LDAuMDgzIC0wLjUwNSwwLjE5MiAtMC4xNCwwLjEwOSAtMC4yNDUsMC4yNjEgLTAuMzEyLDAuNDU2IC0wLjA2NywwLjE5NSAtMC4wODgsMC40MTggLTAuMDYsMC42NjkgMC4wMjgsMC4yNTkgMC4wOTcsMC40NzUgMC4yMDUsMC42NDkgMC4xMDksMC4xNzUgMC4yNCwwLjMgMC4zOTIsMC4zNzYgMC4xNTIsMC4wNzYgMC4zMjcsMC4xMDQgMC41MjUsMC4wODQgMC4yMzgsLTAuMDI0IDAuNDIyLC0wLjEwMSAwLjU1MywtMC4yMzMgMC4xMywtMC4xMzEgMC4yMDMsLTAuMzExIDAuMjIsLTAuNTQyIEwgLTIyLjIxNywwLjA1IGMgLTAuMDE2LDAuMTI0IC0wLjA2MSwwLjIyMiAtMC4xMzQsMC4yOTQgLTAuMDczLDAuMDcyIC0wLjE2NCwwLjExNCAtMC4yNzUsMC4xMjUgLTAuMTcxLDAuMDE3IC0wLjMxOCwtMC4wMzMgLTAuNDM3LC0wLjE1MSAtMC4xMjEsLTAuMTE3IC0wLjE5NSwtMC4zMDggLTAuMjI0LC0wLjU3MiAtMC4wMywtMC4yODIgMC4wMDMsLTAuNTAzIDAuMTAyLC0wLjY2MSAwLjA4NSwtMC4xMzggMC4yMTIsLTAuMjE0IDAuMzc5LC0wLjIzMSAwLjA3OSwtMC4wMDggMC4xNjMsMTBlLTQgMC4yNTEsMC4wMjggMC4wODksMC4wMjggMC4xNjksMC4wNjkgMC4yNDMsMC4xMjQgbCAwLjAzMiwwLjI5NyB6IG0gLTIuODU2LC0wLjUwOCAwLjI5OCwyLjM0IDEuNDc3LC0wLjE3NSAtMC4wNSwtMC4zOTYgLTEuMDc3LDAuMTI4IC0wLjA2NiwtMC41MTkgMSwtMC4xMTggLTAuMDUsLTAuMzk0IC0xLDAuMTE4IC0wLjA4MSwtMC42MzcgMS4xMTIsLTAuMTMyIC0wLjA1LC0wLjM5NCB6IG0gLTEuMjY2LDAuMiAwLjI4MiwxLjkzOSAtMC41OSwwLjA4IDAuMDU4LDAuMzk2IDEuNTc4LC0wLjIxNCAtMC4wNTgsLTAuMzk1IC0wLjU4OCwwLjA3OSAtMC4yODMsLTEuOTQgeiBtIC0yLjQzMiwwLjQxNSAwLjQyNSwyLjMyMiAwLjM4OCwtMC4wNjYgMC41MjQsLTEuNjg4IDAuMjg0LDEuNTUxIDAuMzcxLC0wLjA2MyAtMC40MjUsLTIuMzIyIC0wLjQwMSwwLjA2OCAtMC41MTgsMS42NDkgLTAuMjc3LC0xLjUxNCB6IG0gLTAuNzYyLDAuMTMxIDAuNDY3LDIuMzE1IDAuMzk2LC0wLjA3NCAtMC40NjYsLTIuMzE1IHoiIC8+CiAgICAgIDwvZz4KICAgICAgPGcKICAgICAgICAgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTIyLjgxMDIsMzIzLjE2MikiCiAgICAgICAgIGlkPSJnODk1Ij4KICAgICAgICA8cGF0aAogICAgICAgICAgIGlkPSJwYXRoODk3IgogICAgICAgICAgIHN0eWxlPSJmaWxsOiNiYThmNGE7ZmlsbC1vcGFjaXR5OjE7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlOm5vbmUiCiAgICAgICAgICAgZD0iTSAwLDAgQyAtMC4xMSwxLjU1NiAzLjI2OCwyLjQ1OCA2LjA0MywwLjg0NCA5LjI4OCwtMS44NjkgMi44MzIsLTIuNTY5IDEuNjE0LC0wLjU4OSAxLjI2NCwwLjEyMyAxLjg3LDAuMjc4IDIuNDEyLC0wLjA3OCAzLjQyLC0wLjc0MSA1Ljc4MSwtMC45NjcgNS41NDksMC4wNDUgNC44NjYsMC45MTUgMi4xOTcsMC44OTUgMS43MzUsMC42MyBjIC0zLjQxMiwtMS42OTEgMy40MzgsLTMuODcyIDUuMDk2LC0yLjgyMyA0LjE5MywxLjQ0MyA1Ljg5NCwwLjU3NiA1Ljg1NiwwLjQ0IDAuMDQ4LC0wLjY0NiAtMC40NzUsLTAuNjAyIC0xLjY1NSwtMC41NTMgQyA5Ljk5MSwtMi4yNjQgOC44MTIsLTIuMzc0IDcuOTEsLTIuODg1IDcuOTEsLTQuMTg3IDcuNzk3LC01Ljc3MSA3Ljc5NywtNy4wNzIgNS4wMzIsLTcuMjEyIDIuNjAyLC02Ljg0NCAwLjQ4OCwtNS4zNiAwLjQ5NSwtMy43NDIgLTAuMTc2LC0wLjQzNCAwLDAiIC8+CiAgICAgIDwvZz4KICAgICAgPGcKICAgICAgICAgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTcwLjEyMSwzNzQuNzU0OCkiCiAgICAgICAgIGlkPSJnODk5Ij4KICAgICAgICA8cGF0aAogICAgICAgICAgIGlkPSJwYXRoOTAxIgogICAgICAgICAgIHN0eWxlPSJmaWxsOiMyMzI1NTk7ZmlsbC1vcGFjaXR5OjE7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlOm5vbmUiCiAgICAgICAgICAgZD0ibSAwLDAgaCAtNDIuNjggdiAtNDAuMDA3IGMgMCwtMTMuMzMzIDExLjk0MywtOC40NDUgMjEuMzM3LC0xMy44NzUgQyAtMTAuNDYsLTQ3LjIyNCAwLC01NC4zMjQgMCwtNDAuMDA3IFoiIC8+CiAgICAgIDwvZz4KICAgICAgPHBhdGgKICAgICAgICAgaWQ9InBhdGg5MDMiCiAgICAgICAgIHN0eWxlPSJmaWxsOiNmZmZmZmY7ZmlsbC1vcGFjaXR5OjE7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlOm5vbmUiCiAgICAgICAgIGQ9Im0gMTI3LjQxMSwzNTQuNjY0IGggNDIuNjk4IHYgLTAuNzMyIGggLTQyLjY5OCB6IiAvPgogICAgICA8ZwogICAgICAgICB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxNjIuMzY5LDM3My42NDM5KSIKICAgICAgICAgaWQ9Imc5MDUiPgogICAgICAgIDxwYXRoCiAgICAgICAgICAgaWQ9InBhdGg5MDciCiAgICAgICAgICAgc3R5bGU9ImZpbGw6I2JhOGY0YTtmaWxsLW9wYWNpdHk6MTtmaWxsLXJ1bGU6ZXZlbm9kZDtzdHJva2U6bm9uZSIKICAgICAgICAgICBkPSJNIDAsMCAtMC4xODYsLTAuMzczIC0wLjMsLTAuNjAxIC0wLjQ0MiwtMC44ODQgLTAuMjc2LC0xLjE2MSAtMC41ODcsLTEuNDE1IGMgLTAuMDY0LC0wLjA1MiAwLjE0LC0wLjE2OSAwLjA5LC0wLjIzNSBsIC0wLjE2NiwtMC4yMTkgYyAtMC43MDMsLTAuOTI3IC0wLjI0NSwtMi4zODcgMC4yNDksLTQuMzYxIC0wLjMwOSwtMC41MzMgLTIuMDI0LDAuMTg5IC0yLjc1MSwxLjAyIC0wLjE4OCwtMC44NDIgMC44NjYsLTMuMjQ4IDIuMDc0LC0zLjU4NSBsIDAuMjA3LC0wLjU5NCBjIC0xLjI4MywtMC4zMjIgLTMuNDMzLDEuMzIgLTMuNTkzLDEuNDU2IC0wLjEyNCwtMi4xNjUgMS41LC0zLjY5NSAzLjA0NiwtNC40MDcgMC4xNTMsLTAuMDcxIDAuMDkzLC0wLjY1MiAwLjIxMiwtMC43ODMgLTEuNDg5LC0wLjM2MyAtMi44NzUsMS4wMjIgLTQuMTExLDEuNzY3IDAuMTE1LC0xLjczMiAwLjk1MiwtMy4wNzEgMi4xNjUsLTMuODE3IGwgMC43NDMsLTAuMDIyIC0wLjE0MSwtMC4zNjYgMC41MDksMC4xIDAuMDY4LC0wLjU1NSAwLjQzMiwwLjI5MyAwLjIyNywtMC40MSAwLjE5MSwtMC4zNjMgYyAwLjI4OCwtMC42OTEgMC4xODIsLTEuNzMyIDAuMjk0LC0yLjY4NiAxLjAxMSwwIDEuNTgyLDAgMi41OTQsMCAtMC4xNjksMS41MTUgLTAuMTc5LDEuNTE1IDAuMjUzLDMuNzAzIDEuNjI5LDAuNjczIDMuMTk1LDIuMTI5IDMuMTM5LDQuMDY0IC0wLjkyNywtMC43MjkgLTIuNjE0LC0xLjU3OCAtMy44MjQsLTEuNDU2IGwgMC4xOTIsMC42NDcgYyAwLjIxOSwwLjMyMSAyLjY2NSwwLjA0OCAzLjQ1Myw0LjQyNyAtMS4xNTUsLTEuMjA5IC0yLjUwMiwtMS40MDggLTMuNTM3LC0xLjQ2MSAtMC4wNjEsMC4wOTggMC4wMzcsMC4xOTUgMC4wMzQsMC4zODIgMC43ODYsMC44OTggMS43MDUsMC45OTggMS44MTgsMy42NjIgLTAuODQzLC0wLjY2NyAtMi4xMDIsLTEuMzI1IC0yLjc5MiwtMS4wODMgMS4wOSwyLjUwMyAwLjkzLDMuMzQxIDAuMzU1LDQuNDEzIEMgMC44MDUsLTEuODEzIDAuNTM0LC0xLjc1IDAuNTUxLC0xLjY3IEwgMC42LC0xLjQ0IDAuMzA3LC0xLjA0NiAwLjM0NSwtMC43NTEgQyAwLjM3OCwtMC41MDEgMC4wNjgsLTAuMjczIDAsMCIgLz4KICAgICAgPC9nPgogICAgICA8ZwogICAgICAgICB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxMzMuMzgxMywzNDAuMzIxOSkiCiAgICAgICAgIGlkPSJnOTA5Ij4KICAgICAgICA8cGF0aAogICAgICAgICAgIGlkPSJwYXRoOTExIgogICAgICAgICAgIHN0eWxlPSJmaWxsOiNiYThmNGE7ZmlsbC1vcGFjaXR5OjE7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlOm5vbmUiCiAgICAgICAgICAgZD0ibSAwLDAgYyAwLjY0OCwtMC40OTYgMS40OTEsLTAuOTkzIDIuMTQsLTEuNDg5IDIuMzEyLDAuNDc1IDEwLjc4NCwyLjYzMyAxMS45OTUsLTIuNjU1IC0wLjM2MSwtNC45OTkgLTQuMTg5LC01LjI5NSAtNi4wOTUsLTQuMjA4IC0xLjQ4LDEuNDIgLTIuMDc0LDMuOTcyIDAuNDg5LDUuMDAzIDIuMjE5LDAuNTM1IDIuNzUzLC0xLjUwMyAxLjgyNiwtMS44NzIgLTIuMTcsLTAuODYzIDAuNTU2LC0yLjU4IDEuNjE3LC0wLjAzNCAwLjY4OCw0LjIzMyAtNy4wMzIsNC40NzMgLTYuNTIxLC0wLjk1NiAwLjM1NSwtMy43ODcgNC43MjcsLTQuODAyIDcuMjU3LC0zLjE3NyA0LjM2NiwyLjkxNCAyLjcwMiw3LjY0MiAwLjA2NSw5LjQ1NSBDIDcuNTQzLDAuMDg5IDUuMjMsLTAuMDIxIDAsMCBNIDAsMCBDIDAuNjQ4LDAuNDk2IDEuNDkxLDAuOTkzIDIuMTQsMS40ODkgNC40NTIsMS4wMTQgMTIuOTI0LC0xLjE0NCAxNC4xMzUsNC4xNDMgMTMuNzc0LDkuMTQzIDkuOTQ2LDkuNDM5IDguMDQsOC4zNTIgNi41Niw2LjkzMiA1Ljk2Niw0LjM4IDguNTI5LDMuMzQ5IGMgMi4yMTksLTAuNTM1IDIuNzUzLDEuNTAzIDEuODI2LDEuODcyIC0yLjE3LDAuODYzIDAuNTU2LDIuNTggMS42MTcsMC4wMzQgQyAxMi42NiwxLjAyMiA0Ljk0LDAuNzgyIDUuNDUxLDYuMjExIDUuODA2LDkuOTk4IDEwLjE3OCwxMS4wMTMgMTIuNzA4LDkuMzg4IDE3LjA3NCw2LjQ3NCAxNS40MSwxLjg3NyAxMi43NzMsMC4wNjUgNy41NDMsMC4wNDMgNS4yMywwLjAyMSAwLDAgbSAxNS4zOTksMC44MDkgYyAwLjQ0NywwIDAuODExLC0wLjM2MyAwLjgxMSwtMC44MDkgMCwtMC40NDYgLTAuMzY0LC0wLjgwOSAtMC44MTEsLTAuODA5IC0wLjQ0NiwwIC0wLjgxLDAuMzYzIC0wLjgxLDAuODA5IDAsMC40NDYgMC4zNjQsMC44MDkgMC44MSwwLjgwOSBNIDMwLjc5OSwwIGMgLTAuNjQ4LDAuNDk2IC0xLjQ5MSwwLjk5MyAtMi4xNCwxLjQ4OSAtMi4zMTIsLTAuNDc1IC0xMC43ODQsLTIuNjMzIC0xMS45OTUsMi42NTQgMC4zNjEsNSA0LjE4OSw1LjI5NiA2LjA5NSw0LjIwOSAxLjQ4LC0xLjQyIDIuMDc0LC0zLjk3MiAtMC40ODksLTUuMDAzIC0yLjIxOSwtMC41MzUgLTIuNzUzLDEuNTAzIC0xLjgyNiwxLjg3MiAyLjE2OSwwLjg2MyAtMC41NTYsMi41OCAtMS42MTcsMC4wMzQgLTAuNjg4LC00LjIzMyA3LjAzMiwtNC40NzMgNi41MjEsMC45NTYgLTAuMzU1LDMuNzg3IC00LjcyNyw0LjgwMiAtNy4yNTcsMy4xNzcgQyAxMy43MjUsNi40NzQgMTUuMzg5LDEuNzQ2IDE4LjAyNiwtMC4wNjcgMjMuMjU2LC0wLjA4OSAyNS41NjksMC4wMjEgMzAuNzk5LDAgbSAwLDAgYyAtMC42NDgsLTAuNDk2IC0xLjQ5MSwtMC45OTMgLTIuMTQsLTEuNDg5IC0yLjMxMiwwLjQ3NSAtMTAuNzg0LDIuNjMzIC0xMS45OTUsLTIuNjU1IDAuMzYxLC00Ljk5OSA0LjE4OSwtNS4yOTUgNi4wOTUsLTQuMjA4IDEuNDgsMS40MiAyLjA3NCwzLjk3MiAtMC40ODksNS4wMDMgLTIuMjE5LDAuNTM1IC0yLjc1MywtMS41MDMgLTEuODI2LC0xLjg3MiAyLjE2OSwtMC44NjMgLTAuNTU2LC0yLjU4IC0xLjYxNywtMC4wMzQgLTAuNjg4LDQuMjMzIDcuMDMyLDQuNDczIDYuNTIxLC0wLjk1NiAtMC4zNTUsLTMuNzg3IC00LjcyNywtNC44MDIgLTcuMjU3LC0zLjE3NyAtNC4zNjYsMi45MTQgLTIuNzAyLDcuNTEgLTAuMDY1LDkuMzIzIDUuMjMsMC4wMjIgNy41NDMsMC4wNDQgMTIuNzczLDAuMDY1IiAvPgogICAgICA8L2c+CiAgICAgIDxnCiAgICAgICAgIHRyYW5zZm9ybT0idHJhbnNsYXRlKDEzMy4zODEzLDM0MC4zMjE5KSIKICAgICAgICAgaWQ9Imc5MTMiPgogICAgICAgIDxwYXRoCiAgICAgICAgICAgaWQ9InBhdGg5MTUiCiAgICAgICAgICAgc3R5bGU9ImZpbGw6bm9uZTtzdHJva2U6I2JhOGY0YTtzdHJva2Utd2lkdGg6MC4wMjU7c3Ryb2tlLWxpbmVjYXA6YnV0dDtzdHJva2UtbGluZWpvaW46bWl0ZXI7c3Ryb2tlLW1pdGVybGltaXQ6Mi42MTM7c3Ryb2tlLWRhc2hhcnJheTpub25lO3N0cm9rZS1vcGFjaXR5OjEiCiAgICAgICAgICAgZD0ibSAwLDAgYyAwLjY0OCwtMC40OTYgMS40OTEsLTAuOTkzIDIuMTQsLTEuNDg5IDIuMzEyLDAuNDc1IDEwLjc4NCwyLjYzMyAxMS45OTUsLTIuNjU1IC0wLjM2MSwtNC45OTkgLTQuMTg5LC01LjI5NSAtNi4wOTUsLTQuMjA4IC0xLjQ4LDEuNDIgLTIuMDc0LDMuOTcyIDAuNDg5LDUuMDAzIDIuMjE5LDAuNTM1IDIuNzUzLC0xLjUwMyAxLjgyNiwtMS44NzIgLTIuMTcsLTAuODYzIDAuNTU2LC0yLjU4IDEuNjE3LC0wLjAzNCAwLjY4OCw0LjIzMyAtNy4wMzIsNC40NzMgLTYuNTIxLC0wLjk1NiAwLjM1NSwtMy43ODcgNC43MjcsLTQuODAyIDcuMjU3LC0zLjE3NyA0LjM2NiwyLjkxNCAyLjcwMiw3LjY0MiAwLjA2NSw5LjQ1NSBDIDcuNTQzLDAuMDg5IDUuMjMsLTAuMDIxIDAsMCBaIE0gMCwwIEMgMC42NDgsMC40OTYgMS40OTEsMC45OTMgMi4xNCwxLjQ4OSA0LjQ1MiwxLjAxNCAxMi45MjQsLTEuMTQ0IDE0LjEzNSw0LjE0MyAxMy43NzQsOS4xNDMgOS45NDYsOS40MzkgOC4wNCw4LjM1MiA2LjU2LDYuOTMyIDUuOTY2LDQuMzggOC41MjksMy4zNDkgYyAyLjIxOSwtMC41MzUgMi43NTMsMS41MDMgMS44MjYsMS44NzIgLTIuMTcsMC44NjMgMC41NTYsMi41OCAxLjYxNywwLjAzNCBDIDEyLjY2LDEuMDIyIDQuOTQsMC43ODIgNS40NTEsNi4yMTEgNS44MDYsOS45OTggMTAuMTc4LDExLjAxMyAxMi43MDgsOS4zODggMTcuMDc0LDYuNDc0IDE1LjQxLDEuODc3IDEyLjc3MywwLjA2NSA3LjU0MywwLjA0MyA1LjIzLDAuMDIxIDAsMCBaIG0gMTUuMzk5LDAuODA5IGMgMC40NDcsMCAwLjgxMSwtMC4zNjMgMC44MTEsLTAuODA5IDAsLTAuNDQ2IC0wLjM2NCwtMC44MDkgLTAuODExLC0wLjgwOSAtMC40NDYsMCAtMC44MSwwLjM2MyAtMC44MSwwLjgwOSAwLDAuNDQ2IDAuMzY0LDAuODA5IDAuODEsMC44MDkgeiBNIDMwLjc5OSwwIGMgLTAuNjQ4LDAuNDk2IC0xLjQ5MSwwLjk5MyAtMi4xNCwxLjQ4OSAtMi4zMTIsLTAuNDc1IC0xMC43ODQsLTIuNjMzIC0xMS45OTUsMi42NTQgMC4zNjEsNSA0LjE4OSw1LjI5NiA2LjA5NSw0LjIwOSAxLjQ4LC0xLjQyIDIuMDc0LC0zLjk3MiAtMC40ODksLTUuMDAzIC0yLjIxOSwtMC41MzUgLTIuNzUzLDEuNTAzIC0xLjgyNiwxLjg3MiAyLjE2OSwwLjg2MyAtMC41NTYsMi41OCAtMS42MTcsMC4wMzQgLTAuNjg4LC00LjIzMyA3LjAzMiwtNC40NzMgNi41MjEsMC45NTYgLTAuMzU1LDMuNzg3IC00LjcyNyw0LjgwMiAtNy4yNTcsMy4xNzcgQyAxMy43MjUsNi40NzQgMTUuMzg5LDEuNzQ2IDE4LjAyNiwtMC4wNjcgMjMuMjU2LC0wLjA4OSAyNS41NjksMC4wMjEgMzAuNzk5LDAgWiBtIDAsMCBjIC0wLjY0OCwtMC40OTYgLTEuNDkxLC0wLjk5MyAtMi4xNCwtMS40ODkgLTIuMzEyLDAuNDc1IC0xMC43ODQsMi42MzMgLTExLjk5NSwtMi42NTUgMC4zNjEsLTQuOTk5IDQuMTg5LC01LjI5NSA2LjA5NSwtNC4yMDggMS40OCwxLjQyIDIuMDc0LDMuOTcyIC0wLjQ4OSw1LjAwMyAtMi4yMTksMC41MzUgLTIuNzUzLC0xLjUwMyAtMS44MjYsLTEuODcyIDIuMTY5LC0wLjg2MyAtMC41NTYsLTIuNTggLTEuNjE3LC0wLjAzNCAtMC42ODgsNC4yMzMgNy4wMzIsNC40NzMgNi41MjEsLTAuOTU2IC0wLjM1NSwtMy43ODcgLTQuNzI3LC00LjgwMiAtNy4yNTcsLTMuMTc3IC00LjM2NiwyLjkxNCAtMi43MDIsNy41MSAtMC4wNjUsOS4zMjMgNS4yMywwLjAyMiA3LjU0MywwLjA0NCAxMi43NzMsMC4wNjUgeiIgLz4KICAgICAgPC9nPgogICAgICA8ZwogICAgICAgICB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxNDguOTkzMiwzNzMuNjQzOSkiCiAgICAgICAgIGlkPSJnOTE3Ij4KICAgICAgICA8cGF0aAogICAgICAgICAgIGlkPSJwYXRoOTE5IgogICAgICAgICAgIHN0eWxlPSJmaWxsOiNiYThmNGE7ZmlsbC1vcGFjaXR5OjE7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlOm5vbmUiCiAgICAgICAgICAgZD0iTSAwLDAgLTAuMTg2LC0wLjM3MyAtMC4zLC0wLjYwMSAtMC40NDIsLTAuODg0IC0wLjI3NiwtMS4xNjEgLTAuNTg3LC0xLjQxNSBjIC0wLjA2NCwtMC4wNTIgMC4xNCwtMC4xNjkgMC4wOSwtMC4yMzUgbCAtMC4xNjYsLTAuMjE5IGMgLTAuNzAzLC0wLjkyNyAtMC4yNDUsLTIuMzg3IDAuMjQ5LC00LjM2MSAtMC4zMDksLTAuNTMzIC0yLjAyNCwwLjE4OSAtMi43NTEsMS4wMiAtMC4xODgsLTAuODQyIDAuODY2LC0zLjI0OCAyLjA3NCwtMy41ODUgbCAwLjIwNywtMC41OTQgYyAtMS4yODMsLTAuMzIyIC0zLjQzMywxLjMyIC0zLjU5MywxLjQ1NiAtMC4xMjQsLTIuMTY1IDEuNSwtMy42OTUgMy4wNDYsLTQuNDA3IDAuMTU0LC0wLjA3MSAwLjA5MywtMC42NTIgMC4yMTIsLTAuNzgzIC0xLjQ4OSwtMC4zNjMgLTIuODc1LDEuMDIyIC00LjExMSwxLjc2NyAwLjExNSwtMS43MzIgMC45NTIsLTMuMDcxIDIuMTY2LC0zLjgxNyBsIDAuNzQyLC0wLjAyMiAtMC4xNDEsLTAuMzY2IDAuNTA5LDAuMSAwLjA2OCwtMC41NTUgMC40MzIsMC4yOTMgMC4yMjcsLTAuNDEgMC4xOTIsLTAuMzYzIGMgMC4yODcsLTAuNjkxIDAuMTgxLC0xLjczMiAwLjI5MywtMi42ODYgMS4wMTEsMCAxLjU4MiwwIDIuNTk0LDAgLTAuMTY5LDEuNTE1IC0wLjE3OSwxLjUxNSAwLjI1MywzLjcwMyAxLjYyOSwwLjY3MyAzLjE5NSwyLjEyOSAzLjEzOSw0LjA2NCAtMC45MjcsLTAuNzI5IC0yLjYxNCwtMS41NzggLTMuODI0LC0xLjQ1NiBsIDAuMTkyLDAuNjQ3IGMgMC4yMTksMC4zMjEgMi42NjUsMC4wNDggMy40NTMsNC40MjcgLTEuMTU1LC0xLjIwOSAtMi41MDIsLTEuNDA4IC0zLjUzNywtMS40NjEgLTAuMDYxLDAuMDk4IDAuMDM3LDAuMTk1IDAuMDM0LDAuMzgyIDAuNzg2LDAuODk4IDEuNzA1LDAuOTk4IDEuODE4LDMuNjYyIC0wLjg0MywtMC42NjcgLTIuMTAyLC0xLjMyNSAtMi43OTIsLTEuMDgzIDEuMDksMi41MDMgMC45MywzLjM0MSAwLjM1NSw0LjQxMyBDIDAuODA1LC0xLjgxMyAwLjUzNCwtMS43NSAwLjU1MSwtMS42NyBMIDAuNiwtMS40NCAwLjMwNywtMS4wNDYgMC4zNDUsLTAuNzUxIEMgMC4zNzgsLTAuNTAxIDAuMDY4LC0wLjI3MyAwLDAiIC8+CiAgICAgIDwvZz4KICAgICAgPGcKICAgICAgICAgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTM1LjE4NDUsMzczLjY0MzkpIgogICAgICAgICBpZD0iZzkyMSI+CiAgICAgICAgPHBhdGgKICAgICAgICAgICBpZD0icGF0aDkyMyIKICAgICAgICAgICBzdHlsZT0iZmlsbDojYmE4ZjRhO2ZpbGwtb3BhY2l0eToxO2ZpbGwtcnVsZTpldmVub2RkO3N0cm9rZTpub25lIgogICAgICAgICAgIGQ9Ik0gMCwwIC0wLjE4NiwtMC4zNzMgLTAuMywtMC42MDEgLTAuNDQxLC0wLjg4NCAtMC4yNzYsLTEuMTYxIC0wLjU4NywtMS40MTUgYyAtMC4wNjQsLTAuMDUyIDAuMTQsLTAuMTY5IDAuMDksLTAuMjM1IGwgLTAuMTY2LC0wLjIxOSBjIC0wLjcwMywtMC45MjcgLTAuMjQ1LC0yLjM4NyAwLjI0OSwtNC4zNjEgLTAuMzA5LC0wLjUzMyAtMi4wMjQsMC4xODkgLTIuNzUxLDEuMDIgLTAuMTg4LC0wLjg0MiAwLjg2NiwtMy4yNDggMi4wNzQsLTMuNTg1IGwgMC4yMDcsLTAuNTk0IGMgLTEuMjgzLC0wLjMyMiAtMy40MzMsMS4zMiAtMy41OTMsMS40NTYgLTAuMTI0LC0yLjE2NSAxLjUsLTMuNjk1IDMuMDQ2LC00LjQwNyAwLjE1NCwtMC4wNzEgMC4wOTMsLTAuNjUyIDAuMjEyLC0wLjc4MyAtMS40ODksLTAuMzYzIC0yLjg3NSwxLjAyMiAtNC4xMTEsMS43NjcgMC4xMTUsLTEuNzMyIDAuOTUyLC0zLjA3MSAyLjE2NiwtMy44MTcgbCAwLjc0MiwtMC4wMjIgLTAuMTQxLC0wLjM2NiAwLjUwOSwwLjEgMC4wNjgsLTAuNTU1IDAuNDMyLDAuMjkzIDAuMjI3LC0wLjQxIDAuMTkxLC0wLjM2MyBjIDAuMjg4LC0wLjY5MSAwLjE4MiwtMS43MzIgMC4yOTQsLTIuNjg2IDEuMDExLDAgMS41ODIsMCAyLjU5NCwwIC0wLjE2OSwxLjUxNSAtMC4xNzksMS41MTUgMC4yNTMsMy43MDMgMS42MjksMC42NzMgMy4xOTUsMi4xMjkgMy4xMzksNC4wNjQgLTAuOTI3LC0wLjcyOSAtMi42MTQsLTEuNTc4IC0zLjgyNCwtMS40NTYgbCAwLjE5MiwwLjY0NyBjIDAuMjE5LDAuMzIxIDIuNjY1LDAuMDQ4IDMuNDUzLDQuNDI3IC0xLjE1NSwtMS4yMDkgLTIuNTAyLC0xLjQwOCAtMy41MzcsLTEuNDYxIC0wLjA2MSwwLjA5OCAwLjAzNywwLjE5NSAwLjAzNCwwLjM4MiAwLjc4NiwwLjg5OCAxLjcwNSwwLjk5OCAxLjgxOCwzLjY2MiAtMC44NDMsLTAuNjY3IC0yLjEwMiwtMS4zMjUgLTIuNzkyLC0xLjA4MyAxLjA5LDIuNTAzIDAuOTMsMy4zNDEgMC4zNTUsNC40MTMgQyAwLjgwNSwtMS44MTMgMC41MzQsLTEuNzUgMC41NTEsLTEuNjcgTCAwLjYsLTEuNDQgMC4zMDcsLTEuMDQ2IDAuMzQ1LC0wLjc1MSBDIDAuMzc4LC0wLjUwMSAwLjA2OCwtMC4yNzMgMCwwIiAvPgogICAgICA8L2c+CiAgICAgIDxwYXRoCiAgICAgICAgIGlkPSJwYXRoOTI1IgogICAgICAgICBzdHlsZT0iZmlsbDojYmE4ZjRhO2ZpbGwtb3BhY2l0eToxO2ZpbGwtcnVsZTpldmVub2RkO3N0cm9rZTpub25lIgogICAgICAgICBkPSJtIDEyNy40NDEsMzU0Ljc1MSBoIDQyLjY2NyB2IC0wLjgyIGggLTQyLjY2NyB6IiAvPgogICAgPC9nPgogIDwvZz4KPC9zdmc+Cg==");
+    background-size:contain; background-repeat:no-repeat; background-position:center;
+  }
+  .kiosk-card h1{
+    font-family:'Bebas Neue',sans-serif; font-size:32px; letter-spacing:0.02em;
+    line-height:0.9; margin:0 0 4px; text-align:center; color:var(--text);
+  }
+  .pin-dots{ display:flex; justify-content:center; gap:10px; margin:20px 0 22px; }
+  .pin-dot{ width:14px; height:14px; border-radius:50%; border:1.5px solid var(--line-strong); transition:all .1s ease; }
+  .pin-dot.filled{ background:var(--blue); border-color:var(--blue); }
+  .pin-pad{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .pin-key{
+    background:var(--panel-alt); border:1px solid var(--line); color:var(--text); border-radius:8px;
+    padding:16px 0; font-size:18px; font-weight:700; cursor:pointer; font-family:'JetBrains Mono',monospace;
+    transition:transform .08s ease, border-color .12s ease, color .12s ease, background .12s ease;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .pin-key:hover{border-color:var(--blue); color:var(--blue);}
+  .pin-key:active{transform:scale(0.94); background:var(--blue-dim);}
+  .pin-key.wide{font-size:13px;}
+  .pin-dots.shake{animation:pinShake .32s ease;}
+  @keyframes pinShake{
+    0%,100%{transform:translateX(0);} 20%{transform:translateX(-7px);}
+    40%{transform:translateX(6px);} 60%{transform:translateX(-4px);} 80%{transform:translateX(3px);}
+  }
+  .pin-dot.error{border-color:var(--danger);}
+  .pin-error{ text-align:center; color:var(--danger); font-size:12px; margin-top:12px; min-height:16px; }
+  .setup-warning{
+    background:var(--danger-dim); border:1px solid rgba(192,57,43,0.3); color:var(--danger);
+    font-size:12px; padding:10px 12px; border-radius:8px; margin-bottom:18px; line-height:1.5;
+  }
+
+  .photo-thumb-cell{
+    width:34px; height:34px; border-radius:7px; object-fit:cover; border:1px solid var(--line); display:block;
+  }
+  .photo-thumb-placeholder{
+    width:34px; height:34px; border-radius:7px; background:var(--panel-alt); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; color:var(--text-faint); font-size:13px;
+  }
+
+  /* Dashboard */
+  #deskScreen .wrap{ max-width:1220px; margin:0 auto; padding:32px 20px 80px; }
+  header{
+    display:flex; justify-content:space-between; align-items:flex-end; gap:24px; flex-wrap:wrap;
+    margin-bottom:18px; border-bottom:3px solid var(--gold); padding-bottom:20px;
+  }
+  header h1{
+    font-family:'Bebas Neue',sans-serif; font-size:clamp(36px,5.5vw,58px); letter-spacing:0.02em;
+    line-height:0.9; margin:0; color:var(--text);
+  }
+  .header-left .brand-eyebrow{text-align:left; margin-bottom:6px;}
+  .tally{ display:flex; background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden; box-shadow:0 1px 3px rgba(15,29,59,0.04); flex-wrap:wrap; }
+  .tally-cell{ padding:12px 18px; text-align:center; border-right:1px solid var(--line); min-width:88px; }
+  .tally-cell:last-child{border-right:none;}
+  .tally-num{ font-family:'Bebas Neue',sans-serif; font-size:30px; color:var(--blue); line-height:1; }
+  .tally-label{ font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dim); margin-top:4px; }
+
+  /* Activity switcher — a section row (Gym / Tennis / Swimming) and,
+     when the active section is Tennis or Swimming, a second row to
+     choose between its Leisure and Lessons activity. */
+  .activity-switcher{ display:flex; flex-direction:column; gap:8px; margin-bottom:22px; }
+  .activity-switcher-row{ display:flex; gap:8px; flex-wrap:wrap; }
+  .activity-switcher-subrow{ padding-left:6px; }
+  .activity-pill{
+    display:flex; align-items:center; gap:8px; background:var(--panel); border:1px solid var(--line);
+    color:var(--text-dim); padding:10px 16px; border-radius:10px; cursor:pointer; font-weight:700;
+    font-size:12.5px; font-family:'Inter',sans-serif; transition:all .12s ease;
+  }
+  .activity-pill:hover{ border-color:var(--blue); color:var(--blue); }
+  .activity-pill.active{ background:var(--blue); border-color:var(--blue); color:#fff; }
+  .activity-pill-sub{ background:var(--panel-alt); font-size:11.5px; padding:8px 14px; }
+  .activity-pill-badge{
+    background:var(--gold); color:#fff; font-family:'JetBrains Mono',monospace; font-size:10.5px;
+    font-weight:800; border-radius:20px; padding:1px 7px; min-width:18px; text-align:center;
+  }
+  .activity-pill.active .activity-pill-badge{ background:rgba(255,255,255,0.28); }
+
+  .tab-bar{ display:flex; gap:8px; margin-bottom:22px; background:var(--panel-alt); padding:5px; border-radius:11px; }
+  .tab-btn{
+    flex:1; background:transparent; border:none; color:var(--text-dim);
+    padding:11px 10px; border-radius:8px; cursor:pointer; font-weight:700; font-size:12.5px;
+    font-family:'Inter',sans-serif; text-transform:uppercase; letter-spacing:0.02em;
+    display:flex; align-items:center; justify-content:center; gap:7px;
+  }
+  .tab-btn.active{ background:var(--panel); color:var(--blue); box-shadow:0 1px 3px rgba(15,29,59,0.08); }
+  .tab-badge{
+    background:var(--blue-dim); color:var(--blue); font-family:'JetBrains Mono',monospace;
+    font-size:11px; font-weight:800; border-radius:20px; padding:2px 8px;
+  }
+  .tab-btn.active .tab-badge{ background:var(--blue); color:#fff; }
+
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block; animation:panelFade .18s ease;}
+  @keyframes panelFade{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+
+  .panel{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:24px; box-shadow:0 1px 3px rgba(15,29,59,0.04); }
+  .panel-title{
+    font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.14em; text-transform:uppercase;
+    color:var(--text-dim); margin:0 0 18px; display:flex; align-items:center; gap:8px; justify-content:space-between;
+    flex-wrap:wrap;
+  }
+  .panel-title-label{display:flex;align-items:center;gap:8px;}
+  .panel-title-label::before{ content:""; width:6px; height:6px; background:var(--gold); border-radius:1px; display:inline-block; }
+  .live-dot{ display:flex; align-items:center; gap:6px; font-size:10px; color:var(--text-dim); text-transform:none; letter-spacing:0; }
+  .live-dot .dot{ width:6px; height:6px; border-radius:50%; background:var(--blue); animation:pulse 1.6s infinite; }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+  .table-toolbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; gap:12px; flex-wrap:wrap; }
+  .search-box{
+    background:var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%238B98AC'%3E%3Cpath fill-rule='evenodd' d='M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.6 4.2l3.6 3.6a.75.75 0 11-1.06 1.06l-3.6-3.6A7 7 0 012 9z' clip-rule='evenodd'/%3E%3C/svg%3E") no-repeat 11px center;
+    background-size:14px; border:1px solid var(--line-strong); border-radius:8px; padding:9px 12px 9px 32px;
+    color:var(--text); font-size:13px; font-family:'Inter',sans-serif; min-width:200px; outline:none;
+    transition:border-color .12s ease, box-shadow .12s ease;
+  }
+  .search-box:focus{border-color:var(--blue); box-shadow:0 0 0 3px var(--blue-dim);}
+  .toolbar-actions{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+  .btn-ghost{
+    background:transparent; border:1px solid var(--line-strong); color:var(--text); font-size:12.5px;
+    padding:10px 14px; border-radius:8px; cursor:pointer; font-weight:600; font-family:'Inter',sans-serif;
+  }
+  .btn-ghost:hover{border-color:var(--blue); color:var(--blue);}
+
+  .table-scroll{ overflow-x:auto; }
+  table{width:100%; border-collapse:collapse; font-size:13.5px; min-width:900px;}
+  thead th{
+    text-align:left; font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.06em;
+    text-transform:uppercase; color:var(--text-dim); padding:0 10px 10px; border-bottom:1px solid var(--line);
+    white-space:nowrap; user-select:none; position:sticky; top:0; background:var(--panel); z-index:1;
+  }
+  thead th[data-key]{ cursor:pointer; }
+  thead th[data-key]:hover{color:var(--blue);}
+  thead th .arrow{opacity:0.5; font-size:9px; margin-left:3px;}
+  tbody td{ padding:12px 10px; border-bottom:1px solid var(--line); vertical-align:middle; white-space:nowrap; }
+  tbody tr:hover{background:var(--panel-alt);}
+  .name-cell{font-weight:600; color:var(--text);}
+  .id-cell{font-family:'JetBrains Mono',monospace; font-size:12.5px; color:var(--text-dim);}
+  .badge{ display:inline-block; padding:4px 9px; border-radius:20px; font-size:11px; font-weight:700; letter-spacing:0.02em; white-space:nowrap; }
+  .badge-c1{background:var(--blue-dim); color:var(--blue);}
+  .badge-c2{background:rgba(30,79,214,0.14); color:var(--blue-dark);}
+  .badge-c3{background:var(--gold-dim); color:var(--gold-dark);}
+  .badge-c4{background:var(--danger-dim); color:var(--danger);}
+  .badge-c5{background:rgba(15,143,120,0.12); color:#0F8F78;}
+  .badge-c6{background:rgba(111,66,193,0.12); color:#6F42C1;}
+  .badge-c7{background:rgba(91,107,133,0.14); color:var(--text-dim);}
+  .dur-tag{font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--text-dim);}
+  .empty-state{text-align:center; padding:60px 20px; color:var(--text-dim);}
+  .empty-state .icon{font-size:34px; margin-bottom:10px; opacity:0.5;}
+  .empty-state p{margin:4px 0; font-size:13px;}
+  .foot-note{margin-top:14px; font-size:11.5px; color:var(--text-faint); font-family:'JetBrains Mono',monospace;}
+  .cleared-note{
+    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    background:var(--danger-dim); border:1px solid rgba(192,57,43,0.28); color:var(--danger);
+    font-size:12px; padding:10px 14px; border-radius:9px; margin-bottom:14px; line-height:1.5;
+  }
+  .cleared-note button{
+    background:none; border:none; color:var(--danger); font-weight:700; font-size:12px; cursor:pointer;
+    text-decoration:underline; font-family:'Inter',sans-serif; padding:0; flex-shrink:0;
+  }
+  .group-row td{
+    background:var(--panel-alt); font-family:'JetBrains Mono',monospace; font-size:11px;
+    letter-spacing:0.06em; text-transform:uppercase; color:var(--text-dim);
+    padding:9px 10px; border-bottom:1px solid var(--line); border-top:1px solid var(--line); white-space:normal;
+  }
+  .group-row td span.group-count{ color:var(--text-faint); text-transform:none; letter-spacing:0; }
+  tr.expired-row{ background:var(--danger-dim); }
+  tr.expired-row:hover{ background:rgba(192,57,43,0.16); }
+  tr.expired-row td{ border-bottom-color:rgba(192,57,43,0.25); }
+  .status-tag{
+    font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700;
+    padding:3px 8px; border-radius:20px; white-space:nowrap;
+  }
+  .status-expired{ background:rgba(192,57,43,0.16); color:var(--danger); }
+  .legend{
+    display:flex; align-items:center; gap:6px; font-size:11px; color:var(--text-dim);
+    font-family:'JetBrains Mono',monospace;
+  }
+  .legend .swatch{ width:10px; height:10px; border-radius:2px; background:var(--danger-dim); border:1px solid var(--danger); }
+
+  /* Approval cards */
+  .approval-card{
+    background:var(--panel-alt); border:1px solid var(--line); border-radius:12px;
+    padding:18px 20px; margin-bottom:14px;
+  }
+  .approval-head{
+    display:flex; justify-content:space-between; align-items:flex-start; gap:14px; margin-bottom:14px;
+    flex-wrap:wrap;
+  }
+  .approval-name{ font-family:'Bebas Neue',sans-serif; font-size:24px; letter-spacing:0.02em; color:var(--text); }
+  .approval-sub{ font-size:12px; color:var(--text-dim); margin-top:2px; }
+  .approval-actions{ display:flex; gap:8px; flex-shrink:0; }
+  .approval-renewal-note{
+    font-size:12.5px; color:var(--text-dim); background:var(--gold-dim);
+    border:1px solid var(--gold); border-radius:8px; padding:9px 12px; margin-bottom:14px;
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  }
+  .approve-btn, .reject-btn{
+    border:none; border-radius:8px; padding:9px 16px; font-weight:800; font-size:12.5px;
+    text-transform:uppercase; letter-spacing:0.03em; cursor:pointer; font-family:'Inter',sans-serif;
+  }
+  .approve-btn{ background:var(--blue); color:#fff; }
+  .approve-btn:hover{background:var(--blue-dark);}
+  .reject-btn{ background:transparent; border:1px solid var(--danger); color:var(--danger); }
+  .reject-btn:hover{ background:var(--danger-dim); }
+  .approve-btn[disabled], .reject-btn[disabled]{ opacity:0.4; cursor:not-allowed; }
+  .detail-grid{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px 20px;
+  }
+  .detail-item .dlabel{
+    font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.06em; text-transform:uppercase;
+    color:var(--text-faint); margin-bottom:3px;
+  }
+  .detail-item .dvalue{ font-size:13px; color:var(--text); word-break:break-word; }
+  /* Pulled out of the detail-grid so it can't get lost among a dozen
+     other fields — staff need to find this one fast. Yellow for
+     emergency contact, red for medical conditions, so the two are
+     still visually distinct from a glance. */
+  .emergency-callout{
+    display:flex; flex-wrap:wrap; align-items:center; gap:8px;
+    background:var(--yellow-dim); border:1px solid rgba(202,138,4,0.35); border-left:4px solid var(--yellow);
+    border-radius:8px; padding:10px 12px; margin-bottom:14px;
+  }
+  .emergency-callout-label{
+    font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--yellow-dark); font-weight:800; flex-shrink:0;
+  }
+  .emergency-callout-value{ font-size:13px; color:var(--text); font-weight:600; word-break:break-word; }
+  .emergency-callout-empty{ color:var(--text-faint); font-weight:400; }
+  .medical-callout{
+    display:flex; flex-wrap:wrap; align-items:center; gap:8px;
+    background:var(--danger-dim); border:1px solid rgba(192,57,43,0.35); border-left:4px solid var(--danger);
+    border-radius:8px; padding:10px 12px; margin-bottom:14px;
+  }
+  .medical-callout-label{
+    font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--danger); font-weight:800; flex-shrink:0;
+  }
+  .medical-callout-value{ font-size:13px; color:var(--text); font-weight:600; word-break:break-word; }
+  .medical-callout-empty{ color:var(--text-faint); font-weight:400; }
+
+  /* Walk-in quick-entry form */
+  .walkin-card{
+    background:var(--panel-alt); border:1px solid var(--line); border-radius:12px;
+    padding:18px 20px; margin-bottom:18px;
+  }
+  .walkin-title{ font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:0.02em; margin:0 0 2px; color:var(--text); }
+  .walkin-sub{ font-size:12px; color:var(--text-dim); margin:0 0 16px; }
+  .walkin-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .walkin-card .field{ margin-bottom:12px; }
+  .walkin-card label{
+    display:block; font-size:11.5px; font-weight:700; color:var(--text-dim);
+    margin:0 0 5px; text-transform:uppercase; letter-spacing:0.03em;
+  }
+  .walkin-card input[type=text], .walkin-card select{
+    width:100%; background:var(--bg); border:1px solid var(--line-strong); color:var(--text);
+    padding:10px 11px; border-radius:8px; font-family:'Inter',sans-serif; font-size:14px; outline:none;
+  }
+  .walkin-card input:focus, .walkin-card select:focus{ border-color:var(--blue); box-shadow:0 0 0 3px var(--blue-dim); }
+  .walkin-card .field-error{ font-size:11px; color:var(--danger); margin-top:4px; display:none; }
+  .walkin-card .field.invalid input, .walkin-card .field.invalid select{ border-color:var(--danger); }
+  .walkin-card .field.invalid .field-error{ display:block; }
+  .walkin-card .phone-group{ display:flex; gap:8px; }
+  .walkin-card .phone-group select{ flex:0 0 108px; }
+  .walkin-card .phone-group input{ flex:1; min-width:0; }
+  .walkin-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:4px; }
+
+  .toast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--blue); color:#fff; padding:12px 22px; border-radius:8px;
+    font-weight:700; font-size:13.5px; opacity:0; transition:all .25s ease; pointer-events:none; z-index:50;
+    box-shadow:0 8px 24px rgba(15,29,59,0.2);
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  .toast.error{background:var(--danger);}
+  @media (max-width:860px){ header{flex-direction:column; align-items:flex-start;} }
+
+  .code-modal-overlay{
+    position:fixed; inset:0; background:rgba(15,29,59,0.55);
+    display:none; align-items:center; justify-content:center; padding:20px; z-index:300;
+  }
+  .code-modal-overlay.show{display:flex;}
+  .code-modal{
+    background:var(--panel); border:1px solid var(--line); border-radius:16px;
+    padding:32px 28px 26px; max-width:360px; width:100%; text-align:center;
+    box-shadow:0 20px 60px rgba(15,29,59,0.3); animation:codeModalPop .18s ease;
+  }
+  @keyframes codeModalPop{ from{opacity:0; transform:scale(0.96);} to{opacity:1; transform:scale(1);} }
+  .code-modal-eyebrow{
+    font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.14em;
+    text-transform:uppercase; color:var(--blue); margin-bottom:8px;
+  }
+  .code-modal-name{ font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:0.02em; color:var(--text); line-height:1; }
+  .code-modal-sub{ font-size:12.5px; color:var(--text-dim); margin-top:4px; }
+  .code-modal-code{
+    font-family:'JetBrains Mono',monospace; font-weight:700; font-size:42px; letter-spacing:0.06em;
+    color:var(--blue); background:var(--blue-dim); border:1px solid var(--line); border-radius:12px;
+    padding:16px 10px; margin:20px 0 12px; word-break:break-all;
+  }
+  .code-modal-hint{ font-size:12px; color:var(--text-faint); margin:0 0 22px; line-height:1.5; }
+  .code-modal-actions{ display:flex; gap:10px; }
+  .code-modal-actions button{
+    flex:1; border-radius:8px; padding:12px 0; font-weight:800; font-size:12.5px;
+    text-transform:uppercase; letter-spacing:0.03em; cursor:pointer; font-family:'Inter',sans-serif;
+  }
+  .code-modal-copy{ background:var(--panel-alt); color:var(--blue); border:1px solid var(--line); }
+  .code-modal-copy:hover{ border-color:var(--blue); }
+  .code-modal-copy.copied{ background:var(--blue-dim-strong); color:var(--blue-dark); border-color:var(--blue); }
+  .code-modal-done{ background:var(--blue); color:#fff; border:none; }
+  .code-modal-done:hover{ background:var(--blue-dark); }
+
+  .alert-banner{ display:flex; flex-direction:column; gap:8px; margin-bottom:16px; }
+  .alert-item{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    background:var(--danger-dim); border:1px solid rgba(192,57,43,0.3); border-radius:10px;
+    padding:12px 14px;
+  }
+  .alert-item-text{ font-size:13px; color:var(--text); }
+  .alert-item-text strong{ color:var(--danger); }
+  .alert-item-sub{ font-size:11.5px; color:var(--text-dim); margin-top:2px; }
+  .alert-dismiss-btn{
+    flex-shrink:0; background:transparent; border:1px solid var(--danger); color:var(--danger);
+    border-radius:7px; padding:7px 12px; font-size:12px; font-weight:700; cursor:pointer;
+  }
+  .alert-dismiss-btn:hover{ background:var(--danger-dim); }
+
+  .pin-key:focus-visible, .tab-btn:focus-visible, .btn-ghost:focus-visible, .activity-pill:focus-visible,
+  .approve-btn:focus-visible, .reject-btn:focus-visible, thead th[data-key]:focus-visible{
+    outline:2px solid var(--blue); outline-offset:2px;
+  }
+
+  .approval-card{ transition:box-shadow .12s ease, border-color .12s ease; }
+  .approval-card:hover{ border-color:var(--line-strong); box-shadow:0 2px 10px rgba(15,29,59,0.06); }
+  .tab-btn{ transition:background .12s ease, color .12s ease, box-shadow .12s ease; }
+  tbody tr{ transition:background .1s ease; }
+
+  /* ---- Phone screens ---- */
+  @media (max-width:640px){
+    #deskScreen .wrap{ padding:18px 12px 60px; }
+    .panel{ padding:14px; }
+    .tab-btn{ font-size:10.5px; padding:10px 4px; letter-spacing:0.01em; }
+    .walkin-row{ grid-template-columns:1fr; }
+    .approval-actions{ width:100%; }
+    .approval-actions .approve-btn, .approval-actions .reject-btn{ flex:1; padding:11px 10px; }
+    .table-toolbar .search-box{ width:100%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="screen active" id="pinScreen">
+  <div class="kiosk-card">
+    <div class="brand-lockup">
+      <span class="brand-logo" role="img" aria-label="University of Ghana coat of arms"></span>
+      <p class="brand-eyebrow">University of Ghana Sports and Wellness Directorate Front Desk</p>
+    </div>
+    <h1>CONFIDENTIAL</h1>
+    <div class="setup-warning" id="setupWarning" style="display:none;">
+      ⚠ SCRIPT_URL isn't set yet. Open this file's code and paste in your Apps Script /exec URL.
+    </div>
+    <div class="pin-dots" id="pinDots">
+      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+    </div>
+    <div class="pin-pad">
+      <button class="pin-key" data-k="1">1</button>
+      <button class="pin-key" data-k="2">2</button>
+      <button class="pin-key" data-k="3">3</button>
+      <button class="pin-key" data-k="4">4</button>
+      <button class="pin-key" data-k="5">5</button>
+      <button class="pin-key" data-k="6">6</button>
+      <button class="pin-key" data-k="7">7</button>
+      <button class="pin-key" data-k="8">8</button>
+      <button class="pin-key" data-k="9">9</button>
+      <button class="pin-key wide" id="pinCancel">Clear</button>
+      <button class="pin-key" data-k="0">0</button>
+      <button class="pin-key wide" id="pinClear">⌫</button>
+    </div>
+    <p class="pin-error" id="pinError"></p>
+    <p style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--text-faint);margin-top:6px;">Default PIN: 1234</p>
+  </div>
+</div>
+
+<div class="screen" id="deskScreen">
+  <div class="wrap">
+    <header>
+      <div class="header-left">
+        <div class="brand-lockup">
+          <span class="brand-logo" role="img" aria-label="University of Ghana coat of arms"></span>
+          <p class="brand-eyebrow">University of Ghana Sports and Wellness Directorate — Main Front Desk</p>
+        </div>
+        <h1>CHECK-IN LOG</h1>
+      </div>
+      <div class="tally" id="tally"></div>
+    </header>
+
+    <div class="activity-switcher" id="activitySwitcher"></div>
+
+    <div class="alert-banner" id="alertBanner" style="display:none;"></div>
+
+    <div class="tab-bar">
+      <button class="tab-btn active" data-tab="approvals">
+        Approvals <span class="tab-badge" id="pendingBadge">0</span>
+      </button>
+      <button class="tab-btn" data-tab="table">Registration Table</button>
+      <button class="tab-btn" data-tab="visits">Visit Log</button>
+    </div>
+
+    <div class="tab-panel active" id="tab-approvals">
+      <div class="panel">
+        <p class="panel-title">
+          <span class="panel-title-label">Pending Registrations — <span id="approvalsActivityLabel"></span></span>
+          <span class="live-dot"><span class="dot"></span> live from Google Sheet</span>
+        </p>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;">
+          <button class="btn-ghost" id="approvalsRefreshBtn">↻ Refresh</button>
+          <button class="btn-ghost" id="walkinToggleBtn">+ Add Walk-in</button>
+        </div>
+        <p class="foot-note" id="walkinUnavailableNote" style="display:none;margin:0 0 14px;">Walk-ins aren't available for this program — members must register for the plan.</p>
+
+        <div class="walkin-card" id="walkinCard" style="display:none;">
+          <p class="walkin-title">Quick Walk-in Entry</p>
+          <p class="walkin-sub" id="walkinSub">Checks them in immediately — no approval needed, and no code is issued.</p>
+          <form id="walkinForm" novalidate>
+            <div class="walkin-row">
+              <div class="field" id="wf-field-class">
+                <label for="wfClass">Category</label>
+                <select id="wfClass"></select>
+              </div>
+              <div class="field" id="wf-field-id" style="display:none;">
+                <label for="wfId">ID No.</label>
+                <input type="text" id="wfId" placeholder="ID number">
+                <p class="field-error">Required for this category.</p>
+              </div>
+            </div>
+            <div class="walkin-row">
+              <div class="field" id="wf-field-surname">
+                <label for="wfSurname">Surname</label>
+                <input type="text" id="wfSurname" placeholder="e.g. Owusu">
+                <p class="field-error">Required.</p>
+              </div>
+              <div class="field" id="wf-field-otherNames">
+                <label for="wfOtherNames">Other Names</label>
+                <input type="text" id="wfOtherNames" placeholder="e.g. Kwame">
+                <p class="field-error">Required.</p>
+              </div>
+            </div>
+            <div class="field" id="wf-field-phone">
+              <label for="wfPhone">Phone Number <span style="text-transform:none;font-weight:400;color:var(--text-dim);">(optional)</span></label>
+              <div class="phone-group">
+                <select id="wfPhoneCode"></select>
+                <input type="text" id="wfPhone" placeholder="24 123 4567" inputmode="tel">
+              </div>
+            </div>
+            <div class="walkin-actions">
+              <button type="button" class="btn-ghost" id="walkinCancelBtn">Cancel</button>
+              <button type="submit" class="approve-btn" id="walkinSubmitBtn" style="padding:9px 18px;">Sign In</button>
+            </div>
+          </form>
+        </div>
+
+        <div id="approvalsHost"></div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-table">
+      <div class="panel">
+        <p class="panel-title">
+          <span class="panel-title-label">Registration Table — <span id="tableActivityLabel"></span></span>
+          <span class="live-dot"><span class="dot"></span> live from Google Sheet</span>
+        </p>
+        <div class="table-toolbar">
+          <input type="text" class="search-box" id="searchBox" placeholder="Search name, phone, or ID/Code…">
+          <div class="toolbar-actions">
+            <span class="legend"><span class="swatch"></span> expired / used up</span>
+            <button class="btn-ghost" id="refreshBtn">↻ Refresh</button>
+            <button class="btn-ghost" id="exportBtn" style="border-color:var(--gold); color:var(--gold-dark);">⬇ Export to Excel</button>
+            <button class="btn-ghost" id="clearListBtn" style="border-color:var(--danger); color:var(--danger);">🧹 Clear List</button>
+          </div>
+        </div>
+        <div class="cleared-note" id="clearedNote" style="display:none;"></div>
+        <div class="table-scroll"><div id="tableHost"></div></div>
+        <p class="foot-note" id="footNote"></p>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-visits">
+      <div class="panel">
+        <p class="panel-title">
+          <span class="panel-title-label">Visit Log — <span id="visitsActivityLabel"></span></span>
+          <span class="live-dot"><span class="dot"></span> live from Google Sheet</span>
+        </p>
+        <div class="table-toolbar">
+          <input type="text" class="search-box" id="visitSearchBox" placeholder="Search name, category, or ID/Code…">
+          <div class="toolbar-actions">
+            <button class="btn-ghost" id="visitsRefreshBtn">↻ Refresh</button>
+          </div>
+        </div>
+        <div class="table-scroll"><div id="visitsTableHost"></div></div>
+        <p class="foot-note" id="visitsFootNote"></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="code-modal-overlay" id="codeModalOverlay">
+  <div class="code-modal" role="dialog" aria-modal="true" aria-labelledby="codeModalName">
+    <div class="code-modal-eyebrow">Approved</div>
+    <div class="code-modal-name" id="codeModalName"></div>
+    <div class="code-modal-sub" id="codeModalSub"></div>
+    <div class="code-modal-code" id="codeModalCode"></div>
+    <p class="code-modal-hint">Give this code to the member — they'll use it to sign in, sign out, and renew.</p>
+    <div class="code-modal-actions">
+      <button type="button" class="code-modal-copy" id="codeModalCopyBtn">Copy Code</button>
+      <button type="button" class="code-modal-done" id="codeModalDoneBtn">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ---- PASTE YOUR APPS SCRIPT WEB APP URL HERE (same one used in registration-app.html) ----
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwUCJRzZC--3sh2uOi9bRfLjgtMCNlZE4BmCJSURohckusFCxRatuemTUB1XpP-Al6vDQ/exec";
+  // -------------------------------------------------------------------------------------------
+
+  // Wraps fetch+json with a couple of quick, silent retries before
+  // giving up — a single dropped packet or a slow Apps Script cold
+  // start used to surface immediately as a scary "couldn't reach the
+  // sheet" toast on the very first hiccup. Retrying almost always
+  // clears it before the user ever sees anything.
+  // Apps Script Web Apps on a free/consumer account have a real cap on
+  // how many executions of this script can run at once — every open
+  // front desk tab polling every few seconds, every registrant sitting
+  // on an approval-wait or walk-in-status poll, all hitting the same
+  // script, can genuinely exceed it at a busy moment. That shows up
+  // here as fetch() rejecting or the response not being valid JSON
+  // (Google serves an HTML "too many requests" page instead) — not a
+  // real network outage, just the script momentarily too busy to take
+  // one more concurrent execution, which normally clears within a
+  // couple of seconds as other requests finish. The old 2-retry/500ms
+  // policy gave that under 1.5 seconds total to clear before giving up
+  // and telling someone "No connection" — nowhere near enough. This
+  // retries more patiently (5 attempts total, roughly doubling the
+  // wait each time: 0.6s, 1.2s, 2.4s, 4.8s) so a genuine busy-moment
+  // failure gets a real chance to resolve itself before surfacing as
+  // an error.
+  function fetchJSON(url, options, attempt){
+    if(attempt === undefined) attempt = 0;
+    return fetch(url, options)
+      .then(r => r.json())
+      .catch(err => {
+        if(attempt < 4){
+          return new Promise(resolve => setTimeout(resolve, 600 * Math.pow(2, attempt)))
+            .then(() => fetchJSON(url, options, attempt + 1));
+        }
+        throw err;
+      });
+  }
+  const STAFF_PIN = "1234";
+  // Cut from 15s (then 5s): staff waiting on a walk-in or registration
+  // to show up (submitted from the registrant app, or another front
+  // desk) were feeling that delay directly — this should feel close to
+  // immediate. Safe to run this tight because scheduleAutoRefresh()
+  // below is self-rescheduling, not a plain setInterval — the next
+  // cycle is only queued once the current one fully settles, so a slow
+  // patch can never pile up overlapping requests the way a fixed
+  // interval would. Bumped from 3000 to 5000 — now that the dashboard
+  // view only brings back today's visits (see getRecentVisits in
+  // Code.gs) instead of the whole ever-growing history, each cycle
+  // is far cheaper than it used to be, so this is just a bit more
+  // headroom, not a reaction to that fix specifically.
+  const AUTO_REFRESH_MS = 5000;
+
+  if(!SCRIPT_URL || SCRIPT_URL.indexOf("PASTE_") === 0){
+    document.getElementById('setupWarning').style.display = 'block';
+  }
+
+  // Matches Code.gs's DATE_FORMAT ("dd/MM/yyyy") — zero-padded day,
+  // then month, then year.
+  function formatDateDMY(d){
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    return `${dd}/${mm}/${d.getFullYear()}`;
+  }
+  function escapeHtml(str){
+    const d = document.createElement('div');
+    d.textContent = str == null ? '' : String(str);
+    return d.innerHTML;
+  }
+
+  // photoUrl/signatureUrl store Drive's "view" link (file.getUrl(), e.g.
+  // .../file/d/<ID>/view) — that's the right link for "View photo →"
+  // (opens Drive's own viewer in a new tab), but a browser can't render
+  // that page as an <img>, so a thumbnail dropped straight into <img
+  // src> just shows a broken-image icon. This pulls the file ID back
+  // out and builds Drive's thumbnail endpoint instead, which does serve
+  // raw image bytes and is what every inline <img> below should use.
+  function driveThumbUrl(url, size){
+    if(!url) return '';
+    const m = String(url).match(/\/d\/([-\w]{10,})/) || String(url).match(/[?&]id=([-\w]{10,})/);
+    if(!m) return url;
+    return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w${size || 200}`;
+  }
+
+  /* ===================== ACTIVITIES (mirrors Code.gs ACTIVITIES — keep in sync) ===================== */
+  const FAMILY_CATEGORY = "Family Package (Max 5)";
+  const LESSON_STYLE_CATEGORIES = [
+    "UG Student", "UG Staff",
+    "UG Staff Relation (Under 17)", "UG Staff Relation (17 & Above)",
+    "Public Child (Under 17)", "Public Adult (17 & Above)",
+    FAMILY_CATEGORY
+  ];
+  const UG_STAFF_RELATION_CATEGORIES = ["UG Staff Relation (Under 17)", "UG Staff Relation (17 & Above)"];
+  const ACTIVITIES = {
+    gym: {
+      key: "gym", label: "Gymnasium",
+      categories: ["UG Student", "UG Staff", "Non-UG Student", "Public"],
+      idRequiredCategories: ["UG Student", "UG Staff"],
+      durations: { "Walk-in": {days:1}, "Monthly": {days:30}, "Semesterly": {days:120,onlyFor:["UG Student"]}, "Quarterly": {days:90,hideFor:["UG Student"]}, "Half-yearly": {days:182}, "Yearly": {days:365} }
+    },
+    // Leisure Tennis is Walk-in/Monthly only.
+    leisureTennis: {
+      key: "leisureTennis", label: "Leisure Tennis",
+      categories: LESSON_STYLE_CATEGORIES,
+      idRequiredCategories: ["UG Student", "UG Staff"],
+      durations: { "Walk-in": {days:1}, "Monthly": {days:30} }
+    },
+    leisureSwimming: {
+      key: "leisureSwimming", label: "Leisure Swimming",
+      categories: LESSON_STYLE_CATEGORIES,
+      idRequiredCategories: ["UG Student", "UG Staff"],
+      durations: { "Walk-in": {days:1}, "Monthly": {days:30}, "Semesterly": {days:120,onlyFor:["UG Student"]}, "Quarterly": {days:90,hideFor:["UG Student"]}, "Half-yearly": {days:182}, "Yearly": {days:365} }
+    },
+    tennisLessons: {
+      key: "tennisLessons", label: "Tennis Lessons",
+      categories: LESSON_STYLE_CATEGORIES,
+      idRequiredCategories: ["UG Student", "UG Staff"],
+      durations: { "Walk-in": {days:1}, "Monthly": {days:30} }
+    },
+    // Only ONE plan exists for Swimming Lessons — no Walk-in.
+    swimmingLessons: {
+      key: "swimmingLessons", label: "Swimming Lessons",
+      categories: LESSON_STYLE_CATEGORIES,
+      idRequiredCategories: ["UG Student", "UG Staff"],
+      durations: { "12-Session Package": {days:42,sessionCap:12} }
+    }
+  };
+  const BADGE_CLASSES = ['badge-c1','badge-c2','badge-c3','badge-c4','badge-c5','badge-c6','badge-c7'];
+  function badgeClassFor(activity, category){
+    const idx = activity.categories.indexOf(category);
+    return BADGE_CLASSES[idx >= 0 ? idx % BADGE_CLASSES.length : 0];
+  }
+  function durationOrderIndex(activity, duration){
+    return Object.keys(activity.durations).indexOf(duration);
+  }
+  function durationAllowedForCategory(cfg, category){
+    if(!cfg) return false;
+    if(cfg.onlyFor && cfg.onlyFor.indexOf(category) === -1) return false;
+    if(cfg.hideFor && cfg.hideFor.indexOf(category) !== -1) return false;
+    return true;
+  }
+
+  let currentActivity = ACTIVITIES.gym;
+  try{
+    const stored = localStorage.getItem('frontDeskActivityKey');
+    if(stored && ACTIVITIES[stored]) currentActivity = ACTIVITIES[stored];
+  }catch(e){}
+
+  let pendingEntries = [];
+  let approvedEntries = [];
+  let alertEntries = [];
+  let registrationsClearedAt = null;
+  let pendingCounts = {};
+  // Snapshots of the last data loadAll() actually rendered, so a 3s
+  // poll that comes back identical (the common case — nothing changed
+  // in the sheet since the last check) can skip re-rendering entirely
+  // instead of tearing down and rebuilding every panel's full HTML.
+  // That rebuild work was competing with the main thread right when a
+  // staff member might be clicking a tab, which is what made tab
+  // switching feel like it stuttered instead of being instant. Reset
+  // to null on every activity switch (see switchActivity()) so the
+  // first load for a newly-selected activity always renders, even in
+  // the edge case where its data happens to serialize identically to
+  // the previous activity's (e.g. both empty).
+  let lastPendingJSON = null, lastApprovedJSON = null, lastVisitsJSON = null, lastAlertsJSON = null, lastClearedAtSeen = undefined;
+  let sortKey = "class";
+  let sortDir = 1;
+  let searchTerm = "";
+  let pinBuffer = "";
+  let refreshTimer = null;
+  let busyIds = new Set();
+
+  const screens = {
+    pin: document.getElementById('pinScreen'),
+    desk: document.getElementById('deskScreen')
+  };
+  function showScreen(name){
+    const next = screens[name];
+    const current = Object.values(screens).find(s => s.classList.contains('active'));
+    if(!current || current === next){
+      Object.values(screens).forEach(s => s.classList.remove('active', 'screen-out', 'screen-in'));
+      next.classList.add('active');
+      return;
+    }
+    current.classList.add('screen-out');
+    setTimeout(() => {
+      current.classList.remove('active', 'screen-out');
+      next.classList.add('active', 'screen-in');
+      setTimeout(() => next.classList.remove('screen-in'), 300);
+    }, 220);
+  }
+
+  // ---- PIN ----
+  const pinDots = document.querySelectorAll('#pinDots .pin-dot');
+  const pinError = document.getElementById('pinError');
+  document.querySelectorAll('.pin-key[data-k]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if(pinBuffer.length >= 4) return;
+      pinBuffer += btn.dataset.k;
+      updatePinDots();
+      if(pinBuffer.length === 4) setTimeout(checkPin, 120);
+    });
+  });
+  document.getElementById('pinCancel').addEventListener('click', () => { pinBuffer=""; updatePinDots(); pinError.textContent=""; });
+  document.getElementById('pinClear').addEventListener('click', () => { pinBuffer = pinBuffer.slice(0,-1); updatePinDots(); });
+  function updatePinDots(){ pinDots.forEach((d,i) => d.classList.toggle('filled', i < pinBuffer.length)); }
+  function checkPin(){
+    if(pinBuffer === STAFF_PIN){
+      pinBuffer = "";
+      showScreen('desk');
+      renderActivitySwitcher();
+      loadAll();
+      loadFullVisitHistory();
+      refreshAllPendingCounts();
+      scheduleAutoRefresh();
+    } else {
+      pinError.textContent = "Incorrect PIN — try again.";
+      pinDots.forEach(d => d.classList.add('error'));
+      document.getElementById('pinDots').classList.add('shake');
+      setTimeout(() => {
+        document.getElementById('pinDots').classList.remove('shake');
+        pinDots.forEach(d => d.classList.remove('error'));
+        pinBuffer = ""; updatePinDots();
+      }, 320);
+    }
+  }
+
+  // ---- Activity switcher ----
+  // Gym is its own section; Tennis and Swimming each combine a Leisure
+  // activity and a Lessons activity into one section with a second-row
+  // toggle between the two.
+  const SWITCHER_SECTIONS = [
+    { key: 'gym', label: 'Gymnasium', activityKey: 'gym' },
+    { key: 'tennis', label: 'Tennis', options: ['leisureTennis', 'tennisLessons'] },
+    { key: 'swimming', label: 'Swimming', options: ['leisureSwimming', 'swimmingLessons'] }
+  ];
+  function sectionForActivity(key){
+    return SWITCHER_SECTIONS.find(s => s.activityKey === key || (s.options && s.options.indexOf(key) !== -1));
+  }
+  function sectionPendingCount(section){
+    const keys = section.options || [section.activityKey];
+    return keys.reduce((sum, k) => sum + (pendingCounts[k] || 0), 0);
+  }
+
+  function renderActivitySwitcher(){
+    const host = document.getElementById('activitySwitcher');
+    const activeSection = sectionForActivity(currentActivity.key);
+
+    let html = '<div class="activity-switcher-row">' + SWITCHER_SECTIONS.map(s => {
+      const count = sectionPendingCount(s);
+      const badge = count ? `<span class="activity-pill-badge">${count}</span>` : '';
+      const isActive = activeSection && activeSection.key === s.key;
+      return `<div class="activity-pill${isActive ? ' active' : ''}" data-section="${s.key}" tabindex="0" role="button">
+        <span>${escapeHtml(s.label)}</span>${badge}
+      </div>`;
+    }).join('') + '</div>';
+
+    if(activeSection && activeSection.options){
+      html += '<div class="activity-switcher-row activity-switcher-subrow">' + activeSection.options.map(key => {
+        const a = ACTIVITIES[key];
+        const count = pendingCounts[key];
+        const badge = count ? `<span class="activity-pill-badge">${count}</span>` : '';
+        return `<div class="activity-pill activity-pill-sub${key === currentActivity.key ? ' active' : ''}" data-key="${key}" tabindex="0" role="button">
+          <span>${escapeHtml(a.label)}</span>${badge}
+        </div>`;
+      }).join('') + '</div>';
+    }
+
+    host.innerHTML = html;
+    host.querySelectorAll('.activity-pill[data-section]').forEach(el => {
+      el.addEventListener('click', () => handleSectionSwitcherClick(el.dataset.section));
+      el.addEventListener('keydown', (e) => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); handleSectionSwitcherClick(el.dataset.section); } });
+    });
+    host.querySelectorAll('.activity-pill[data-key]').forEach(el => {
+      el.addEventListener('click', () => switchActivity(el.dataset.key));
+      el.addEventListener('keydown', (e) => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); switchActivity(el.dataset.key); } });
+    });
+
+    ['approvalsActivityLabel','tableActivityLabel','visitsActivityLabel'].forEach(id => {
+      document.getElementById(id).textContent = currentActivity.label;
+    });
+    document.getElementById('walkinSub').textContent =
+      `Checks them into ${currentActivity.label} immediately — no approval needed, and no code is issued.`;
+
+    // Swimming Lessons has no Walk-in plan — members must register for
+    // the 12-session package instead.
+    const hasWalkin = !!currentActivity.durations['Walk-in'];
+    document.getElementById('walkinToggleBtn').style.display = hasWalkin ? 'inline-block' : 'none';
+    document.getElementById('walkinUnavailableNote').style.display = hasWalkin ? 'none' : 'block';
+    if(!hasWalkin) closeWalkinCard();
+  }
+
+  function handleSectionSwitcherClick(sectionKey){
+    const section = SWITCHER_SECTIONS.find(s => s.key === sectionKey);
+    if(!section) return;
+    if(!section.options){
+      switchActivity(section.activityKey);
+      return;
+    }
+    const activeSection = sectionForActivity(currentActivity.key);
+    if(activeSection && activeSection.key === section.key) return; // already in this section
+    switchActivity(section.options[0]); // default to Leisure
+  }
+
+  function switchActivity(key){
+    if(key === currentActivity.key) return;
+    currentActivity = ACTIVITIES[key];
+    try{ localStorage.setItem('frontDeskActivityKey', key); }catch(e){}
+    closeWalkinCard();
+    populateCategorySelect(wfClass, currentActivity);
+    searchTerm = ""; document.getElementById('searchBox').value = "";
+    visitSearchTerm = ""; document.getElementById('visitSearchBox').value = "";
+    sortKey = "class"; sortDir = 1;
+    // Force the next loadAll() to render every panel regardless of
+    // whether the new activity's data happens to serialize the same as
+    // the old one's (e.g. both empty) — see the snapshot vars' comment.
+    lastPendingJSON = lastApprovedJSON = lastVisitsJSON = lastAlertsJSON = null;
+    lastClearedAtSeen = undefined;
+    // The full Visits history loaded so far belongs to the activity
+    // just switched away from — clear it so nothing stale shows while
+    // the new activity's history loads (loadAll()'s next cycle would
+    // otherwise merge today's rows into the OLD activity's history).
+    visitEntries = [];
+    renderActivitySwitcher();
+    loadAll();
+    loadFullVisitHistory();
+  }
+
+  // ---- Dashboard tabs ----
+  document.querySelectorAll('.tab-bar > .tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-bar > .tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  const toast = document.getElementById('toast');
+  function showToast(msg, isError, duration){
+    toast.textContent = msg;
+    toast.classList.toggle('error', !!isError);
+    toast.classList.add('show');
+    setTimeout(()=> toast.classList.remove('show'), duration || 2200);
+  }
+
+  // ---- Member-code popup (shown after approving a new registration) ----
+  const codeModalOverlay = document.getElementById('codeModalOverlay');
+  const codeModalCopyBtn = document.getElementById('codeModalCopyBtn');
+  function showApprovedCodeModal(entry, familySize){
+    document.getElementById('codeModalName').textContent = entry.name || '';
+    document.getElementById('codeModalSub').textContent = (familySize > 1)
+      ? `${entry.class || ''} — Family Package (${familySize} members; other codes via Sign In's phone lookup)`
+      : (entry.class || '');
+    document.getElementById('codeModalCode').textContent = entry.idNo || '';
+    codeModalCopyBtn.textContent = "Copy Code";
+    codeModalCopyBtn.classList.remove('copied');
+    codeModalOverlay.classList.add('show');
+  }
+  function hideApprovedCodeModal(){ codeModalOverlay.classList.remove('show'); }
+  document.getElementById('codeModalDoneBtn').addEventListener('click', hideApprovedCodeModal);
+  codeModalOverlay.addEventListener('click', (e) => { if(e.target === codeModalOverlay) hideApprovedCodeModal(); });
+  document.addEventListener('keydown', (e) => { if(e.key === 'Escape') hideApprovedCodeModal(); });
+  codeModalCopyBtn.addEventListener('click', () => {
+    const code = document.getElementById('codeModalCode').textContent;
+    if(!code) return;
+    const markCopied = () => { codeModalCopyBtn.textContent = "Copied ✓"; codeModalCopyBtn.classList.add('copied'); };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(code).then(markCopied).catch(() => {});
+    }
+  });
+
+  // ---- Data loading ----
+  const toastedAlertIds = new Set();
+
+  // One request instead of four (pending/registrations/visits/alerts
+  // used to each be their own fetch — each is a separate Apps Script
+  // execution with its own overhead on top of the actual sheet read).
+  // Auto-refresh already retries itself every AUTO_REFRESH_MS regardless
+  // of what happened last cycle — no need to alarm the user over one
+  // blip on top of fetchJSON's own retries. Only surface a toast once a
+  // run of consecutive failures has lasted long enough to actually
+  // matter, and only once (not every cycle after that).
+  let consecutiveLoadFailures = 0;
+  // "visits" in the dashboard response is only TODAY's rows (see
+  // Code.gs's getRecentVisits) — Visits only ever grows, and re-fetching
+  // its whole history every AUTO_REFRESH_MS was getting slower every
+  // day. loadFullVisitHistory() below loads everything once; every fast
+  // cycle after that only needs to replace today's slice in place,
+  // leaving yesterday-and-older rows (and the Visit Log's search over
+  // them) exactly as already loaded.
+  // todayLabel MUST be the server's own date label (Code.gs's
+  // "dashboard" view sends it as visitsDateLabel, in Ghana time via
+  // TIMEZONE), never computed from this device's own clock — a
+  // front-desk device isn't guaranteed to be set to Ghana time (the
+  // same reason TIMEZONE exists server-side at all), and if this
+  // guessed wrong, the filter below would never match any of these
+  // rows again, so every cycle would append the same "today" batch on
+  // top of what's already there instead of replacing it — visible as
+  // the same check-ins duplicating in the Visit Log forever. Falls
+  // back to a local guess only if talking to an older deployment that
+  // doesn't send visitsDateLabel yet.
+  function mergeTodayVisits(todayRows, todayLabel){
+    const label = todayLabel || formatDateDMY(new Date());
+    visitEntries = visitEntries.filter(v => v.date !== label).concat(todayRows);
+  }
+  function loadAll(){
+    const activity = currentActivity;
+    return fetchJSON(SCRIPT_URL + "?activity=" + activity.key + "&view=dashboard&t=" + Date.now())
+      .then(res => {
+        consecutiveLoadFailures = 0;
+        if(activity.key !== currentActivity.key) return; // switched while in flight
+        if(res.status !== "ok"){ showToast(res.message || "Couldn't reach the sheet — check connection", true); return; }
+
+        const newPendingJSON = JSON.stringify(res.pending || []);
+        const newApprovedJSON = JSON.stringify(res.registrations || []);
+        const newVisitsJSON = JSON.stringify(res.visits || []);
+        const newAlertsJSON = JSON.stringify(res.alerts || []);
+        const newClearedAt = res.clearedAt || null;
+
+        const pendingChanged = newPendingJSON !== lastPendingJSON;
+        const approvedChanged = newApprovedJSON !== lastApprovedJSON || newClearedAt !== lastClearedAtSeen;
+        const visitsChanged = newVisitsJSON !== lastVisitsJSON;
+        const alertsChanged = newAlertsJSON !== lastAlertsJSON;
+
+        pendingEntries = res.pending || [];
+        approvedEntries = res.registrations || [];
+        registrationsClearedAt = newClearedAt;
+        if(visitsChanged) mergeTodayVisits(res.visits || [], res.visitsDateLabel);
+        alertEntries = res.alerts || [];
+
+        // Every render() below rebuilds its panel's full innerHTML from
+        // scratch — skip whichever ones the sheet hasn't actually
+        // changed since last time, so a poll that comes back identical
+        // (the common case) is nearly free instead of tearing down and
+        // rebuilding tables that can run to hundreds of rows.
+        if(pendingChanged || approvedChanged) renderTally();
+        if(pendingChanged) renderApprovals();
+        if(approvedChanged) renderTable();
+        if(visitsChanged) renderVisitsTable();
+        if(alertsChanged) renderAlerts();
+
+        lastPendingJSON = newPendingJSON;
+        lastApprovedJSON = newApprovedJSON;
+        lastVisitsJSON = newVisitsJSON;
+        lastAlertsJSON = newAlertsJSON;
+        lastClearedAtSeen = newClearedAt;
+      })
+      .catch(() => {
+        consecutiveLoadFailures++;
+        if(consecutiveLoadFailures === 4){
+          showToast("Couldn't reach the sheet — check connection", true);
+        }
+      });
+  }
+  document.getElementById('refreshBtn').addEventListener('click', loadAll);
+  document.getElementById('approvalsRefreshBtn').addEventListener('click', loadAll);
+
+  // Full Visits history for the current activity, fetched once (see the
+  // callers below) instead of on every AUTO_REFRESH_MS cycle — loadAll()
+  // only brings in today's rows after this. Resets lastVisitsJSON so the
+  // very next dashboard cycle's change-check can't skip a real update by
+  // comparing against a now-stale value.
+  function loadFullVisitHistory(){
+    const activity = currentActivity;
+    return fetchJSON(SCRIPT_URL + "?activity=" + activity.key + "&view=visits&t=" + Date.now())
+      .then(res => {
+        if(activity.key !== currentActivity.key) return; // switched while in flight
+        if(res.status !== "ok") return;
+        visitEntries = res.rows || [];
+        lastVisitsJSON = null;
+        renderVisitsTable();
+      })
+      .catch(() => {});
+  }
+
+  // One request covering every activity's pending count, instead of
+  // one fetch per activity.
+  function refreshAllPendingCounts(){
+    return fetchJSON(SCRIPT_URL + "?view=allPendingCounts&t=" + Date.now())
+      .then(res => {
+        if(res.status !== "ok") return;
+        Object.keys(res.counts || {}).forEach(k => { pendingCounts[k] = res.counts[k]; });
+        renderActivitySwitcher();
+      })
+      .catch(() => {});
+  }
+
+  // Self-rescheduling instead of setInterval: the next cycle is only
+  // queued once the current one (and everything it fetched) has fully
+  // settled. A plain setInterval keeps firing a fresh batch of requests
+  // every AUTO_REFRESH_MS regardless of whether the previous batch ever
+  // finished — during any slow patch that piles requests up faster than
+  // Apps Script can drain them, which then makes everything slower
+  // still. Also skips the cycle entirely while the tab is
+  // hidden/backgrounded, since a front desk device is often left open
+  // all day.
+  function scheduleAutoRefresh(){
+    refreshTimer = setTimeout(() => {
+      if(document.hidden){ scheduleAutoRefresh(); return; }
+      Promise.allSettled([loadAll(), refreshAllPendingCounts()]).then(scheduleAutoRefresh);
+    }, AUTO_REFRESH_MS);
+  }
+
+  function renderAlerts(){
+    const banner = document.getElementById('alertBanner');
+    if(alertEntries.length === 0){
+      banner.style.display = 'none';
+      banner.innerHTML = '';
+      return;
+    }
+    banner.style.display = 'flex';
+    banner.innerHTML = alertEntries.map(a => `
+      <div class="alert-item" data-alert-id="${escapeHtml(a.alertId||'')}">
+        <div class="alert-item-text">
+          <strong>⚠ ${escapeHtml(a.name||'Someone')}</strong> tried to sign in with an expired/used-up ${escapeHtml(currentActivity.label)} plan${a.expiredOn ? ` (expired ${escapeHtml(a.expiredOn)})` : ''}.
+          <div class="alert-item-sub">${escapeHtml(a.class||'')}${a.duration ? ' · ' + escapeHtml(a.duration) : ''} · attempted ${escapeHtml(a.date||'')} ${escapeHtml(a.time||'')}</div>
+        </div>
+        <button type="button" class="alert-dismiss-btn" data-alert-id="${escapeHtml(a.alertId||'')}">Dismiss</button>
+      </div>`).join('');
+
+    alertEntries.forEach(a => {
+      if(a.alertId && !toastedAlertIds.has(a.alertId)){
+        toastedAlertIds.add(a.alertId);
+        showToast(`⚠ ${a.name||'Someone'}'s ${currentActivity.label} plan expired — they just tried to sign in`, true, 5000);
+      }
+    });
+
+    banner.querySelectorAll('.alert-dismiss-btn').forEach(btn => {
+      btn.addEventListener('click', () => dismissAlert(btn.dataset.alertId));
+    });
+  }
+
+  function dismissAlert(alertId){
+    if(!alertId) return;
+    alertEntries = alertEntries.filter(a => a.alertId !== alertId);
+    renderAlerts();
+    fetchJSON(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "acknowledgeAlert", activity: currentActivity.key, alertId: alertId })
+    }).catch(() => showToast("Couldn't reach the sheet — check connection", true));
+  }
+
+  // ---- Add Walk-in ----
+  const COUNTRY_CODES = [
+    { code:"+233", label:"🇬🇭 +233", def:true },
+    { code:"+234", label:"🇳🇬 +234" },
+    { code:"+225", label:"🇨🇮 +225" },
+    { code:"+228", label:"🇹🇬 +228" },
+    { code:"+229", label:"🇧🇯 +229" },
+    { code:"+226", label:"🇧🇫 +226" },
+    { code:"+223", label:"🇲🇱 +223" },
+    { code:"+221", label:"🇸🇳 +221" },
+    { code:"+232", label:"🇸🇱 +232" },
+    { code:"+231", label:"🇱🇷 +231" },
+    { code:"+27",  label:"🇿🇦 +27" },
+    { code:"+254", label:"🇰🇪 +254" },
+    { code:"+1",   label:"🇺🇸 +1" },
+    { code:"+44",  label:"🇬🇧 +44" },
+    { code:"+91",  label:"🇮🇳 +91" },
+    { code:"+86",  label:"🇨🇳 +86" }
+  ];
+  const wfPhoneCode = document.getElementById('wfPhoneCode');
+  wfPhoneCode.innerHTML = COUNTRY_CODES.map(c => `<option value="${c.code}"${c.def ? ' selected' : ''}>${c.label}</option>`).join('');
+
+  // Ghanaian habit: local numbers are usually written with a leading 0
+  // ("024 123 4567") even though every phone field here already pairs
+  // with an explicit country code select that accounts for it — so a
+  // leading 0 is dropped the moment it's typed, and typing is capped
+  // at 9 digits (the length of a local number once that 0 is gone).
+  document.querySelectorAll('.phone-group input[type="text"]').forEach(input => {
+    input.addEventListener('input', () => {
+      let value = input.value.replace(/^0/, '');
+      let digitCount = 0, cutIndex = value.length;
+      for(let i = 0; i < value.length; i++){
+        if(/\d/.test(value[i])){
+          digitCount++;
+          if(digitCount > 9){ cutIndex = i; break; }
+        }
+      }
+      value = value.slice(0, cutIndex);
+      if(value !== input.value) input.value = value;
+    });
+  });
+
+  function populateCategorySelect(selectEl, activity){
+    selectEl.innerHTML = activity.categories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+  }
+
+  const walkinCard = document.getElementById('walkinCard');
+  const walkinToggleBtn = document.getElementById('walkinToggleBtn');
+  const walkinCancelBtn = document.getElementById('walkinCancelBtn');
+  const walkinForm = document.getElementById('walkinForm');
+  const wfClass = document.getElementById('wfClass');
+  const wfIdField = document.getElementById('wf-field-id');
+  const wfId = document.getElementById('wfId');
+  const wfSurname = document.getElementById('wfSurname');
+  const wfOtherNames = document.getElementById('wfOtherNames');
+  const wfPhone = document.getElementById('wfPhone');
+  const walkinSubmitBtn = document.getElementById('walkinSubmitBtn');
+  populateCategorySelect(wfClass, currentActivity);
+
+  function setFieldInvalid(el, invalid){ el.classList.toggle('invalid', !!invalid); }
+
+  function openWalkinCard(){ walkinCard.style.display = 'block'; walkinToggleBtn.style.display = 'none'; }
+  function closeWalkinCard(){
+    walkinCard.style.display = 'none';
+    walkinToggleBtn.style.display = 'inline-block';
+    walkinForm.reset();
+    populateCategorySelect(wfClass, currentActivity);
+    wfIdField.style.display = 'none';
+    [wfIdField, document.getElementById('wf-field-surname'), document.getElementById('wf-field-otherNames')].forEach(f => setFieldInvalid(f, false));
+  }
+  walkinToggleBtn.addEventListener('click', openWalkinCard);
+  walkinCancelBtn.addEventListener('click', closeWalkinCard);
+
+  wfClass.addEventListener('change', () => {
+    const needsId = currentActivity.idRequiredCategories.indexOf(wfClass.value) !== -1;
+    wfIdField.style.display = needsId ? 'block' : 'none';
+    if(!needsId) setFieldInvalid(wfIdField, false);
+  });
+
+  walkinForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    let valid = true;
+    const needsId = currentActivity.idRequiredCategories.indexOf(wfClass.value) !== -1;
+
+    const surnameField = document.getElementById('wf-field-surname');
+    const otherNamesField = document.getElementById('wf-field-otherNames');
+    if(!wfSurname.value.trim()){ setFieldInvalid(surnameField, true); valid = false; } else setFieldInvalid(surnameField, false);
+    if(!wfOtherNames.value.trim()){ setFieldInvalid(otherNamesField, true); valid = false; } else setFieldInvalid(otherNamesField, false);
+    if(needsId && !wfId.value.trim()){ setFieldInvalid(wfIdField, true); valid = false; } else setFieldInvalid(wfIdField, false);
+    if(!valid) return;
+
+    const payload = {
+      action: "addWalkinVisit",
+      activity: currentActivity.key,
+      class: wfClass.value,
+      name: `${wfSurname.value.trim()} ${wfOtherNames.value.trim()}`.trim(),
+      idNo: needsId ? wfId.value.trim() : "",
+      phone: wfPhone.value.trim() ? `${wfPhoneCode.value} ${wfPhone.value.trim()}` : ""
+    };
+
+    walkinSubmitBtn.disabled = true;
+    walkinSubmitBtn.textContent = "Signing in…";
+
+    fetchJSON(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    })
+    .then(data => {
+      walkinSubmitBtn.disabled = false;
+      walkinSubmitBtn.textContent = "Sign In";
+      if(data.status === "ok"){
+        showToast("Walk-in signed in ✓");
+        closeWalkinCard();
+        loadAll();
+      } else {
+        showToast(data.message || "Couldn't sign in walk-in", true);
+      }
+    })
+    .catch(() => {
+      walkinSubmitBtn.disabled = false;
+      walkinSubmitBtn.textContent = "Sign In";
+      showToast("Couldn't reach the sheet — check connection", true);
+    });
+  });
+
+  // ---- Visit Log tab ----
+  let visitEntries = [];
+  let visitSearchTerm = "";
+
+  // Visits are now part of the combined loadAll() dashboard fetch, so
+  // the Visit Log tab's refresh button just re-runs that.
+  document.getElementById('visitsRefreshBtn').addEventListener('click', loadFullVisitHistory);
+  document.getElementById('visitSearchBox').addEventListener('input', function(){
+    visitSearchTerm = this.value.trim().toLowerCase();
+    renderVisitsTable();
+  });
+
+  // "h:mm a" (e.g. "9:05 AM") to minutes-since-midnight, so visits sort
+  // by actual time of day instead of comparing the strings character by
+  // character — a plain string compare puts "9:05 AM" ahead of
+  // "10:15 AM" because "9" > "1".
+  function parseTimeToMinutes(timeStr){
+    if(!timeStr) return -1;
+    const s = String(timeStr).trim();
+    let m = s.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if(m){
+      let hour = Number(m[1]) % 12;
+      if(m[3].toUpperCase() === 'PM') hour += 12;
+      return hour * 60 + Number(m[2]);
+    }
+    m = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+    if(m) return Number(m[1]) * 60 + Number(m[2]);
+    return -1;
+  }
+
+  function sortedFilteredVisits(){
+    let list = visitEntries.filter(v => {
+      if(!visitSearchTerm) return true;
+      return (v.name||'').toLowerCase().includes(visitSearchTerm)
+        || (v.idNo||'').toLowerCase().includes(visitSearchTerm)
+        || (v.class||'').toLowerCase().includes(visitSearchTerm);
+    });
+    list.sort((a,b) => parseTimeToMinutes(b.timeIn) - parseTimeToMinutes(a.timeIn));
+    return list;
+  }
+
+  function renderVisitsTable(){
+    const host = document.getElementById('visitsTableHost');
+    const footNote = document.getElementById('visitsFootNote');
+    const list = sortedFilteredVisits();
+
+    if(visitEntries.length === 0){
+      host.innerHTML = `<div class="empty-state"><p>No visits logged yet for ${escapeHtml(currentActivity.label)}.</p><p style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-faint);">Sign-ins and sign-outs from the registration app will appear here.</p></div>`;
+      footNote.textContent = ""; return;
+    }
+    if(list.length === 0){
+      host.innerHTML = `<div class="empty-state"><p>No matches for "${escapeHtml(visitSearchTerm)}".</p></div>`;
+      footNote.textContent = ""; return;
+    }
+
+    const photoByIdNo = {};
+    approvedEntries.forEach(e => { if(e.idNo) photoByIdNo[e.idNo] = e.photoUrl; });
+
+    const groups = groupByDate(list);
+    let rows = groups.map(g => {
+      const groupRows = g.rows.map(v => {
+        const photoUrl = photoByIdNo[v.idNo];
+        return `
+        <tr>
+          <td>${photoUrl ? `<a href="${escapeHtml(photoUrl)}" target="_blank" rel="noopener"><img src="${escapeHtml(driveThumbUrl(photoUrl, 100))}" class="photo-thumb-cell" loading="lazy" decoding="async" alt=""></a>` : '<span class="photo-thumb-placeholder">—</span>'}</td>
+          <td class="name-cell">${escapeHtml(v.name)}</td>
+          <td><span class="badge ${badgeClassFor(currentActivity, v.class)}">${escapeHtml(v.class||'')}</span></td>
+          <td class="id-cell">${escapeHtml(v.duration||'—')}</td>
+          <td class="id-cell">${(v.duration === 'Walk-in' && currentActivity.idRequiredCategories.indexOf(v.class) === -1) ? '<span style="color:var(--text-faint);">—</span>' : escapeHtml(v.idNo||'')}</td>
+          <td class="id-cell">${escapeHtml(v.timeIn||'—')}</td>
+          <td class="id-cell">${v.timeOut ? escapeHtml(v.timeOut) : '<span class="status-tag" style="background:var(--gold-dim);color:var(--gold-dark);">Still in</span>'}</td>
+        </tr>`;
+      }).join('');
+      return `
+        <tr class="group-row">
+          <td colspan="7">${dateLabel(g.date)} <span class="group-count">— ${g.rows.length} visit${g.rows.length===1?'':'s'}</span></td>
+        </tr>
+        ${groupRows}`;
+    }).join('');
+
+    host.innerHTML = `
+      <table>
+        <thead><tr>
+          <th>Photo</th>
+          <th>Name</th>
+          <th>Category</th>
+          <th>Plan</th>
+          <th>ID No. / Code</th>
+          <th>Time In</th>
+          <th>Time Out</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+
+    const openCount = list.filter(v => !v.timeOut).length;
+    footNote.textContent = `Showing ${list.length} of ${visitEntries.length} visit(s) across ${groups.length} day${groups.length===1?'':'s'} · ${openCount} still signed in.`;
+  }
+
+  function renderTally(){
+    const counts = {};
+    currentActivity.categories.forEach(c => counts[c] = 0);
+    approvedEntries.forEach(e => { if(counts[e.class] !== undefined) counts[e.class]++; });
+    let html = `<div class="tally-cell"><div class="tally-num">${approvedEntries.length}</div><div class="tally-label">Total</div></div>`;
+    currentActivity.categories.forEach(c => {
+      html += `<div class="tally-cell"><div class="tally-num">${counts[c]}</div><div class="tally-label">${escapeHtml(c)}</div></div>`;
+    });
+    document.getElementById('tally').innerHTML = html;
+    document.getElementById('pendingBadge').textContent = pendingEntries.length;
+    pendingCounts[currentActivity.key] = pendingEntries.length;
+  }
+
+  // Both pulled out of the plain detail-grid into their own callouts so
+  // staff can spot them immediately instead of hunting through a dozen
+  // fields — medical in gold, emergency contact in red, so they read as
+  // distinct at a glance.
+  function emergencyCalloutHtml(e){
+    const parts = [e.emergencyName, e.emergencyPhone, e.emergencyRelationship].filter(Boolean).map(escapeHtml);
+    const value = parts.length ? parts.join(' · ') : '<span class="emergency-callout-empty">Not provided</span>';
+    return `<div class="emergency-callout"><span class="emergency-callout-label">Emergency Contact</span><span class="emergency-callout-value">${value}</span></div>`;
+  }
+  function medicalCalloutHtml(e){
+    const hasCondition = String(e.hasMedicalCondition||'').trim() === 'Yes';
+    const value = hasCondition
+      ? escapeHtml(e.medicalConditionDetails || '(stated yes, no details given)')
+      : (e.hasMedicalCondition === 'No' ? '<span class="medical-callout-empty">None reported</span>' : '<span class="medical-callout-empty">Not provided</span>');
+    return `<div class="medical-callout"><span class="medical-callout-label">Medical Conditions</span><span class="medical-callout-value">${value}</span></div>`;
+  }
+
+  // ---- Approvals tab ----
+  function planLabel(entry){
+    const cfg = currentActivity.durations[entry.duration];
+    let label = (entry.duration || '').replace('/', ' / ');
+    if(cfg && cfg.sessionCap){
+      const used = Number(entry.sessionsUsed) || 0;
+      label += ` (${used}/${cfg.sessionCap} sessions used)`;
+    }
+    return label;
+  }
+
+  // One Pending row's approval card — a solo registration, a renewal
+  // request, or (when a Family Package's group only has one member left
+  // pending, e.g. the rest were already handled) a lone family row.
+  function renderApprovalCard(e){
+    const busy = busyIds.has(e.idNo);
+    const isRenewal = String(e.isRenewal||'').trim().toUpperCase() === "TRUE";
+    const current = isRenewal ? approvedEntries.find(a => a.idNo === e.idNo) : null;
+    const renewalBanner = isRenewal ? `
+      <div class="approval-renewal-note">
+        <span class="status-tag" style="background:var(--gold-dim);color:var(--gold-dark);">Renewal request</span>
+        ${current ? `Currently <strong>${escapeHtml(current.duration||'—')}</strong>, expiring ${formatExpiry(current)} · requesting <strong>${escapeHtml(e.duration||'')}</strong>`
+                   : `Requesting <strong>${escapeHtml(e.duration||'')}</strong> — couldn't find their current record for comparison`}
+      </div>` : '';
+    // A Family Package registration is several rows sharing one
+    // familyGroupId (see Code.gs) — the primary registrant has full
+    // details, each additional family member is a lightweight
+    // name-only row. Normally these render together via
+    // renderFamilyApprovalCard() below; this solo path only shows up
+    // when just one row of the group is still pending.
+    const familyRow = e.class === FAMILY_CATEGORY
+      ? `<div class="detail-item"><div class="dlabel">Family Package</div><div class="dvalue">${e.dob ? 'Primary registrant' : 'Additional family member'} — other codes retrievable by phone on Sign In</div></div>` +
+        (!e.dob && e.familyRelationship ? `<div class="detail-item"><div class="dlabel">Relationship to Primary</div><div class="dvalue">${escapeHtml(e.familyRelationship)}</div></div>` : '')
+      : '';
+    const staffRelationRow = UG_STAFF_RELATION_CATEGORIES.indexOf(e.class) !== -1
+      ? `<div class="detail-item"><div class="dlabel">Related UG Staff</div><div class="dvalue">${e.relatedStaffName ? escapeHtml(e.relatedStaffName) : '—'} (${e.relatedStaffIdNo ? escapeHtml(e.relatedStaffIdNo) : '—'})</div></div>
+         <div class="detail-item"><div class="dlabel">Relationship to Staff</div><div class="dvalue">${e.staffRelationship ? escapeHtml(e.staffRelationship) : '—'}</div></div>`
+      : '';
+    return `
+    <div class="approval-card">
+      <div class="approval-head">
+        <div style="display:flex; align-items:center; gap:12px;">
+          ${e.photoUrl ? `<img src="${escapeHtml(driveThumbUrl(e.photoUrl, 100))}" class="photo-thumb-cell" style="width:44px;height:44px;" loading="lazy" decoding="async" alt="">` : `<span class="photo-thumb-placeholder" style="width:44px;height:44px;">—</span>`}
+          <div>
+            <div class="approval-name">${escapeHtml(e.name)}${isRenewal ? ' <span class="status-tag" style="background:var(--gold-dim);color:var(--gold-dark);font-size:10px;vertical-align:middle;">RENEWAL</span>' : ''}</div>
+            <div class="approval-sub">${isRenewal ? 'Requested' : 'Submitted'} ${escapeHtml(e.date||'')} · ${escapeHtml(e.time||'')}</div>
+          </div>
+        </div>
+        <div class="approval-actions">
+          <button class="reject-btn" data-idno="${escapeHtml(e.idNo)}" data-action="reject" ${busy?'disabled':''}>Reject</button>
+          <button class="approve-btn" data-idno="${escapeHtml(e.idNo)}" data-action="approve" ${busy?'disabled':''}>${isRenewal ? 'Approve Renewal' : 'Approve'}</button>
+        </div>
+      </div>
+      ${renewalBanner}
+      ${emergencyCalloutHtml(e)}
+      ${medicalCalloutHtml(e)}
+      <div class="detail-grid">
+        <div class="detail-item"><div class="dlabel">Category</div><div class="dvalue"><span class="badge ${badgeClassFor(currentActivity, e.class)}">${escapeHtml(e.class||'')}</span></div></div>
+        <div class="detail-item"><div class="dlabel">Department</div><div class="dvalue">${e.department ? escapeHtml(e.department) : '—'}</div></div>
+        ${familyRow}
+        ${staffRelationRow}
+        <div class="detail-item"><div class="dlabel">Date of Birth</div><div class="dvalue">${escapeHtml(e.dob||'—')}</div></div>
+        <div class="detail-item"><div class="dlabel">Gender</div><div class="dvalue">${escapeHtml(e.gender||'—')}</div></div>
+        <div class="detail-item"><div class="dlabel">Nationality</div><div class="dvalue">${escapeHtml(e.nationality||'—')}</div></div>
+        <div class="detail-item"><div class="dlabel">Phone</div><div class="dvalue">${escapeHtml(e.phone||'—')}</div></div>
+        <div class="detail-item"><div class="dlabel">Email</div><div class="dvalue">${escapeHtml(e.email||'—')}</div></div>
+        <div class="detail-item"><div class="dlabel">ID No. / Code</div><div class="dvalue">${(e.duration === 'Walk-in' && currentActivity.idRequiredCategories.indexOf(e.class) === -1) ? '<span style="color:var(--text-faint);">walk-in — no code issued</span>' : (e.idNo ? escapeHtml(e.idNo) : '<span style="color:var(--text-faint);">generated on approval</span>')}</div></div>
+        <div class="detail-item"><div class="dlabel">Photo</div><div class="dvalue">${e.photoUrl ? `<a href="${escapeHtml(e.photoUrl)}" target="_blank" rel="noopener" style="color:var(--blue);">View photo →</a>` : '—'}</div></div>
+        <div class="detail-item"><div class="dlabel">Signature</div><div class="dvalue">${e.signatureUrl ? `<a href="${escapeHtml(e.signatureUrl)}" target="_blank" rel="noopener" style="color:var(--blue);">View signature →</a>` : '—'}</div></div>
+        <div class="detail-item"><div class="dlabel">Address</div><div class="dvalue">${escapeHtml(e.address||'—')}</div></div>
+        <div class="detail-item"><div class="dlabel">Plan</div><div class="dvalue">${planLabel(e)}</div></div>
+      </div>
+    </div>`;
+  }
+
+  // One card for a whole Family Package submission — approving or
+  // rejecting it (via the primary registrant's idNo) acts on every
+  // member at once server-side (see Code.gs's doApprove/doReject), so
+  // the front desk only has to decide on the family once, not once per
+  // member.
+  function renderFamilyApprovalCard(members){
+    const primary = members.find(m => m.dob) || members[0];
+    const others = members.filter(m => m !== primary);
+    const busy = busyIds.has(primary.idNo);
+    const memberListHtml = others.length
+      ? `<div class="detail-item"><div class="dlabel">Family Members (${others.length})</div><div class="dvalue">${others.map(m => `${escapeHtml(m.name||'')}${m.familyRelationship ? ' ('+escapeHtml(m.familyRelationship)+')' : ''}`).join(', ')}</div></div>`
+      : '';
+    const staffRelationRow = UG_STAFF_RELATION_CATEGORIES.indexOf(primary.class) !== -1
+      ? `<div class="detail-item"><div class="dlabel">Related UG Staff</div><div class="dvalue">${primary.relatedStaffName ? escapeHtml(primary.relatedStaffName) : '—'} (${primary.relatedStaffIdNo ? escapeHtml(primary.relatedStaffIdNo) : '—'})</div></div>
+         <div class="detail-item"><div class="dlabel">Relationship to Staff</div><div class="dvalue">${primary.staffRelationship ? escapeHtml(primary.staffRelationship) : '—'}</div></div>`
+      : '';
+    return `
+    <div class="approval-card">
+      <div class="approval-head">
+        <div style="display:flex; align-items:center; gap:12px;">
+          ${primary.photoUrl ? `<img src="${escapeHtml(driveThumbUrl(primary.photoUrl, 100))}" class="photo-thumb-cell" style="width:44px;height:44px;" loading="lazy" decoding="async" alt="">` : `<span class="photo-thumb-placeholder" style="width:44px;height:44px;">—</span>`}
+          <div>
+            <div class="approval-name">${escapeHtml(primary.name)} <span class="status-tag" style="background:var(--gold-dim);color:var(--gold-dark);font-size:10px;vertical-align:middle;">FAMILY · ${members.length}</span></div>
+            <div class="approval-sub">Submitted ${escapeHtml(primary.date||'')} · ${escapeHtml(primary.time||'')}</div>
+          </div>
+        </div>
+        <div class="approval-actions">
+          <button class="reject-btn" data-idno="${escapeHtml(primary.idNo)}" data-action="reject" ${busy?'disabled':''}>Reject Family</button>
+          <button class="approve-btn" data-idno="${escapeHtml(primary.idNo)}" data-action="approve" ${busy?'disabled':''}>Approve Family (${members.length})</button>
+        </div>
+      </div>
+      ${emergencyCalloutHtml(primary)}
+      ${medicalCalloutHtml(primary)}
+      <div class="detail-grid">
+        <div class="detail-item"><div class="dlabel">Category</div><div class="dvalue"><span class="badge ${badgeClassFor(currentActivity, primary.class)}">${escapeHtml(primary.class||'')}</span></div></div>
+        <div class="detail-item"><div class="dlabel">Department</div><div class="dvalue">${primary.department ? escapeHtml(primary.department) : '—'}</div></div>
+        ${memberListHtml}
+        ${staffRelationRow}
+        <div class="detail-item"><div class="dlabel">Date of Birth</div><div class="dvalue">${escapeHtml(primary.dob||'—')}</div></div>
+        <div class="detail-item"><div class="dlabel">Gender</div><div class="dvalue">${escapeHtml(primary.gender||'—')}</div></div>
+        <div class="detail-item"><div class="dlabel">Nationality</div><div class="dvalue">${escapeHtml(primary.nationality||'—')}</div></div>
+        <div class="detail-item"><div class="dlabel">Phone</div><div class="dvalue">${escapeHtml(primary.phone||'—')}</div></div>
+        <div class="detail-item"><div class="dlabel">Email</div><div class="dvalue">${escapeHtml(primary.email||'—')}</div></div>
+        <div class="detail-item"><div class="dlabel">ID No. / Code (Primary)</div><div class="dvalue">${primary.idNo ? escapeHtml(primary.idNo) : '<span style="color:var(--text-faint);">generated on approval</span>'}</div></div>
+        <div class="detail-item"><div class="dlabel">Photo</div><div class="dvalue">${primary.photoUrl ? `<a href="${escapeHtml(primary.photoUrl)}" target="_blank" rel="noopener" style="color:var(--blue);">View photo →</a>` : '—'}</div></div>
+        <div class="detail-item"><div class="dlabel">Signature</div><div class="dvalue">${primary.signatureUrl ? `<a href="${escapeHtml(primary.signatureUrl)}" target="_blank" rel="noopener" style="color:var(--blue);">View signature →</a>` : '—'}</div></div>
+        <div class="detail-item"><div class="dlabel">Address</div><div class="dvalue">${escapeHtml(primary.address||'—')}</div></div>
+        <div class="detail-item"><div class="dlabel">Plan</div><div class="dvalue">${planLabel(primary)}</div></div>
+      </div>
+    </div>`;
+  }
+
+  function renderApprovals(){
+    const host = document.getElementById('approvalsHost');
+    if(pendingEntries.length === 0){
+      host.innerHTML = `<div class="empty-state"><p>No pending registrations for ${escapeHtml(currentActivity.label)}.</p><p style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-faint);">New submissions from the registration app will appear here.</p></div>`;
+      return;
+    }
+    // A fresh Family Package submission is several Pending rows sharing
+    // one familyGroupId (see Code.gs) — group them into a single card
+    // here so approving/rejecting the family is one click instead of
+    // one per member. A renewal keeps its old familyGroupId too, but
+    // Code.gs's doApprove/doReject never group a renewal (only one
+    // member is ever renewing at a time), so it's excluded here to
+    // match — it always renders as its own solo card.
+    const seenGroups = new Set();
+    const cardsHtml = pendingEntries.map(e => {
+      const isRenewal = String(e.isRenewal||'').trim().toUpperCase() === "TRUE";
+      if(e.familyGroupId && !isRenewal){
+        if(seenGroups.has(e.familyGroupId)) return '';
+        seenGroups.add(e.familyGroupId);
+        const members = pendingEntries.filter(m => m.familyGroupId === e.familyGroupId && String(m.isRenewal||'').trim().toUpperCase() !== "TRUE");
+        return members.length > 1 ? renderFamilyApprovalCard(members) : renderApprovalCard(members[0]);
+      }
+      return renderApprovalCard(e);
+    }).join('');
+    host.innerHTML = cardsHtml;
+
+    host.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', () => handleApprovalAction(btn.dataset.idno, btn.dataset.action));
+    });
+  }
+
+  function handleApprovalAction(idNo, action){
+    const entry = pendingEntries.find(e => e.idNo === idNo);
+    const isWalkin = action === "approve" && entry && entry.duration === "Walk-in";
+    const isRenewal = entry && String(entry.isRenewal||'').trim().toUpperCase() === "TRUE";
+    // A Family Package's group approves/rejects together server-side
+    // (see Code.gs) whenever the idNo clicked belongs to one — grab the
+    // group's size now, before loadAll() below refreshes pendingEntries
+    // out from under it.
+    const familySize = (entry && entry.familyGroupId && !isRenewal)
+      ? pendingEntries.filter(e => e.familyGroupId === entry.familyGroupId && String(e.isRenewal||'').trim().toUpperCase() !== "TRUE").length
+      : 1;
+    const activity = currentActivity;
+    busyIds.add(idNo);
+    renderApprovals();
+    fetchJSON(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: action, activity: activity.key, idNo: idNo })
+    })
+    .then(data => {
+      busyIds.delete(idNo);
+      if(data.status === "ok"){
+        if(action === "approve"){
+          if(isWalkin){
+            showToast("Walk-in checked in ✓", false, 5000);
+          } else if(isRenewal){
+            showToast("Renewal approved ✓", false, 5000);
+          } else {
+            showApprovedCodeModal(entry || { idNo: idNo }, familySize);
+          }
+        } else {
+          showToast(isRenewal ? "Renewal request rejected" : (familySize > 1 ? `Family of ${familySize} rejected` : "Rejected"));
+        }
+        loadAll();
+      } else {
+        showToast(data.message || "Couldn't update — try again", true);
+        renderApprovals();
+      }
+    })
+    .catch(() => {
+      busyIds.delete(idNo);
+      showToast("No connection", true);
+      renderApprovals();
+    });
+  }
+
+  // ---- Registration table tab ----
+  const searchBox = document.getElementById('searchBox');
+  searchBox.addEventListener('input', function(){ searchTerm = this.value.trim().toLowerCase(); renderTable(); });
+
+  // The "date" column is always DATE_FORMAT-shaped ("dd/MM/yyyy") — the
+  // bare Date constructor treats an ambiguous slash-separated string as
+  // M/D/Y and mangles (or fails to parse) any day-of-month above 12, so
+  // this matches that shape explicitly first.
+  // Mirrors Code.gs's parseDateSafe() — DATE_FORMAT used to be month-
+  // first ("M/d/yyyy") before switching to day-first ("dd/MM/yyyy"), so
+  // a row written before that switch is still stored the old way. Tries
+  // day-first first, but only accepts it if the second number is a
+  // valid month (1-12); otherwise falls back to the old month-first
+  // reading. Only genuinely ambiguous dates (both numbers 1-12) can
+  // still come out wrong — no way to tell those apart from the string
+  // alone.
+  function parseRegDate(dateStr){
+    if(!dateStr) return null;
+    const m = String(dateStr).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if(m) {
+      const a = Number(m[1]), b = Number(m[2]), year = Number(m[3]);
+      if(b >= 1 && b <= 12){
+        const d = new Date(year, b - 1, a);
+        if(!isNaN(d.getTime())) return d;
+      }
+      if(a >= 1 && a <= 12){
+        const d = new Date(year, a - 1, b);
+        if(!isNaN(d.getTime())) return d;
+      }
+      return null;
+    }
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  function getExpiryDate(entry){
+    const regDate = parseRegDate(entry.date);
+    if(!regDate) return null;
+    const cfg = currentActivity.durations[entry.duration];
+    if(!cfg) return null;
+    const expiry = new Date(regDate);
+    expiry.setHours(0,0,0,0);
+    expiry.setDate(expiry.getDate() + cfg.days);
+    return expiry;
+  }
+  function isExpired(entry){
+    const cfg = currentActivity.durations[entry.duration];
+    if(!cfg) return false;
+    const expiry = getExpiryDate(entry);
+    if(expiry){
+      const today = new Date(); today.setHours(0,0,0,0);
+      if(expiry < today) return true;
+    }
+    if(cfg.sessionCap && (Number(entry.sessionsUsed)||0) >= cfg.sessionCap) return true;
+    return false;
+  }
+  function formatExpiry(entry){
+    const expiry = getExpiryDate(entry);
+    return expiry ? formatDateDMY(expiry) : '—';
+  }
+  function statusCellHtml(entry){
+    const cfg = currentActivity.durations[entry.duration];
+    const expired = isExpired(entry);
+    let text = formatExpiry(entry);
+    if(cfg && cfg.sessionCap){
+      text = `${Number(entry.sessionsUsed)||0}/${cfg.sessionCap} sessions · exp. ${formatExpiry(entry)}`;
+    }
+    return `${escapeHtml(text)} ${expired ? '<span class="status-tag status-expired">Expired</span>' : ''}`;
+  }
+
+  function sortedFiltered(){
+    let list = approvedEntries.filter(e => {
+      if(!searchTerm) return true;
+      return (e.name||'').toLowerCase().includes(searchTerm)
+        || (e.phone||'').toLowerCase().includes(searchTerm)
+        || (e.idNo||'').toLowerCase().includes(searchTerm)
+        || (e.email||'').toLowerCase().includes(searchTerm);
+    });
+    list.sort((a,b) => {
+      let av, bv;
+      if(sortKey === 'class'){ av = currentActivity.categories.indexOf(a.class); bv = currentActivity.categories.indexOf(b.class); }
+      else if(sortKey === 'duration'){ av = durationOrderIndex(currentActivity, a.duration); bv = durationOrderIndex(currentActivity, b.duration); }
+      else if(sortKey === 'name'){ av = (a.name||'').toLowerCase(); bv = (b.name||'').toLowerCase(); }
+      else if(sortKey === 'phone'){ av = (a.phone||'').toLowerCase(); bv = (b.phone||'').toLowerCase(); }
+      else if(sortKey === 'idNo'){ av = (a.idNo||'').toLowerCase(); bv = (b.idNo||'').toLowerCase(); }
+      else if(sortKey === 'department'){ av = (a.department||'').toLowerCase(); bv = (b.department||'').toLowerCase(); }
+      else { av = a.idNo; bv = b.idNo; }
+      if(av < bv) return -1*sortDir;
+      if(av > bv) return 1*sortDir;
+      return (a.name||'').localeCompare(b.name||'');
+    });
+    return list;
+  }
+
+  function arrow(key){ return sortKey === key ? `<span class="arrow">${sortDir === 1 ? '▲' : '▼'}</span>` : ''; }
+
+  function groupByDate(list){
+    const map = new Map();
+    list.forEach(e => {
+      const key = e.date || 'Unknown date';
+      if(!map.has(key)) map.set(key, []);
+      map.get(key).push(e);
+    });
+    const keys = [...map.keys()].sort((a,b) => {
+      const da = parseRegDate(a), db = parseRegDate(b);
+      if(!da || !db) return 0;
+      return db - da;
+    });
+    return keys.map(k => ({ date: k, rows: map.get(k) }));
+  }
+
+  function dateLabel(dateStr){
+    const d = parseRegDate(dateStr);
+    if(!d) return escapeHtml(dateStr);
+    const today = new Date(); today.setHours(0,0,0,0);
+    const cmp = new Date(d); cmp.setHours(0,0,0,0);
+    const diffDays = Math.round((today - cmp) / 86400000);
+    if(diffDays === 0) return `Today — ${dateStr}`;
+    if(diffDays === 1) return `Yesterday — ${dateStr}`;
+    return dateStr;
+  }
+
+  function renderClearedNote(){
+    const note = document.getElementById('clearedNote');
+    if(!registrationsClearedAt){ note.style.display = 'none'; note.innerHTML = ''; return; }
+    const when = new Date(registrationsClearedAt);
+    const whenLabel = isNaN(when.getTime()) ? '' : (formatDateDMY(when) + ' ' + when.toLocaleTimeString());
+    note.style.display = 'flex';
+    note.innerHTML = `<span>List cleared${whenLabel ? ' as of ' + escapeHtml(whenLabel) : ''} — nothing was deleted, everyone before this point is still in the Google Sheet.</span>`;
+    const restoreBtn = document.createElement('button');
+    restoreBtn.type = 'button';
+    restoreBtn.textContent = 'Restore full list';
+    restoreBtn.addEventListener('click', restoreRegistrationsView);
+    note.appendChild(restoreBtn);
+  }
+
+  function restoreRegistrationsView(){
+    const activity = currentActivity;
+    fetchJSON(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "restoreRegistrationsView", activity: activity.key })
+    })
+    .then(res => {
+      if(res.status !== "ok"){ showToast(res.message || "Couldn't restore the list", true); return; }
+      showToast("Full list restored ✓");
+      loadAll();
+    })
+    .catch(() => showToast("Couldn't reach the sheet — check connection", true));
+  }
+
+  document.getElementById('clearListBtn').addEventListener('click', function(){
+    const activity = currentActivity;
+    const confirmed = confirm(
+      `Clear the Registration Table for ${activity.label}?\n\n` +
+      `This only hides the current list from this app (and future Excel exports) — every entry stays exactly as-is in the Google Sheet, and members can still sign in/out and renew normally. You can restore the full list here anytime.`
+    );
+    if(!confirmed) return;
+    fetchJSON(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "clearRegistrationsView", activity: activity.key })
+    })
+    .then(res => {
+      if(res.status !== "ok"){ showToast(res.message || "Couldn't clear the list", true); return; }
+      showToast("Registration table cleared ✓ (still in the Google Sheet)");
+      loadAll();
+    })
+    .catch(() => showToast("Couldn't reach the sheet — check connection", true));
+  });
+
+  function renderTable(){
+    const tableHost = document.getElementById('tableHost');
+    const footNote = document.getElementById('footNote');
+    const list = sortedFiltered();
+
+    renderClearedNote();
+
+    if(approvedEntries.length === 0){
+      tableHost.innerHTML = registrationsClearedAt
+        ? `<div class="empty-state"><p>List cleared for ${escapeHtml(currentActivity.label)}.</p><p style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-faint);">Nothing new since the clear — the previous entries are still safe in the Google Sheet.</p></div>`
+        : `<div class="empty-state"><p>No approved registrations yet for ${escapeHtml(currentActivity.label)}.</p><p style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-faint);">Approve entries in the Approvals tab to see them here.</p></div>`;
+      footNote.textContent = ""; return;
+    }
+    if(list.length === 0){
+      tableHost.innerHTML = `<div class="empty-state"><p>No matches for "${escapeHtml(searchTerm)}".</p></div>`;
+      footNote.textContent = ""; return;
+    }
+
+    const groups = groupByDate(list);
+    let rows = groups.map(g => {
+      const groupRows = g.rows.map(e => {
+        const expired = isExpired(e);
+        return `
+        <tr class="${expired ? 'expired-row' : ''}">
+          <td>${e.photoUrl ? `<a href="${escapeHtml(e.photoUrl)}" target="_blank" rel="noopener"><img src="${escapeHtml(driveThumbUrl(e.photoUrl, 100))}" class="photo-thumb-cell" loading="lazy" decoding="async" alt=""></a>` : '<span class="photo-thumb-placeholder">—</span>'}</td>
+          <td class="name-cell">${escapeHtml(e.name)}</td>
+          <td><span class="badge ${badgeClassFor(currentActivity, e.class)}">${escapeHtml(e.class||'')}</span></td>
+          <td class="id-cell">${e.department ? escapeHtml(e.department) : '<span style="color:var(--text-faint);">—</span>'}</td>
+          <td class="id-cell">${escapeHtml(e.phone||'')}</td>
+          <td class="id-cell">${escapeHtml(e.idNo||'')}</td>
+          <td class="dur-tag">${(e.duration||'').replace('/', ' / ')}</td>
+          <td class="id-cell">${statusCellHtml(e)}</td>
+          <td class="id-cell">${escapeHtml(e.date||'')} · ${escapeHtml(e.time||'')}</td>
+        </tr>`;
+      }).join('');
+      return `
+        <tr class="group-row">
+          <td colspan="9">${dateLabel(g.date)} <span class="group-count">— ${g.rows.length} registration${g.rows.length===1?'':'s'}</span></td>
+        </tr>
+        ${groupRows}`;
+    }).join('');
+
+    tableHost.innerHTML = `
+      <table>
+        <thead><tr>
+          <th>Photo</th>
+          <th data-key="name" tabindex="0" role="button">Name ${arrow('name')}</th>
+          <th data-key="class" tabindex="0" role="button">Category ${arrow('class')}</th>
+          <th data-key="department" tabindex="0" role="button">Department ${arrow('department')}</th>
+          <th data-key="phone" tabindex="0" role="button">Phone ${arrow('phone')}</th>
+          <th data-key="idNo" tabindex="0" role="button">ID No. / Code ${arrow('idNo')}</th>
+          <th data-key="duration" tabindex="0" role="button">Plan ${arrow('duration')}</th>
+          <th>Status</th>
+          <th>Registered</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+
+    tableHost.querySelectorAll('thead th[data-key]').forEach(th => {
+      const trigger = () => {
+        const key = th.dataset.key;
+        if(sortKey === key){ sortDir *= -1; } else { sortKey = key; sortDir = 1; }
+        renderTable();
+      };
+      th.addEventListener('click', trigger);
+      th.addEventListener('keydown', (e) => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); trigger(); } });
+    });
+    const expiredCount = list.filter(isExpired).length;
+    footNote.textContent = `Showing ${list.length} of ${approvedEntries.length} approved registration(s) across ${groups.length} day${groups.length===1?'':'s'} · ${expiredCount} expired/used up. Auto-refreshes every ${AUTO_REFRESH_MS/1000}s.`;
+  }
+
+  // ---- Export ----
+  // Builds and downloads a local .xlsx of the current Registration
+  // Table — entirely client-side (no server round trip, no file kept
+  // in Drive).
+  document.getElementById('exportBtn').addEventListener('click', function(){
+    const activity = currentActivity;
+    if(approvedEntries.length === 0){ showToast("Nothing to export yet", true); return; }
+    const sorted = [...approvedEntries].sort((a,b) => {
+      const ac = activity.categories.indexOf(a.class), bc = activity.categories.indexOf(b.class);
+      if(ac !== bc) return ac - bc;
+      const ad = durationOrderIndex(activity, a.duration), bd = durationOrderIndex(activity, b.duration);
+      if(ad !== bd) return ad - bd;
+      return (a.name||'').localeCompare(b.name||'');
+    });
+
+    // Columns: A ID No./Code, B Category, C Name, D Phone, E Date of Registration (real date),
+    // F Days Left (live formula), G Sessions Used, H Session Cap
+    const aoa = [["ID No. / Code", "Category", "Name", "Phone Number", "Date of Registration", "Days Left", "Sessions Used", "Session Cap"]];
+    sorted.forEach(e => {
+      const regDate = parseRegDate(e.date);
+      const cfg = activity.durations[e.duration];
+      aoa.push([
+        e.idNo || "", e.class || "", e.name || "", e.phone || "",
+        regDate || (e.date || ""), null,
+        cfg && cfg.sessionCap ? (Number(e.sessionsUsed)||0) : "",
+        cfg && cfg.sessionCap ? cfg.sessionCap : ""
+      ]);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    sorted.forEach((e, i) => {
+      const rowNum = i + 2; // header is row 1
+      const cfg = activity.durations[e.duration];
+      if(!cfg) return;
+      // Live formula: recalculates against TODAY() every time the file is opened.
+      ws["F" + rowNum] = { t: 'n', f: `E${rowNum}+${cfg.days}-TODAY()`, z: '0' };
+    });
+    ws['!cols'] = [{wch:14},{wch:16},{wch:24},{wch:16},{wch:18},{wch:12},{wch:14},{wch:12}];
+    ws['!ref'] = XLSX.utils.encode_range({ s:{r:0,c:0}, e:{r:sorted.length, c:7} });
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Registrations");
+
+    const summary = activity.categories.map(c => ({ "Category": c, "Count": approvedEntries.filter(e => e.class === c).length }));
+    summary.push({"Category":"Total","Count":approvedEntries.length});
+    const ws2 = XLSX.utils.json_to_sheet(summary);
+    ws2['!cols'] = [{wch:22},{wch:8}];
+    XLSX.utils.book_append_sheet(wb, ws2, "Summary");
+
+    const fileName = activity.label.toLowerCase().replace(/[^a-z0-9]+/g, '-') + "-registrations.xlsx";
+    XLSX.writeFile(wb, fileName);
+    showToast("Excel file downloaded ✓ (countdown updates live)");
+  });
+})();
+</script>
+</body>
+</html>

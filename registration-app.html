@@ -1,0 +1,3146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>University of Ghana Sports and Wellness Directorate</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FFFFFF; --panel:#FFFFFF; --panel-alt:#F2F6FC;
+    --line:#DCE4F0; --line-strong:#B9C7DE;
+    --text:#0F1D3B; --text-dim:#5B6B85; --text-faint:#8B98AC;
+    /* University of Ghana crest colors: deep navy + gold. */
+    --blue:#232559; --blue-dark:#14152F; --blue-dim:rgba(35,37,89,0.08); --blue-dim-strong:rgba(35,37,89,0.14);
+    --gold:#BA8F4A; --gold-dark:#8F6B32; --gold-dim:rgba(186,143,74,0.12);
+    --danger:#C0392B; --danger-dim:rgba(192,57,43,0.09);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1100px 560px at 88% -8%, var(--blue-dim), transparent 60%),
+      radial-gradient(900px 500px at 8% 108%, var(--gold-dim), transparent 55%),
+      var(--bg);
+    color:var(--text); font-family:'Inter',sans-serif;
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:32px 20px;
+  }
+  .screen{display:none;}
+  .screen.active{display:block; width:100%;}
+  .card{
+    width:100%; max-width:480px; background:var(--panel); border:1px solid var(--line);
+    border-top:4px solid var(--gold); border-radius:16px; padding:30px 30px 30px; position:relative; margin:0 auto;
+    box-shadow:0 1px 3px rgba(15,29,59,0.04), 0 10px 30px rgba(15,29,59,0.06);
+  }
+  .brand-eyebrow{
+    font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.18em;
+    text-transform:uppercase; color:var(--blue); margin:0 0 6px; text-align:center;
+  }
+  .brand-lockup{ display:flex; align-items:center; justify-content:center; gap:10px; margin:0 0 6px; }
+  .brand-lockup .brand-eyebrow{ margin:0; }
+  .brand-logo{
+    width:30px; height:36px; flex-shrink:0; display:inline-block;
+    background-image:url("data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjxzdmcKICAgeG1sbnM6ZGM9Imh0dHA6Ly9wdXJsLm9yZy9kYy9lbGVtZW50cy8xLjEvIgogICB4bWxuczpjYz0iaHR0cDovL2NyZWF0aXZlY29tbW9ucy5vcmcvbnMjIgogICB4bWxuczpyZGY9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkvMDIvMjItcmRmLXN5bnRheC1ucyMiCiAgIHhtbG5zOnN2Zz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciCiAgIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICAgaWQ9InN2ZzExMjYiCiAgIHZlcnNpb249IjEuMSIKICAgdmlld0JveD0iMCAwIDc5LjM3NSA5NS4xNTI1MzQiCiAgIGhlaWdodD0iOTUuMTUyNTM0bW0iCiAgIHdpZHRoPSI3OS4zNzVtbSI+CiAgPGRlZnMKICAgICBpZD0iZGVmczExMjAiPgogICAgPGNsaXBQYXRoCiAgICAgICBjbGlwUGF0aFVuaXRzPSJ1c2VyU3BhY2VPblVzZSIKICAgICAgIGlkPSJjbGlwUGF0aDg4MSI+CiAgICAgIDxwYXRoCiAgICAgICAgIGQ9Im0gMTIwLjIyNCwzMTEuNjg2IGggNTcuMTkgdiA2My4wNjggaCAtNTcuMTkgeiIKICAgICAgICAgaWQ9InBhdGg4NzkiIC8+CiAgICA8L2NsaXBQYXRoPgogIDwvZGVmcz4KICA8bWV0YWRhdGEKICAgICBpZD0ibWV0YWRhdGExMTIzIj4KICAgIDxyZGY6UkRGPgogICAgICA8Y2M6V29yawogICAgICAgICByZGY6YWJvdXQ9IiI+CiAgICAgICAgPGRjOmZvcm1hdD5pbWFnZS9zdmcreG1sPC9kYzpmb3JtYXQ+CiAgICAgICAgPGRjOnR5cGUKICAgICAgICAgICByZGY6cmVzb3VyY2U9Imh0dHA6Ly9wdXJsLm9yZy9kYy9kY21pdHlwZS9TdGlsbEltYWdlIiAvPgogICAgICAgIDxkYzp0aXRsZT48L2RjOnRpdGxlPgogICAgICA8L2NjOldvcms+CiAgICA8L3JkZjpSREY+CiAgPC9tZXRhZGF0YT4KICA8ZwogICAgIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0yNzcuMzM5MDMsLTc5LjM3NDk5MikiCiAgICAgaWQ9ImxheWVyMSI+CiAgICA8ZwogICAgICAgdHJhbnNmb3JtPSJtYXRyaXgoMS41MjczMjMyLDAsMCwtMS41MjczMjMyLDg5LjgxMzExNyw2NTEuNzQ1NDcpIgogICAgICAgY2xpcC1wYXRoPSJ1cmwoI2NsaXBQYXRoODgxKSIKICAgICAgIGlkPSJnODc3Ij4KICAgICAgPGcKICAgICAgICAgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTYyLjI0NjksMzE4LjkzMjkpIgogICAgICAgICBpZD0iZzg4MyI+CiAgICAgICAgPHBhdGgKICAgICAgICAgICBpZD0icGF0aDg4NSIKICAgICAgICAgICBzdHlsZT0iZmlsbDojYmE4ZjRhO2ZpbGwtb3BhY2l0eToxO2ZpbGwtcnVsZTpldmVub2RkO3N0cm9rZTpub25lIgogICAgICAgICAgIGQ9Ik0gMCwwIEMgMC4wNjYsMC40MTUgMC4wNzcsMC41NjkgMC4xNDQsMC45ODQgMS4yMjgsMS4wNDggMi4yNTgsMC44NTIgMy4yODcsMC42NTYgMi41ODQsMC4xMjEgMS4xNjgsLTAuMDU4IDAsMCBtIC0yNi44NzcsLTAuMjc3IGMgLTEuMTc3LDAuMDg3IC0yLjU0OSwwLjQzNSAtMy4xMzcsMS4wNDQgMS4wNjcsMC4wNjUgMi4xMzUsMC4xMyAzLjIwMiwtMC4wNjUgLTAuMDIyLC0wLjQxNCAtMC4wNDMsLTAuNTY2IC0wLjA2NSwtMC45NzkgTSA0LjExMywxLjEwMiBDIDIuMDg1LDEuNzMxIDEuMDIyLDEuNTU5IC0wLjM5NiwxLjU3OSBMIC0wLjU5LC0wLjQyOSBjIC04LjI2LC0xLjQ2NyAtMTYuOTI2LC0xLjM0NyAtMjUuNTMsMC4wNCAtMC4xMzQsMC44NTIgLTAuMDExLDEuMjIzIC0wLjE1MSwxLjc2OSAtMi42NCwwLjE2NyAtNC43MjQsMC4wNzMgLTQuNzQ4LC0wLjgwNSAwLC0xLjMxNiAwLC0zLjQ4NSAwLC00LjggMTEuNTA3LC0zLjAwNSAyMy42MjUsLTMuMDQ2IDM1LjEzMiwwLjEyMSAwLDEuMDk3IDAsNC4xMSAwLDUuMjA2IiAvPgogICAgICA8L2c+CiAgICAgIDxnCiAgICAgICAgIHRyYW5zZm9ybT0idHJhbnNsYXRlKDE3NC43MjEzLDMyMy4yOTM4KSIKICAgICAgICAgaWQ9Imc4ODciPgogICAgICAgIDxwYXRoCiAgICAgICAgICAgaWQ9InBhdGg4ODkiCiAgICAgICAgICAgc3R5bGU9ImZpbGw6I2JhOGY0YTtmaWxsLW9wYWNpdHk6MTtmaWxsLXJ1bGU6ZXZlbm9kZDtzdHJva2U6bm9uZSIKICAgICAgICAgICBkPSJtIDAsMCBjIDAuMTEsMS41NTYgLTMuMjY4LDIuNDU4IC02LjA0MywwLjg0NCAtMy4yNDUsLTIuNzEzIDMuMjExLC0zLjQxMyA0LjQyOSwtMS40MzMgMC4zNSwwLjcxMiAtMC4yNTYsMC44NjcgLTAuNzk4LDAuNTExIC0xLjAwOCwtMC42NjMgLTMuMzY5LC0wLjg4OSAtMy4xMzcsMC4xMjMgMC42ODMsMC44NyAzLjM1MiwwLjg1IDMuODE0LDAuNTg1IDMuNDEyLC0xLjY5MSAtMy40MzgsLTMuODcyIC01LjA5NiwtMi44MjMgLTQuMTkzLDEuNDQzIC01Ljg5NCwwLjU3NiAtNS44NTYsMC40NCAtMC4wNDgsLTAuNjQ2IDAuNDc1LC0wLjYwMiAxLjY1NSwtMC41NTMgMS4wNDEsMC4wNDIgMi4yMiwtMC4wNjggMy4xMjIsLTAuNTc5IDAsLTEuMzAyIDAuMTEzLC0yLjg4NiAwLjExMywtNC4xODcgMi43NjUsLTAuMTQgNS4xOTUsMC4yMjggNy4zMDksMS43MTIgQyAtMC40OTQsLTMuNzQyIDAuMTc2LC0wLjQzNCAwLDAiIC8+CiAgICAgIDwvZz4KICAgICAgPGcKICAgICAgICAgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTYzLjMyNjQsMzE1Ljg0ODMpIgogICAgICAgICBpZD0iZzg5MSI+CiAgICAgICAgPHBhdGgKICAgICAgICAgICBpZD0icGF0aDg5MyIKICAgICAgICAgICBzdHlsZT0iZmlsbDojMjMyNTU5O2ZpbGwtb3BhY2l0eToxO2ZpbGwtcnVsZTpldmVub2RkO3N0cm9rZTpub25lIgogICAgICAgICAgIGQ9Im0gMCwwIDAuMzc5LDAuMTE3IGMgMC4xMDMsLTAuMjg3IDAuMjc2LC0wLjQwOSAwLjUxOSwtMC4zNjMgMC4xMTksMC4wMjIgMC4yMDgsMC4wNyAwLjI2NCwwLjE0NCBDIDEuMjE5LC0wLjAyOSAxLjIzOCwwLjA1MyAxLjIyLDAuMTQyIDEuMjEsMC4xOTUgMS4xODksMC4yMzcgMS4xNTgsMC4yNyAxLjEyNiwwLjMwMiAxLjA4MywwLjMyNSAxLjAyOSwwLjM0IDAuOTc1LDAuMzU0IDAuODQ5LDAuMzcyIDAuNjQ4LDAuMzkyIDAuNDY5LDAuNDEgMC4zMzQsMC40NCAwLjI0NCwwLjQ4NCAwLjE1NCwwLjUyNyAwLjA3NiwwLjU5MSAwLjAxLDAuNjc2IC0wLjA1NSwwLjc2MiAtMC4wOTgsMC44NTkgLTAuMTIsMC45NjcgLTAuMTQ2LDEuMDk0IC0wLjEzOSwxLjIxMyAtMC4xLDEuMzI1IC0wLjA2MSwxLjQzNyAwLjAwNiwxLjUyOSAwLjEsMS42IDAuMTk1LDEuNjcxIDAuMzE5LDEuNzIxIDAuNDczLDEuNzUgMC43MDUsMS43OTQgMC44OTcsMS43NjcgMS4wNTEsMS42NyAxLjIwNiwxLjU3NCAxLjMxLDEuNDEzIDEuMzYyLDEuMTg5IEwgMC45NjksMS4wOTQgQyAwLjkyNiwxLjIxNiAwLjg3MSwxLjI5NSAwLjgwMywxLjMzNCAwLjczNiwxLjM3MiAwLjY0OCwxLjM4MSAwLjU0MSwxLjM2MSAwLjQzNCwxLjM0MSAwLjM1NiwxLjMwNCAwLjMwNywxLjI1MSAwLjI1OCwxLjE5NiAwLjIzOSwxLjEzOCAwLjI1MiwxLjA3MyAwLjI2NSwxLjAxIDAuMzAyLDAuOTYyIDAuMzYzLDAuOTI5IDAuNDI1LDAuODk1IDAuNTU1LDAuODcxIDAuNzU0LDAuODU0IDAuOTY1LDAuODM2IDEuMTIxLDAuODA0IDEuMjIyLDAuNzU5IDEuMzI0LDAuNzE0IDEuNDA4LDAuNjQ3IDEuNDc0LDAuNTU5IDEuNTQxLDAuNDcgMS41ODgsMC4zNTcgMS42MTYsMC4yMTggMS42NTcsMC4wMTcgMS42MjYsLTAuMTY0IDEuNTI2LC0wLjMyNSAxLjQyNSwtMC40ODYgMS4yMzgsLTAuNTkyIDAuOTY2LC0wLjY0MyAwLjQ4MywtMC43MzMgMC4xNjEsLTAuNTE5IDAsMCBtIC0yLjE2MywxLjI1NSAwLjM5NywwLjA2NyAwLjIzLC0xLjI1NyBjIDAuMDM2LC0wLjE5NiAwLjA2NCwtMC4zMjIgMC4wODUsLTAuMzggMC4wMzYsLTAuMDk5IDAuMDkyLC0wLjE3MSAwLjE2OSwtMC4yMTYgMC4wNzYsLTAuMDQ1IDAuMTY5LC0wLjA1OCAwLjI3NywtMC4wMzkgMC4wOTIsMC4wMTUgMC4xNjMsMC4wNDggMC4yMTUsMC4wOTcgMC4wNSwwLjA1IDAuMDgsMC4xMTIgMC4wODgsMC4xODYgMC4wMDksMC4wNzMgLTAuMDA4LDAuMjI2IC0wLjA1LDAuNDU3IGwgLTAuMjM1LDEuMjg1IDAuMzk5LDAuMDY4IDAuMjIzLC0xLjIyIGMgMC4wNTcsLTAuMzEyIDAuMDgxLC0wLjU0IDAuMDcyLC0wLjY4NCAtMC4wMSwtMC4xNDUgLTAuMDY2LC0wLjI3MSAtMC4xNzIsLTAuMzc3IC0wLjEwNSwtMC4xMDggLTAuMjU3LC0wLjE3NyAtMC40NTUsLTAuMjExIC0wLjIwNiwtMC4wMzUgLTAuMzczLC0wLjAyNyAtMC41MDIsMC4wMjUgLTAuMTI4LDAuMDUxIC0wLjIzLDAuMTM4IC0wLjMwNiwwLjI1OCAtMC4wNzYsMC4xMiAtMC4xNDUsMC4zNTQgLTAuMjA5LDAuNzAyIHogbSAtMS44NzYsLTIuNjI5IC0wLjI5OCwyLjM0IDAuNjAxLDAuMDcxIDAuNTY1LC0xLjU1NCAwLjE1NCwxLjYzOSAwLjYwMiwwLjA3MiAwLjI5OCwtMi4zNDEgLTAuMzcyLC0wLjA0NCAtMC4yMzUsMS44NDMgLTAuMTYxLC0xLjg5IC0wLjM4NywtMC4wNDUgLTAuNjI3LDEuNzk1IDAuMjM0LC0xLjg0MiB6IE0gLTUuMSwtMC42MDYgLTUuNDY5LDAuMjM3IC01LjY0NCwtMC42NjEgWiBtIDAuODQzLC0wLjg1MiAtMC40MzgsLTAuMDQ1IC0wLjIzMiwwLjUxNiAtMC43OTcsLTAuMDgxIC0wLjEwNiwtMC41NSAtMC40MjgsLTAuMDQzIDAuNTIxLDIuNDI0IDAuNDI2LDAuMDQzIHogbSAtMy41NjMsMS42MzUgMC4xNDEsLTEuNTU2IDAuMzAzLDAuMDI2IGMgMC4xMjksMC4wMSAwLjIyMywwLjAzIDAuMjc4LDAuMDU4IDAuMDU3LDAuMDI5IDAuMTAxLDAuMDY4IDAuMTM0LDAuMTE5IDAuMDMzLDAuMDUxIDAuMDU3LDAuMTI4IDAuMDcyLDAuMjMzIDAuMDE1LDAuMTA1IDAuMDE0LDAuMjQxIC0xMGUtNCwwLjQwOSAtMC4wMTYsMC4xNzMgLTAuMDQxLDAuMzEgLTAuMDc0LDAuNDA4IC0wLjAzNSwwLjA5OCAtMC4wOCwwLjE3NCAtMC4xMzgsMC4yMjcgLTAuMDU4LDAuMDU0IC0wLjEyNSwwLjA4NiAtMC4yMDIsMC4wOTggLTAuMDU5LDAuMDA5IC0wLjE2OCwwLjAwNyAtMC4zMywtMC4wMDcgeiBtIC0wLjQzNywwLjM2MyAwLjczNSwwLjA2MiBjIDAuMTg2LDAuMDE2IDAuMzI5LDAuMDA4IDAuNDI3LC0wLjAyNCAwLjA5OCwtMC4wMzIgMC4xOTIsLTAuMDkzIDAuMjgsLTAuMTgxIDAuMDg5LC0wLjA4OCAwLjE2MiwtMC4yMDYgMC4yMjIsLTAuMzU0IDAuMDU5LC0wLjE0OCAwLjA5OSwtMC4zMzQgMC4xMTksLTAuNTYgMC4wMTksLTAuMjAzIDAuMDExLC0wLjM4MSAtMC4wMjMsLTAuNTM2IC0wLjAzNCwtMC4xNTQgLTAuMDg0LC0wLjI3NyAtMC4xNDksLTAuMzcyIC0wLjA2NiwtMC4wOTMgLTAuMTQ4LC0wLjE2NiAtMC4yNDcsLTAuMjE5IC0wLjEsLTAuMDUzIC0wLjIzMSwtMC4wODcgLTAuMzk0LC0wLjEwMSBsIC0wLjc1NywtMC4wNjQgeiBtIC0xLjY1MiwtMi40NTQgLTAuMTI4LDIuMzU0IDEuNDg2LDAuMDc2IDAuMDIyLC0wLjM5OSAtMS4wODQsLTAuMDU1IDAuMDI5LC0wLjUyMiAxLjAwNiwwLjA1MSAwLjAyMiwtMC4zOTYgLTEuMDA3LC0wLjA1MSAwLjAzNSwtMC42NDEgMS4xMiwwLjA1NyAwLjAyMSwtMC4zOTcgeiBtIC0wLjc3MSwwLjg0IDAuMzk3LC0wLjEzMyBjIC0wLjA1MiwtMC4yNjYgLTAuMTQ2LC0wLjQ2MiAtMC4yODQsLTAuNTg4IC0wLjEzOCwtMC4xMjcgLTAuMzExLC0wLjE5MyAtMC41MTksLTAuMiAtMC4yNjEsLTAuMDA5IC0wLjQ3NiwwLjA4MSAtMC42NDUsMC4yNjkgLTAuMTk2LDAuMjE4IC0wLjMsMC41MTcgLTAuMzE0LDAuODk3IC0wLjAxNCwwLjQwMiAwLjA2OCwwLjcyIDAuMjQ4LDAuOTUzIDAuMTU2LDAuMjAzIDAuMzcyLDAuMzA5IDAuNjQ4LDAuMzE4IDAuMjI0LDAuMDA4IDAuNDE1LC0wLjA2IDAuNTcxLC0wLjIwMiAwLjExMiwtMC4xMDIgMC4xOTYsLTAuMjU1IDAuMjU0LC0wLjQ2IGwgLTAuMzk2LC0wLjEyNiBjIC0wLjAzLDAuMTI3IC0wLjA4NCwwLjIyMiAtMC4xNjMsMC4yODggLTAuMDc5LDAuMDY1IC0wLjE3LDAuMDk2IC0wLjI3MywwLjA5MyAtMC4xNDgsLTAuMDA1IC0wLjI2NiwtMC4wNzEgLTAuMzU1LC0wLjE5OSAtMC4wODksLTAuMTI3IC0wLjEyOCwtMC4zMzQgLTAuMTE4LC0wLjYyIDAuMDExLC0wLjI5NyAwLjA2NCwtMC41MDcgMC4xNiwtMC42MjkgMC4wOTUsLTAuMTIyIDAuMjE2LC0wLjE4MSAwLjM2MiwtMC4xNzYgMC4xMDcsMC4wMDQgMC4xOTcsMC4wNDcgMC4yNzIsMC4xMjkgMC4wNzUsMC4wODMgMC4xMjcsMC4yMTEgMC4xNTUsMC4zODYgbSAtMy4wOTYsMC4yNjQgYyAwLC0wLjI3MSAwLjA1NCwtMC40NzQgMC4xNiwtMC42MSAwLjEwNywtMC4xMzYgMC4yMzksLTAuMjA0IDAuMzk4LC0wLjIwNCAwLjE1OCwwIDAuMjksMC4wNjggMC4zOTUsMC4yMDIgMC4xMDUsMC4xMzUgMC4xNTYsMC4zNDEgMC4xNTYsMC42MiAwLDAuMjc0IC0wLjA1LDAuNDc2IC0wLjE1MiwwLjYwNyAtMC4xMDIsMC4xMyAtMC4yMzUsMC4xOTYgLTAuMzk5LDAuMTk2IC0wLjE2NSwwIC0wLjI5OSwtMC4wNjYgLTAuNDAzLC0wLjE5OCAtMC4xMDMsLTAuMTMyIC0wLjE1NSwtMC4zMzYgLTAuMTU1LC0wLjYxMyBtIC0wLjQxNywtMC4wMTYgYyAwLDAuMjgxIDAuMDQzLDAuNTEyIDAuMTMsMC42OTQgMC4wODYsMC4xODIgMC4xOTgsMC4zMTcgMC4zMzcsMC40MDYgMC4xMzksMC4wODkgMC4zMDgsMC4xMzQgMC41MDYsMC4xMzQgMC4yODcsMCAwLjUyLC0wLjEwNiAwLjcwMSwtMC4zMTcgMC4xODEsLTAuMjExIDAuMjcxLC0wLjUxMiAwLjI3MSwtMC45MDMgMCwtMC4zOTQgLTAuMDk1LC0wLjcwMiAtMC4yODcsLTAuOTI0IC0wLjE2OCwtMC4xOTcgLTAuMzk1LC0wLjI5NSAtMC42ODMsLTAuMjk1IC0wLjI5MSwwIC0wLjUyLDAuMDk4IC0wLjY4OCwwLjI5MSAtMC4xOTEsMC4yMjIgLTAuMjg3LDAuNTI3IC0wLjI4NywwLjkxNCBtIC0xLjUxMiwwLjIxOSAwLjMwMSwtMC4wMDUgYyAwLjE4MywtMC4wMDMgMC4zLDAuMDAzIDAuMzUsMC4wMTcgMC4wNTEsMC4wMTUgMC4wOTIsMC4wNDUgMC4xMjQsMC4wOTIgMC4wMzEsMC4wNDcgMC4wNDgsMC4xMDkgMC4wNSwwLjE4NyAwLjAwMSwwLjA3NiAtMC4wMTQsMC4xMzYgLTAuMDQ0LDAuMTgyIC0wLjAzLDAuMDQ3IC0wLjA3MiwwLjA3OSAtMC4xMjUsMC4wOTYgLTAuMDM3LDAuMDEzIC0wLjE0NywwLjAyIC0wLjMyOCwwLjAyMyBsIC0wLjMxNywwLjAwNiB6IG0gLTAuNDI4LC0xLjM1NCAwLjA0MiwyLjM1OCAwLjg1MywtMC4wMTUgYyAwLjIxOCwtMC4wMDMgMC4zNzMsLTAuMDI3IDAuNDY2LC0wLjA3MSAwLjA5MywtMC4wNDQgMC4xNjgsLTAuMTE5IDAuMjI2LC0wLjIyNCAwLjA1OCwtMC4xMDYgMC4wODYsLTAuMjMyIDAuMDgzLC0wLjM3NyAtMC4wMDMsLTAuMTg1IC0wLjA1MiwtMC4zMzMgLTAuMTQ1LC0wLjQ0NCAtMC4wOTQsLTAuMTExIC0wLjIyNiwtMC4xNzkgLTAuMzk1LC0wLjIwNSAwLjA4NSwtMC4wNjIgMC4xNTYsLTAuMTI4IDAuMjExLC0wLjIwMSAwLjA1NSwtMC4wNzIgMC4xMzEsLTAuMjAxIDAuMjI1LC0wLjM4NyBsIDAuMjM1LC0wLjQ2NCAtMC40ODIsMC4wMDggLTAuMjg0LDAuNTE4IGMgLTAuMTAyLDAuMTg3IC0wLjE3MiwwLjMwNCAtMC4yMDksMC4zNTIgLTAuMDM3LDAuMDQ3IC0wLjA3NywwLjA3OSAtMC4xMTgsMC4wOTggLTAuMDQyLDAuMDE5IC0wLjExLDAuMDI4IC0wLjIwMywwLjAzIGwgLTAuMDg0LDAuMDAxIC0wLjAxOCwtMC45ODQgeiBtIC0xLjM5NiwyLjAwNyAtMC4wMjQsLTAuNjY5IDAuMjIzLC0wLjAwNyBjIDAuMTUxLC0wLjAwNSAwLjI1MywwLjAwMSAwLjMwOCwwLjAyIDAuMDU0LDAuMDE4IDAuMSwwLjA1MyAwLjEzNiwwLjEwNiAwLjAzNiwwLjA1MiAwLjA1NiwwLjExNiAwLjA1OSwwLjE5MyAwLjAwMiwwLjA3OCAtMC4wMTMsMC4xNDUgLTAuMDQ2LDAuMTk5IC0wLjAzNCwwLjA1NSAtMC4wNzcsMC4wOTMgLTAuMTI4LDAuMTEzIC0wLjA1MiwwLjAyIC0wLjE2MiwwLjAzMiAtMC4zMzEsMC4wMzggeiBtIC0wLjQ3NCwtMS45NDQgMC4wODUsMi4zNTYgMC42NSwtMC4wMjIgYyAwLjI0MywtMC4wMDggMC40MDEsLTAuMDI1IDAuNDc0LC0wLjA1IDAuMTE4LC0wLjA0IDAuMjEzLC0wLjEyMSAwLjI4NiwtMC4yNDIgMC4wNzMsLTAuMTIyIDAuMTA2LC0wLjI3NiAwLjEsLTAuNDY0IC0wLjAwNywtMC4xNzEgLTAuMDQ1LC0wLjMxMiAtMC4xMTYsLTAuNDI1IC0wLjA3MSwtMC4xMTMgLTAuMTU3LC0wLjE5MSAtMC4yNTksLTAuMjM0IC0wLjEwMiwtMC4wNDQgLTAuMjc1LC0wLjA2MSAtMC41MTksLTAuMDUzIGwgLTAuMjY2LDAuMDA5IC0wLjAzMiwtMC44ODkgeiBtIC0xLjU3LDAuMDkyIDAuMTcxLDIuMzUzIDAuNDAyLC0wLjAyOCAtMC4xNywtMi4zNTIgeiBtIC0xLjQ4NCwxLjQ4MyAwLjMsLTAuMDI2IGMgMC4xODIsLTAuMDE1IDAuMjk5LC0wLjAxNyAwLjM1LC0wLjAwNiAwLjA1MiwwLjAxMSAwLjA5NSwwLjAzOSAwLjEzLDAuMDgzIDAuMDM1LDAuMDQ1IDAuMDU3LDAuMTA2IDAuMDY0LDAuMTg0IDAuMDA3LDAuMDc1IC0wLjAwNCwwLjEzNiAtMC4wMywwLjE4NCAtMC4wMjcsMC4wNDggLTAuMDY2LDAuMDgzIC0wLjExOCwwLjEwNCAtMC4wMzcsMC4wMTYgLTAuMTQ2LDAuMDMgLTAuMzI2LDAuMDQ2IGwgLTAuMzE2LDAuMDI2IHogbSAtMC41MjUsLTEuMzIyIDAuMjEzLDIuMzQ5IDAuODQ5LC0wLjA3MiBjIDAuMjE3LC0wLjAxOCAwLjM3MSwtMC4wNTMgMC40NiwtMC4xMDMgMC4wODksLTAuMDUgMC4xNTksLTAuMTI5IDAuMjA5LC0wLjIzOCAwLjA1MSwtMC4xMSAwLjA2OSwtMC4yMzcgMC4wNTYsLTAuMzgyIC0wLjAxNywtMC4xODQgLTAuMDc1LC0wLjMyOCAtMC4xNzcsLTAuNDMzIC0wLjEwMiwtMC4xMDQgLTAuMjM4LC0wLjE2MyAtMC40MDksLTAuMTc4IDAuMDgxLC0wLjA2NyAwLjE0NywtMC4xMzggMC4xOTYsLTAuMjE0IDAuMDUsLTAuMDc2IDAuMTE2LC0wLjIxIDAuMTk3LC0wLjQwMiBsIDAuMjAxLC0wLjQ3OSAtMC40OCwwLjA0MSAtMC4yNDcsMC41MzYgYyAtMC4wODgsMC4xOTMgLTAuMTQ5LDAuMzE1IC0wLjE4MywwLjM2NSAtMC4wMzMsMC4wNDkgLTAuMDcsMC4wODQgLTAuMTExLDAuMTA2IC0wLjA0LDAuMDIxIC0wLjEwNywwLjAzNSAtMC4yLDAuMDQzIGwgLTAuMDgzLDAuMDA3IC0wLjA4OSwtMC45OCB6IG0gLTEuMTU5LDAuOTk1IDAuMDQzLDAuMzk1IDAuODY3LC0wLjA4OCAtMC4xMDEsLTAuOTM0IGMgLTAuMDk5LC0wLjA5IC0wLjIzMiwtMC4xNjMgLTAuNCwtMC4yMTggLTAuMTY4LC0wLjA1NiAtMC4zMzMsLTAuMDc1IC0wLjQ5NSwtMC4wNTggLTAuMTk2LDAuMDIgLTAuMzY1LDAuMDgzIC0wLjUwNSwwLjE5MiAtMC4xNCwwLjEwOSAtMC4yNDUsMC4yNjEgLTAuMzEyLDAuNDU2IC0wLjA2NywwLjE5NSAtMC4wODgsMC40MTggLTAuMDYsMC42NjkgMC4wMjgsMC4yNTkgMC4wOTcsMC40NzUgMC4yMDUsMC42NDkgMC4xMDksMC4xNzUgMC4yNCwwLjMgMC4zOTIsMC4zNzYgMC4xNTIsMC4wNzYgMC4zMjcsMC4xMDQgMC41MjUsMC4wODQgMC4yMzgsLTAuMDI0IDAuNDIyLC0wLjEwMSAwLjU1MywtMC4yMzMgMC4xMywtMC4xMzEgMC4yMDMsLTAuMzExIDAuMjIsLTAuNTQyIEwgLTIyLjIxNywwLjA1IGMgLTAuMDE2LDAuMTI0IC0wLjA2MSwwLjIyMiAtMC4xMzQsMC4yOTQgLTAuMDczLDAuMDcyIC0wLjE2NCwwLjExNCAtMC4yNzUsMC4xMjUgLTAuMTcxLDAuMDE3IC0wLjMxOCwtMC4wMzMgLTAuNDM3LC0wLjE1MSAtMC4xMjEsLTAuMTE3IC0wLjE5NSwtMC4zMDggLTAuMjI0LC0wLjU3MiAtMC4wMywtMC4yODIgMC4wMDMsLTAuNTAzIDAuMTAyLC0wLjY2MSAwLjA4NSwtMC4xMzggMC4yMTIsLTAuMjE0IDAuMzc5LC0wLjIzMSAwLjA3OSwtMC4wMDggMC4xNjMsMTBlLTQgMC4yNTEsMC4wMjggMC4wODksMC4wMjggMC4xNjksMC4wNjkgMC4yNDMsMC4xMjQgbCAwLjAzMiwwLjI5NyB6IG0gLTIuODU2LC0wLjUwOCAwLjI5OCwyLjM0IDEuNDc3LC0wLjE3NSAtMC4wNSwtMC4zOTYgLTEuMDc3LDAuMTI4IC0wLjA2NiwtMC41MTkgMSwtMC4xMTggLTAuMDUsLTAuMzk0IC0xLDAuMTE4IC0wLjA4MSwtMC42MzcgMS4xMTIsLTAuMTMyIC0wLjA1LC0wLjM5NCB6IG0gLTEuMjY2LDAuMiAwLjI4MiwxLjkzOSAtMC41OSwwLjA4IDAuMDU4LDAuMzk2IDEuNTc4LC0wLjIxNCAtMC4wNTgsLTAuMzk1IC0wLjU4OCwwLjA3OSAtMC4yODMsLTEuOTQgeiBtIC0yLjQzMiwwLjQxNSAwLjQyNSwyLjMyMiAwLjM4OCwtMC4wNjYgMC41MjQsLTEuNjg4IDAuMjg0LDEuNTUxIDAuMzcxLC0wLjA2MyAtMC40MjUsLTIuMzIyIC0wLjQwMSwwLjA2OCAtMC41MTgsMS42NDkgLTAuMjc3LC0xLjUxNCB6IG0gLTAuNzYyLDAuMTMxIDAuNDY3LDIuMzE1IDAuMzk2LC0wLjA3NCAtMC40NjYsLTIuMzE1IHoiIC8+CiAgICAgIDwvZz4KICAgICAgPGcKICAgICAgICAgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTIyLjgxMDIsMzIzLjE2MikiCiAgICAgICAgIGlkPSJnODk1Ij4KICAgICAgICA8cGF0aAogICAgICAgICAgIGlkPSJwYXRoODk3IgogICAgICAgICAgIHN0eWxlPSJmaWxsOiNiYThmNGE7ZmlsbC1vcGFjaXR5OjE7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlOm5vbmUiCiAgICAgICAgICAgZD0iTSAwLDAgQyAtMC4xMSwxLjU1NiAzLjI2OCwyLjQ1OCA2LjA0MywwLjg0NCA5LjI4OCwtMS44NjkgMi44MzIsLTIuNTY5IDEuNjE0LC0wLjU4OSAxLjI2NCwwLjEyMyAxLjg3LDAuMjc4IDIuNDEyLC0wLjA3OCAzLjQyLC0wLjc0MSA1Ljc4MSwtMC45NjcgNS41NDksMC4wNDUgNC44NjYsMC45MTUgMi4xOTcsMC44OTUgMS43MzUsMC42MyBjIC0zLjQxMiwtMS42OTEgMy40MzgsLTMuODcyIDUuMDk2LC0yLjgyMyA0LjE5MywxLjQ0MyA1Ljg5NCwwLjU3NiA1Ljg1NiwwLjQ0IDAuMDQ4LC0wLjY0NiAtMC40NzUsLTAuNjAyIC0xLjY1NSwtMC41NTMgQyA5Ljk5MSwtMi4yNjQgOC44MTIsLTIuMzc0IDcuOTEsLTIuODg1IDcuOTEsLTQuMTg3IDcuNzk3LC01Ljc3MSA3Ljc5NywtNy4wNzIgNS4wMzIsLTcuMjEyIDIuNjAyLC02Ljg0NCAwLjQ4OCwtNS4zNiAwLjQ5NSwtMy43NDIgLTAuMTc2LC0wLjQzNCAwLDAiIC8+CiAgICAgIDwvZz4KICAgICAgPGcKICAgICAgICAgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTcwLjEyMSwzNzQuNzU0OCkiCiAgICAgICAgIGlkPSJnODk5Ij4KICAgICAgICA8cGF0aAogICAgICAgICAgIGlkPSJwYXRoOTAxIgogICAgICAgICAgIHN0eWxlPSJmaWxsOiMyMzI1NTk7ZmlsbC1vcGFjaXR5OjE7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlOm5vbmUiCiAgICAgICAgICAgZD0ibSAwLDAgaCAtNDIuNjggdiAtNDAuMDA3IGMgMCwtMTMuMzMzIDExLjk0MywtOC40NDUgMjEuMzM3LC0xMy44NzUgQyAtMTAuNDYsLTQ3LjIyNCAwLC01NC4zMjQgMCwtNDAuMDA3IFoiIC8+CiAgICAgIDwvZz4KICAgICAgPHBhdGgKICAgICAgICAgaWQ9InBhdGg5MDMiCiAgICAgICAgIHN0eWxlPSJmaWxsOiNmZmZmZmY7ZmlsbC1vcGFjaXR5OjE7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlOm5vbmUiCiAgICAgICAgIGQ9Im0gMTI3LjQxMSwzNTQuNjY0IGggNDIuNjk4IHYgLTAuNzMyIGggLTQyLjY5OCB6IiAvPgogICAgICA8ZwogICAgICAgICB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxNjIuMzY5LDM3My42NDM5KSIKICAgICAgICAgaWQ9Imc5MDUiPgogICAgICAgIDxwYXRoCiAgICAgICAgICAgaWQ9InBhdGg5MDciCiAgICAgICAgICAgc3R5bGU9ImZpbGw6I2JhOGY0YTtmaWxsLW9wYWNpdHk6MTtmaWxsLXJ1bGU6ZXZlbm9kZDtzdHJva2U6bm9uZSIKICAgICAgICAgICBkPSJNIDAsMCAtMC4xODYsLTAuMzczIC0wLjMsLTAuNjAxIC0wLjQ0MiwtMC44ODQgLTAuMjc2LC0xLjE2MSAtMC41ODcsLTEuNDE1IGMgLTAuMDY0LC0wLjA1MiAwLjE0LC0wLjE2OSAwLjA5LC0wLjIzNSBsIC0wLjE2NiwtMC4yMTkgYyAtMC43MDMsLTAuOTI3IC0wLjI0NSwtMi4zODcgMC4yNDksLTQuMzYxIC0wLjMwOSwtMC41MzMgLTIuMDI0LDAuMTg5IC0yLjc1MSwxLjAyIC0wLjE4OCwtMC44NDIgMC44NjYsLTMuMjQ4IDIuMDc0LC0zLjU4NSBsIDAuMjA3LC0wLjU5NCBjIC0xLjI4MywtMC4zMjIgLTMuNDMzLDEuMzIgLTMuNTkzLDEuNDU2IC0wLjEyNCwtMi4xNjUgMS41LC0zLjY5NSAzLjA0NiwtNC40MDcgMC4xNTMsLTAuMDcxIDAuMDkzLC0wLjY1MiAwLjIxMiwtMC43ODMgLTEuNDg5LC0wLjM2MyAtMi44NzUsMS4wMjIgLTQuMTExLDEuNzY3IDAuMTE1LC0xLjczMiAwLjk1MiwtMy4wNzEgMi4xNjUsLTMuODE3IGwgMC43NDMsLTAuMDIyIC0wLjE0MSwtMC4zNjYgMC41MDksMC4xIDAuMDY4LC0wLjU1NSAwLjQzMiwwLjI5MyAwLjIyNywtMC40MSAwLjE5MSwtMC4zNjMgYyAwLjI4OCwtMC42OTEgMC4xODIsLTEuNzMyIDAuMjk0LC0yLjY4NiAxLjAxMSwwIDEuNTgyLDAgMi41OTQsMCAtMC4xNjksMS41MTUgLTAuMTc5LDEuNTE1IDAuMjUzLDMuNzAzIDEuNjI5LDAuNjczIDMuMTk1LDIuMTI5IDMuMTM5LDQuMDY0IC0wLjkyNywtMC43MjkgLTIuNjE0LC0xLjU3OCAtMy44MjQsLTEuNDU2IGwgMC4xOTIsMC42NDcgYyAwLjIxOSwwLjMyMSAyLjY2NSwwLjA0OCAzLjQ1Myw0LjQyNyAtMS4xNTUsLTEuMjA5IC0yLjUwMiwtMS40MDggLTMuNTM3LC0xLjQ2MSAtMC4wNjEsMC4wOTggMC4wMzcsMC4xOTUgMC4wMzQsMC4zODIgMC43ODYsMC44OTggMS43MDUsMC45OTggMS44MTgsMy42NjIgLTAuODQzLC0wLjY2NyAtMi4xMDIsLTEuMzI1IC0yLjc5MiwtMS4wODMgMS4wOSwyLjUwMyAwLjkzLDMuMzQxIDAuMzU1LDQuNDEzIEMgMC44MDUsLTEuODEzIDAuNTM0LC0xLjc1IDAuNTUxLC0xLjY3IEwgMC42LC0xLjQ0IDAuMzA3LC0xLjA0NiAwLjM0NSwtMC43NTEgQyAwLjM3OCwtMC41MDEgMC4wNjgsLTAuMjczIDAsMCIgLz4KICAgICAgPC9nPgogICAgICA8ZwogICAgICAgICB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxMzMuMzgxMywzNDAuMzIxOSkiCiAgICAgICAgIGlkPSJnOTA5Ij4KICAgICAgICA8cGF0aAogICAgICAgICAgIGlkPSJwYXRoOTExIgogICAgICAgICAgIHN0eWxlPSJmaWxsOiNiYThmNGE7ZmlsbC1vcGFjaXR5OjE7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlOm5vbmUiCiAgICAgICAgICAgZD0ibSAwLDAgYyAwLjY0OCwtMC40OTYgMS40OTEsLTAuOTkzIDIuMTQsLTEuNDg5IDIuMzEyLDAuNDc1IDEwLjc4NCwyLjYzMyAxMS45OTUsLTIuNjU1IC0wLjM2MSwtNC45OTkgLTQuMTg5LC01LjI5NSAtNi4wOTUsLTQuMjA4IC0xLjQ4LDEuNDIgLTIuMDc0LDMuOTcyIDAuNDg5LDUuMDAzIDIuMjE5LDAuNTM1IDIuNzUzLC0xLjUwMyAxLjgyNiwtMS44NzIgLTIuMTcsLTAuODYzIDAuNTU2LC0yLjU4IDEuNjE3LC0wLjAzNCAwLjY4OCw0LjIzMyAtNy4wMzIsNC40NzMgLTYuNTIxLC0wLjk1NiAwLjM1NSwtMy43ODcgNC43MjcsLTQuODAyIDcuMjU3LC0zLjE3NyA0LjM2NiwyLjkxNCAyLjcwMiw3LjY0MiAwLjA2NSw5LjQ1NSBDIDcuNTQzLDAuMDg5IDUuMjMsLTAuMDIxIDAsMCBNIDAsMCBDIDAuNjQ4LDAuNDk2IDEuNDkxLDAuOTkzIDIuMTQsMS40ODkgNC40NTIsMS4wMTQgMTIuOTI0LC0xLjE0NCAxNC4xMzUsNC4xNDMgMTMuNzc0LDkuMTQzIDkuOTQ2LDkuNDM5IDguMDQsOC4zNTIgNi41Niw2LjkzMiA1Ljk2Niw0LjM4IDguNTI5LDMuMzQ5IGMgMi4yMTksLTAuNTM1IDIuNzUzLDEuNTAzIDEuODI2LDEuODcyIC0yLjE3LDAuODYzIDAuNTU2LDIuNTggMS42MTcsMC4wMzQgQyAxMi42NiwxLjAyMiA0Ljk0LDAuNzgyIDUuNDUxLDYuMjExIDUuODA2LDkuOTk4IDEwLjE3OCwxMS4wMTMgMTIuNzA4LDkuMzg4IDE3LjA3NCw2LjQ3NCAxNS40MSwxLjg3NyAxMi43NzMsMC4wNjUgNy41NDMsMC4wNDMgNS4yMywwLjAyMSAwLDAgbSAxNS4zOTksMC44MDkgYyAwLjQ0NywwIDAuODExLC0wLjM2MyAwLjgxMSwtMC44MDkgMCwtMC40NDYgLTAuMzY0LC0wLjgwOSAtMC44MTEsLTAuODA5IC0wLjQ0NiwwIC0wLjgxLDAuMzYzIC0wLjgxLDAuODA5IDAsMC40NDYgMC4zNjQsMC44MDkgMC44MSwwLjgwOSBNIDMwLjc5OSwwIGMgLTAuNjQ4LDAuNDk2IC0xLjQ5MSwwLjk5MyAtMi4xNCwxLjQ4OSAtMi4zMTIsLTAuNDc1IC0xMC43ODQsLTIuNjMzIC0xMS45OTUsMi42NTQgMC4zNjEsNSA0LjE4OSw1LjI5NiA2LjA5NSw0LjIwOSAxLjQ4LC0xLjQyIDIuMDc0LC0zLjk3MiAtMC40ODksLTUuMDAzIC0yLjIxOSwtMC41MzUgLTIuNzUzLDEuNTAzIC0xLjgyNiwxLjg3MiAyLjE2OSwwLjg2MyAtMC41NTYsMi41OCAtMS42MTcsMC4wMzQgLTAuNjg4LC00LjIzMyA3LjAzMiwtNC40NzMgNi41MjEsMC45NTYgLTAuMzU1LDMuNzg3IC00LjcyNyw0LjgwMiAtNy4yNTcsMy4xNzcgQyAxMy43MjUsNi40NzQgMTUuMzg5LDEuNzQ2IDE4LjAyNiwtMC4wNjcgMjMuMjU2LC0wLjA4OSAyNS41NjksMC4wMjEgMzAuNzk5LDAgbSAwLDAgYyAtMC42NDgsLTAuNDk2IC0xLjQ5MSwtMC45OTMgLTIuMTQsLTEuNDg5IC0yLjMxMiwwLjQ3NSAtMTAuNzg0LDIuNjMzIC0xMS45OTUsLTIuNjU1IDAuMzYxLC00Ljk5OSA0LjE4OSwtNS4yOTUgNi4wOTUsLTQuMjA4IDEuNDgsMS40MiAyLjA3NCwzLjk3MiAtMC40ODksNS4wMDMgLTIuMjE5LDAuNTM1IC0yLjc1MywtMS41MDMgLTEuODI2LC0xLjg3MiAyLjE2OSwtMC44NjMgLTAuNTU2LC0yLjU4IC0xLjYxNywtMC4wMzQgLTAuNjg4LDQuMjMzIDcuMDMyLDQuNDczIDYuNTIxLC0wLjk1NiAtMC4zNTUsLTMuNzg3IC00LjcyNywtNC44MDIgLTcuMjU3LC0zLjE3NyAtNC4zNjYsMi45MTQgLTIuNzAyLDcuNTEgLTAuMDY1LDkuMzIzIDUuMjMsMC4wMjIgNy41NDMsMC4wNDQgMTIuNzczLDAuMDY1IiAvPgogICAgICA8L2c+CiAgICAgIDxnCiAgICAgICAgIHRyYW5zZm9ybT0idHJhbnNsYXRlKDEzMy4zODEzLDM0MC4zMjE5KSIKICAgICAgICAgaWQ9Imc5MTMiPgogICAgICAgIDxwYXRoCiAgICAgICAgICAgaWQ9InBhdGg5MTUiCiAgICAgICAgICAgc3R5bGU9ImZpbGw6bm9uZTtzdHJva2U6I2JhOGY0YTtzdHJva2Utd2lkdGg6MC4wMjU7c3Ryb2tlLWxpbmVjYXA6YnV0dDtzdHJva2UtbGluZWpvaW46bWl0ZXI7c3Ryb2tlLW1pdGVybGltaXQ6Mi42MTM7c3Ryb2tlLWRhc2hhcnJheTpub25lO3N0cm9rZS1vcGFjaXR5OjEiCiAgICAgICAgICAgZD0ibSAwLDAgYyAwLjY0OCwtMC40OTYgMS40OTEsLTAuOTkzIDIuMTQsLTEuNDg5IDIuMzEyLDAuNDc1IDEwLjc4NCwyLjYzMyAxMS45OTUsLTIuNjU1IC0wLjM2MSwtNC45OTkgLTQuMTg5LC01LjI5NSAtNi4wOTUsLTQuMjA4IC0xLjQ4LDEuNDIgLTIuMDc0LDMuOTcyIDAuNDg5LDUuMDAzIDIuMjE5LDAuNTM1IDIuNzUzLC0xLjUwMyAxLjgyNiwtMS44NzIgLTIuMTcsLTAuODYzIDAuNTU2LC0yLjU4IDEuNjE3LC0wLjAzNCAwLjY4OCw0LjIzMyAtNy4wMzIsNC40NzMgLTYuNTIxLC0wLjk1NiAwLjM1NSwtMy43ODcgNC43MjcsLTQuODAyIDcuMjU3LC0zLjE3NyA0LjM2NiwyLjkxNCAyLjcwMiw3LjY0MiAwLjA2NSw5LjQ1NSBDIDcuNTQzLDAuMDg5IDUuMjMsLTAuMDIxIDAsMCBaIE0gMCwwIEMgMC42NDgsMC40OTYgMS40OTEsMC45OTMgMi4xNCwxLjQ4OSA0LjQ1MiwxLjAxNCAxMi45MjQsLTEuMTQ0IDE0LjEzNSw0LjE0MyAxMy43NzQsOS4xNDMgOS45NDYsOS40MzkgOC4wNCw4LjM1MiA2LjU2LDYuOTMyIDUuOTY2LDQuMzggOC41MjksMy4zNDkgYyAyLjIxOSwtMC41MzUgMi43NTMsMS41MDMgMS44MjYsMS44NzIgLTIuMTcsMC44NjMgMC41NTYsMi41OCAxLjYxNywwLjAzNCBDIDEyLjY2LDEuMDIyIDQuOTQsMC43ODIgNS40NTEsNi4yMTEgNS44MDYsOS45OTggMTAuMTc4LDExLjAxMyAxMi43MDgsOS4zODggMTcuMDc0LDYuNDc0IDE1LjQxLDEuODc3IDEyLjc3MywwLjA2NSA3LjU0MywwLjA0MyA1LjIzLDAuMDIxIDAsMCBaIG0gMTUuMzk5LDAuODA5IGMgMC40NDcsMCAwLjgxMSwtMC4zNjMgMC44MTEsLTAuODA5IDAsLTAuNDQ2IC0wLjM2NCwtMC44MDkgLTAuODExLC0wLjgwOSAtMC40NDYsMCAtMC44MSwwLjM2MyAtMC44MSwwLjgwOSAwLDAuNDQ2IDAuMzY0LDAuODA5IDAuODEsMC44MDkgeiBNIDMwLjc5OSwwIGMgLTAuNjQ4LDAuNDk2IC0xLjQ5MSwwLjk5MyAtMi4xNCwxLjQ4OSAtMi4zMTIsLTAuNDc1IC0xMC43ODQsLTIuNjMzIC0xMS45OTUsMi42NTQgMC4zNjEsNSA0LjE4OSw1LjI5NiA2LjA5NSw0LjIwOSAxLjQ4LC0xLjQyIDIuMDc0LC0zLjk3MiAtMC40ODksLTUuMDAzIC0yLjIxOSwtMC41MzUgLTIuNzUzLDEuNTAzIC0xLjgyNiwxLjg3MiAyLjE2OSwwLjg2MyAtMC41NTYsMi41OCAtMS42MTcsMC4wMzQgLTAuNjg4LC00LjIzMyA3LjAzMiwtNC40NzMgNi41MjEsMC45NTYgLTAuMzU1LDMuNzg3IC00LjcyNyw0LjgwMiAtNy4yNTcsMy4xNzcgQyAxMy43MjUsNi40NzQgMTUuMzg5LDEuNzQ2IDE4LjAyNiwtMC4wNjcgMjMuMjU2LC0wLjA4OSAyNS41NjksMC4wMjEgMzAuNzk5LDAgWiBtIDAsMCBjIC0wLjY0OCwtMC40OTYgLTEuNDkxLC0wLjk5MyAtMi4xNCwtMS40ODkgLTIuMzEyLDAuNDc1IC0xMC43ODQsMi42MzMgLTExLjk5NSwtMi42NTUgMC4zNjEsLTQuOTk5IDQuMTg5LC01LjI5NSA2LjA5NSwtNC4yMDggMS40OCwxLjQyIDIuMDc0LDMuOTcyIC0wLjQ4OSw1LjAwMyAtMi4yMTksMC41MzUgLTIuNzUzLC0xLjUwMyAtMS44MjYsLTEuODcyIDIuMTY5LC0wLjg2MyAtMC41NTYsLTIuNTggLTEuNjE3LC0wLjAzNCAtMC42ODgsNC4yMzMgNy4wMzIsNC40NzMgNi41MjEsLTAuOTU2IC0wLjM1NSwtMy43ODcgLTQuNzI3LC00LjgwMiAtNy4yNTcsLTMuMTc3IC00LjM2NiwyLjkxNCAtMi43MDIsNy41MSAtMC4wNjUsOS4zMjMgNS4yMywwLjAyMiA3LjU0MywwLjA0NCAxMi43NzMsMC4wNjUgeiIgLz4KICAgICAgPC9nPgogICAgICA8ZwogICAgICAgICB0cmFuc2Zvcm09InRyYW5zbGF0ZSgxNDguOTkzMiwzNzMuNjQzOSkiCiAgICAgICAgIGlkPSJnOTE3Ij4KICAgICAgICA8cGF0aAogICAgICAgICAgIGlkPSJwYXRoOTE5IgogICAgICAgICAgIHN0eWxlPSJmaWxsOiNiYThmNGE7ZmlsbC1vcGFjaXR5OjE7ZmlsbC1ydWxlOmV2ZW5vZGQ7c3Ryb2tlOm5vbmUiCiAgICAgICAgICAgZD0iTSAwLDAgLTAuMTg2LC0wLjM3MyAtMC4zLC0wLjYwMSAtMC40NDIsLTAuODg0IC0wLjI3NiwtMS4xNjEgLTAuNTg3LC0xLjQxNSBjIC0wLjA2NCwtMC4wNTIgMC4xNCwtMC4xNjkgMC4wOSwtMC4yMzUgbCAtMC4xNjYsLTAuMjE5IGMgLTAuNzAzLC0wLjkyNyAtMC4yNDUsLTIuMzg3IDAuMjQ5LC00LjM2MSAtMC4zMDksLTAuNTMzIC0yLjAyNCwwLjE4OSAtMi43NTEsMS4wMiAtMC4xODgsLTAuODQyIDAuODY2LC0zLjI0OCAyLjA3NCwtMy41ODUgbCAwLjIwNywtMC41OTQgYyAtMS4yODMsLTAuMzIyIC0zLjQzMywxLjMyIC0zLjU5MywxLjQ1NiAtMC4xMjQsLTIuMTY1IDEuNSwtMy42OTUgMy4wNDYsLTQuNDA3IDAuMTU0LC0wLjA3MSAwLjA5MywtMC42NTIgMC4yMTIsLTAuNzgzIC0xLjQ4OSwtMC4zNjMgLTIuODc1LDEuMDIyIC00LjExMSwxLjc2NyAwLjExNSwtMS43MzIgMC45NTIsLTMuMDcxIDIuMTY2LC0zLjgxNyBsIDAuNzQyLC0wLjAyMiAtMC4xNDEsLTAuMzY2IDAuNTA5LDAuMSAwLjA2OCwtMC41NTUgMC40MzIsMC4yOTMgMC4yMjcsLTAuNDEgMC4xOTIsLTAuMzYzIGMgMC4yODcsLTAuNjkxIDAuMTgxLC0xLjczMiAwLjI5MywtMi42ODYgMS4wMTEsMCAxLjU4MiwwIDIuNTk0LDAgLTAuMTY5LDEuNTE1IC0wLjE3OSwxLjUxNSAwLjI1MywzLjcwMyAxLjYyOSwwLjY3MyAzLjE5NSwyLjEyOSAzLjEzOSw0LjA2NCAtMC45MjcsLTAuNzI5IC0yLjYxNCwtMS41NzggLTMuODI0LC0xLjQ1NiBsIDAuMTkyLDAuNjQ3IGMgMC4yMTksMC4zMjEgMi42NjUsMC4wNDggMy40NTMsNC40MjcgLTEuMTU1LC0xLjIwOSAtMi41MDIsLTEuNDA4IC0zLjUzNywtMS40NjEgLTAuMDYxLDAuMDk4IDAuMDM3LDAuMTk1IDAuMDM0LDAuMzgyIDAuNzg2LDAuODk4IDEuNzA1LDAuOTk4IDEuODE4LDMuNjYyIC0wLjg0MywtMC42NjcgLTIuMTAyLC0xLjMyNSAtMi43OTIsLTEuMDgzIDEuMDksMi41MDMgMC45MywzLjM0MSAwLjM1NSw0LjQxMyBDIDAuODA1LC0xLjgxMyAwLjUzNCwtMS43NSAwLjU1MSwtMS42NyBMIDAuNiwtMS40NCAwLjMwNywtMS4wNDYgMC4zNDUsLTAuNzUxIEMgMC4zNzgsLTAuNTAxIDAuMDY4LC0wLjI3MyAwLDAiIC8+CiAgICAgIDwvZz4KICAgICAgPGcKICAgICAgICAgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTM1LjE4NDUsMzczLjY0MzkpIgogICAgICAgICBpZD0iZzkyMSI+CiAgICAgICAgPHBhdGgKICAgICAgICAgICBpZD0icGF0aDkyMyIKICAgICAgICAgICBzdHlsZT0iZmlsbDojYmE4ZjRhO2ZpbGwtb3BhY2l0eToxO2ZpbGwtcnVsZTpldmVub2RkO3N0cm9rZTpub25lIgogICAgICAgICAgIGQ9Ik0gMCwwIC0wLjE4NiwtMC4zNzMgLTAuMywtMC42MDEgLTAuNDQxLC0wLjg4NCAtMC4yNzYsLTEuMTYxIC0wLjU4NywtMS40MTUgYyAtMC4wNjQsLTAuMDUyIDAuMTQsLTAuMTY5IDAuMDksLTAuMjM1IGwgLTAuMTY2LC0wLjIxOSBjIC0wLjcwMywtMC45MjcgLTAuMjQ1LC0yLjM4NyAwLjI0OSwtNC4zNjEgLTAuMzA5LC0wLjUzMyAtMi4wMjQsMC4xODkgLTIuNzUxLDEuMDIgLTAuMTg4LC0wLjg0MiAwLjg2NiwtMy4yNDggMi4wNzQsLTMuNTg1IGwgMC4yMDcsLTAuNTk0IGMgLTEuMjgzLC0wLjMyMiAtMy40MzMsMS4zMiAtMy41OTMsMS40NTYgLTAuMTI0LC0yLjE2NSAxLjUsLTMuNjk1IDMuMDQ2LC00LjQwNyAwLjE1NCwtMC4wNzEgMC4wOTMsLTAuNjUyIDAuMjEyLC0wLjc4MyAtMS40ODksLTAuMzYzIC0yLjg3NSwxLjAyMiAtNC4xMTEsMS43NjcgMC4xMTUsLTEuNzMyIDAuOTUyLC0zLjA3MSAyLjE2NiwtMy44MTcgbCAwLjc0MiwtMC4wMjIgLTAuMTQxLC0wLjM2NiAwLjUwOSwwLjEgMC4wNjgsLTAuNTU1IDAuNDMyLDAuMjkzIDAuMjI3LC0wLjQxIDAuMTkxLC0wLjM2MyBjIDAuMjg4LC0wLjY5MSAwLjE4MiwtMS43MzIgMC4yOTQsLTIuNjg2IDEuMDExLDAgMS41ODIsMCAyLjU5NCwwIC0wLjE2OSwxLjUxNSAtMC4xNzksMS41MTUgMC4yNTMsMy43MDMgMS42MjksMC42NzMgMy4xOTUsMi4xMjkgMy4xMzksNC4wNjQgLTAuOTI3LC0wLjcyOSAtMi42MTQsLTEuNTc4IC0zLjgyNCwtMS40NTYgbCAwLjE5MiwwLjY0NyBjIDAuMjE5LDAuMzIxIDIuNjY1LDAuMDQ4IDMuNDUzLDQuNDI3IC0xLjE1NSwtMS4yMDkgLTIuNTAyLC0xLjQwOCAtMy41MzcsLTEuNDYxIC0wLjA2MSwwLjA5OCAwLjAzNywwLjE5NSAwLjAzNCwwLjM4MiAwLjc4NiwwLjg5OCAxLjcwNSwwLjk5OCAxLjgxOCwzLjY2MiAtMC44NDMsLTAuNjY3IC0yLjEwMiwtMS4zMjUgLTIuNzkyLC0xLjA4MyAxLjA5LDIuNTAzIDAuOTMsMy4zNDEgMC4zNTUsNC40MTMgQyAwLjgwNSwtMS44MTMgMC41MzQsLTEuNzUgMC41NTEsLTEuNjcgTCAwLjYsLTEuNDQgMC4zMDcsLTEuMDQ2IDAuMzQ1LC0wLjc1MSBDIDAuMzc4LC0wLjUwMSAwLjA2OCwtMC4yNzMgMCwwIiAvPgogICAgICA8L2c+CiAgICAgIDxwYXRoCiAgICAgICAgIGlkPSJwYXRoOTI1IgogICAgICAgICBzdHlsZT0iZmlsbDojYmE4ZjRhO2ZpbGwtb3BhY2l0eToxO2ZpbGwtcnVsZTpldmVub2RkO3N0cm9rZTpub25lIgogICAgICAgICBkPSJtIDEyNy40NDEsMzU0Ljc1MSBoIDQyLjY2NyB2IC0wLjgyIGggLTQyLjY2NyB6IiAvPgogICAgPC9nPgogIDwvZz4KPC9zdmc+Cg==");
+    background-size:contain; background-repeat:no-repeat; background-position:center;
+  }
+  h1{
+    font-family:'Bebas Neue',sans-serif; font-size:40px; letter-spacing:0.02em; line-height:0.9;
+    margin:0 0 20px; text-align:center; color:var(--text);
+  }
+
+  /* Activity picker */
+  .activity-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:22px; }
+  .activity-card{
+    border:1px solid var(--line-strong); background:var(--bg); border-radius:12px;
+    padding:20px 12px; text-align:center; cursor:pointer; transition:all .12s ease; user-select:none;
+  }
+  .activity-card:hover, .activity-card:focus-visible{ border-color:var(--blue); background:var(--blue-dim); outline:none; }
+  .activity-card-icon{ font-size:28px; margin-bottom:8px; }
+  .activity-card-label{ font-weight:700; font-size:13.5px; color:var(--text); line-height:1.25; }
+  .activity-card-sub{ font-size:11px; color:var(--text-dim); margin-top:3px; }
+
+  .activity-chip-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; }
+  .activity-chip{
+    display:inline-flex; align-items:center; gap:6px; background:var(--blue-dim); color:var(--blue);
+    font-weight:700; font-size:12px; padding:6px 12px; border-radius:20px;
+  }
+  #changeActivityBtn{ margin:0; padding:6px 12px; font-size:10.5px; }
+
+  /* Tabs — back to the original plain white/gray treatment: a light
+     gray-blue "arranger" bar groups all four tabs into one control, and
+     the active tab pops out as a solid white pill with a gold
+     underline, rather than each tab carrying its own color. */
+  .tab-bar{ display:flex; gap:5px; margin-bottom:22px; background:var(--panel-alt); padding:5px; border-radius:11px; }
+  .tab-btn{
+    flex:1; background:transparent; border:none; color:var(--text-dim);
+    padding:11px 4px; border-radius:8px; cursor:pointer; font-weight:700; font-size:12.5px;
+    font-family:'Inter',sans-serif; text-transform:uppercase; letter-spacing:0.02em;
+    transition:background .12s ease, color .12s ease, box-shadow .12s ease;
+  }
+  .tab-btn:hover{ color:var(--text); }
+  .tab-btn.active{
+    background:var(--panel); color:var(--blue); font-weight:800;
+    box-shadow:0 1px 3px rgba(15,29,59,0.08), inset 0 -3px 0 var(--gold);
+  }
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  /* Sub-views within a tab (code form / lookup / walk-in / result, etc.) */
+  .view{display:none;}
+  .view.active{display:block;}
+
+  .subhead{ text-align:center; font-size:12.5px; color:var(--text-dim); margin:0 0 22px; }
+  .section-label{
+    font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.12em;
+    text-transform:uppercase; color:var(--text-dim); margin:22px 0 10px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .section-label:first-of-type{margin-top:0;}
+  .section-label::before{ content:""; width:5px; height:5px; background:var(--gold); border-radius:1px; }
+  label{
+    display:block; font-size:12px; font-weight:600; color:var(--text-dim);
+    margin:0 0 6px; text-transform:uppercase; letter-spacing:0.04em;
+  }
+  .field{margin-bottom:14px;}
+  .field-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  input[type=text], input[type=date], input[type=email], select{
+    width:100%; background:var(--bg); border:1px solid var(--line-strong); color:var(--text);
+    padding:12px; border-radius:8px; font-family:'Inter',sans-serif; font-size:14.5px;
+    outline:none; transition:border-color .15s ease, box-shadow .15s ease; appearance:none;
+  }
+  select{
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%235B6B85'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 12px center; padding-right:34px; cursor:pointer;
+  }
+  input:focus, select:focus{ border-color:var(--blue); box-shadow:0 0 0 3px var(--blue-dim); }
+  input::placeholder{color:var(--text-faint);}
+  .field-error{ font-size:11.5px; color:var(--danger); margin-top:5px; display:none; }
+  .field.invalid input, .field.invalid select{border-color:var(--danger);}
+  .field.invalid .field-error{display:block;}
+  .autofill-hint{ font-size:11.5px; color:var(--blue); margin:-8px 0 16px; display:none; }
+  .autofill-hint.show{ display:block; }
+  .autofill-hint.miss{ color:var(--text-faint); }
+
+  /* Phone: country code + number */
+  .phone-group{ display:flex; gap:8px; }
+  .phone-group select{ flex:0 0 118px; padding-left:10px; padding-right:28px; }
+  .phone-group input{ flex:1; min-width:0; }
+
+  /* Additional family member rows (Family Package) — name + optional
+     medical conditions per person, one card per family member. */
+  .family-member-row{
+    border:1px solid var(--line-strong); border-radius:8px; padding:10px; margin-bottom:8px; background:var(--bg);
+  }
+  .family-member-top{ display:flex; gap:8px; margin-bottom:8px; }
+  .family-member-top input{ flex:1; min-width:0; }
+  .family-member-fields-row{ display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
+  .family-member-gender-row{ display:flex; gap:6px; flex:0 0 auto; }
+  .family-member-gender{ padding:8px 12px; font-size:12.5px; }
+  .family-member-relationship{ flex:1; min-width:160px; }
+  .family-member-medical{ width:100%; }
+  .family-member-remove{
+    flex:0 0 auto; background:transparent; border:1px solid var(--line-strong); color:var(--text-dim);
+    border-radius:8px; padding:0 14px; cursor:pointer; font-size:14px; font-weight:700;
+  }
+  .family-member-remove:hover{ border-color:var(--danger); color:var(--danger); }
+
+  /* Photo upload */
+  .photo-upload{
+    border:1.5px dashed var(--line-strong); border-radius:10px; background:var(--panel-alt);
+    padding:16px; cursor:pointer; display:flex; align-items:center; gap:14px; transition:border-color .12s ease;
+  }
+  .photo-upload:hover{ border-color:var(--blue); }
+  .photo-upload.has-photo{ border-style:solid; }
+  .photo-thumb{
+    width:56px; height:56px; border-radius:8px; background:var(--bg); border:1px solid var(--line);
+    flex-shrink:0; display:flex; align-items:center; justify-content:center; overflow:hidden; font-size:22px; color:var(--text-faint);
+  }
+  .photo-thumb img{ width:100%; height:100%; object-fit:cover; }
+  .photo-copy{ font-size:13px; font-weight:600; color:var(--text-dim); }
+  .photo-copy .sub{ font-size:11.5px; font-weight:400; color:var(--text-faint); margin-top:2px; }
+  .field.invalid .photo-upload{ border-color:var(--danger); }
+
+  /* Photo source action sheet (selfie vs gallery) */
+  .photo-sheet-overlay{
+    position:fixed; inset:0; background:rgba(15,29,59,0.45); display:none;
+    align-items:flex-end; justify-content:center; z-index:50; padding:0;
+  }
+  .photo-sheet-overlay.show{ display:flex; }
+  .photo-sheet{
+    width:100%; max-width:480px; background:var(--panel); border-radius:16px 16px 0 0;
+    padding:14px 14px calc(14px + env(safe-area-inset-bottom));
+    box-shadow:0 -10px 30px rgba(15,29,59,0.18);
+  }
+  .photo-sheet-title{
+    font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.12em;
+    text-transform:uppercase; color:var(--text-faint); text-align:center; padding:6px 0 4px;
+  }
+  .photo-sheet-btn{
+    width:100%; display:flex; align-items:center; gap:12px; background:var(--panel-alt);
+    border:1px solid var(--line); color:var(--text); font-family:'Inter',sans-serif;
+    font-size:14.5px; font-weight:600; padding:14px 16px; border-radius:10px;
+    cursor:pointer; margin-top:8px; text-align:left;
+  }
+  .photo-sheet-btn:active{ background:var(--blue-dim); }
+  .photo-sheet-icon{ font-size:20px; width:24px; text-align:center; flex-shrink:0; }
+  .photo-sheet-cancel{
+    width:100%; background:transparent; border:none; color:var(--text-dim);
+    font-family:'Inter',sans-serif; font-size:14px; font-weight:700; padding:14px 16px 4px;
+    margin-top:6px; cursor:pointer; text-transform:uppercase; letter-spacing:0.03em;
+  }
+
+  /* Signature pad */
+  .signature-pad-wrap{
+    border:1.5px dashed var(--line-strong); border-radius:10px; background:var(--panel-alt); padding:10px;
+    transition:border-color .12s ease;
+  }
+  .signature-pad-wrap.has-signature{ border-style:solid; }
+  .field.invalid .signature-pad-wrap{ border-color:var(--danger); }
+  #signatureCanvas{
+    display:block; width:100%; height:150px; background:var(--bg); border:1px solid var(--line);
+    border-radius:8px; touch-action:none; cursor:crosshair;
+  }
+  .signature-pad-footer{ display:flex; justify-content:space-between; align-items:center; margin-top:8px; gap:10px; }
+  .signature-pad-hint{ font-size:11.5px; color:var(--text-faint); }
+
+  .tick-row{ display:flex; gap:10px; }
+  .tick-box{
+    flex:1; display:flex; align-items:center; justify-content:center; gap:8px;
+    border:1px solid var(--line-strong); background:var(--bg); border-radius:8px;
+    padding:11px 8px; cursor:pointer; user-select:none; font-size:13.5px; font-weight:600;
+    color:var(--text-dim); transition:all .12s ease;
+  }
+  .tick-box:hover{border-color:var(--blue);}
+  .tick-box .box{
+    width:16px; height:16px; border-radius:4px; border:1.5px solid var(--line-strong);
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .tick-box.active{ border-color:var(--blue); background:var(--blue-dim); color:var(--blue); }
+  .tick-box.active .box{ background:var(--blue); border-color:var(--blue); color:#fff; font-size:11px; font-weight:900; }
+  .tick-box.active .box::after{ content:"✓"; }
+
+  /* Emergency contact — pulled out of the plain form flow into its own
+     box so it doesn't blend in with every other section. */
+  .emergency-box{
+    border:1px solid var(--line); background:var(--panel-alt); border-radius:12px;
+    padding:16px 16px 4px; margin-bottom:6px;
+  }
+  .emergency-box-title{
+    font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:0.02em; color:var(--text);
+    margin:0 0 3px;
+  }
+  .emergency-box-sub{ font-size:12px; color:var(--text-dim); margin:0 0 16px; }
+
+  /* Declaration step */
+  .declaration-box{
+    background:var(--panel-alt); border:1px solid var(--line); border-radius:10px;
+    padding:16px; margin-bottom:16px;
+  }
+  .declaration-text{
+    margin:0; font-size:13.5px; line-height:1.6; color:var(--text); font-style:italic;
+  }
+  .declaration-text strong{ font-style:normal; color:var(--blue-dark); }
+  .tick-box-full{
+    flex:none; width:100%; justify-content:flex-start; text-align:left;
+    align-items:flex-start; padding:12px; margin-bottom:10px;
+  }
+  .tick-box-full .box{ margin-top:1px; }
+  .tick-box-full span.label-text{ font-weight:500; line-height:1.45; }
+
+  /* Registration wizard */
+  .wizard-progress{ display:flex; justify-content:space-between; margin:0 0 24px; position:relative; }
+  .wizard-progress::before{
+    content:""; position:absolute; top:13px; left:9%; right:9%; height:2px; background:var(--line); z-index:0;
+  }
+  .wizard-progress-step{
+    position:relative; z-index:1; display:flex; flex-direction:column; align-items:center;
+    gap:6px; flex:1; cursor:default;
+  }
+  .wizard-progress-step.reachable{ cursor:pointer; }
+  .wizard-progress-step.reachable .wizard-progress-dot{ transition:all .15s ease, transform .1s ease; }
+  .wizard-progress-step.reachable:hover .wizard-progress-dot{ border-color:var(--blue); transform:scale(1.08); }
+  .wizard-progress-step.reachable:hover .wizard-progress-label{ color:var(--blue); }
+  .wizard-progress-step.reachable:focus-visible{ outline:2px solid var(--blue); outline-offset:3px; border-radius:8px; }
+  .wizard-progress-dot{
+    width:26px; height:26px; border-radius:50%; background:var(--panel); border:2px solid var(--line-strong);
+    display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace;
+    font-size:11px; font-weight:700; color:var(--text-faint); transition:all .15s ease;
+  }
+  .wizard-progress-step.active .wizard-progress-dot{ border-color:var(--blue); background:var(--blue); color:#fff; }
+  .wizard-progress-step.done .wizard-progress-dot{ border-color:var(--blue); background:var(--blue-dim); color:transparent; font-size:0; }
+  .wizard-progress-step.done .wizard-progress-dot::after{ content:"✓"; font-size:11px; color:var(--blue); }
+  .wizard-progress-label{
+    font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.03em; text-transform:uppercase;
+    color:var(--text-faint); text-align:center; line-height:1.2;
+  }
+  .wizard-progress-step.active .wizard-progress-label{ color:var(--blue); font-weight:700; }
+  .wizard-step{ display:none; }
+  .wizard-step.active{ display:block; animation:wizardIn .18s ease; }
+  @keyframes wizardIn{ from{opacity:0; transform:translateX(6px);} to{opacity:1; transform:translateX(0);} }
+  .wizard-nav{ display:flex; gap:10px; margin-top:18px; }
+  .wizard-nav .btn{ margin-top:0; width:auto; }
+  .wizard-nav .btn-secondary{ flex:0 0 auto; padding-left:22px; padding-right:22px; }
+  .wizard-nav .btn-primary{ flex:1; }
+
+  .duration-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .duration-opt{
+    border:1px solid var(--line-strong); background:var(--bg); border-radius:8px; padding:11px 8px;
+    text-align:center; font-size:13px; font-weight:600; cursor:pointer; color:var(--text-dim);
+    transition:all .12s ease; user-select:none;
+  }
+  .duration-opt:hover{border-color:var(--blue);}
+  .duration-opt.active{ border-color:var(--blue); background:var(--blue-dim); color:var(--blue); }
+
+  /* Renew tab: verified-member card + action options */
+  .renew-member-card{
+    background:var(--panel-alt); border:1px solid var(--line); border-radius:10px;
+    padding:14px 16px; margin-bottom:18px; display:flex; align-items:center; justify-content:space-between; gap:10px;
+  }
+  .renew-member-name{ font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:0.02em; color:var(--text); }
+  .renew-member-sub{ font-size:11.5px; color:var(--text-dim); margin-top:2px; }
+  .renew-change-code{
+    background:none; border:none; color:var(--blue); font-size:11px; font-family:'JetBrains Mono',monospace;
+    text-transform:uppercase; letter-spacing:0.05em; cursor:pointer; flex-shrink:0;
+  }
+  .renew-change-code:hover{ color:var(--blue-dark); }
+  .renew-option{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    border:1px solid var(--line-strong); background:var(--bg); border-radius:10px;
+    padding:16px; margin-bottom:12px; cursor:pointer; transition:all .12s ease;
+  }
+  .renew-option:hover, .renew-option:focus-visible{ border-color:var(--blue); background:var(--blue-dim); outline:none; }
+  .renew-option-title{ font-weight:700; font-size:14.5px; color:var(--text); }
+  .renew-option-sub{ font-size:12px; color:var(--text-dim); margin-top:2px; }
+  .renew-option-sub.expired{ color:var(--danger); font-weight:700; }
+  .renew-option-arrow{ font-size:18px; color:var(--text-faint); flex-shrink:0; transition:color .12s ease; }
+  .renew-option:hover .renew-option-arrow, .renew-option:focus-visible .renew-option-arrow{ color:var(--blue); }
+  /* Every "go back to the previous screen" control uses this one style —
+     a real bordered pill, not a bare faint text link, so it reads as a
+     pressable button worth noticing rather than something easy to miss.
+     Always paired with "← Back" so the wording is consistent everywhere
+     too (the wizard's own Back/Continue pair below is the one exception —
+     see .wizard-nav .btn-secondary — since it needs to match Continue's
+     full button styling, not this compact pill). */
+  .back-btn{
+    display:inline-flex; align-items:center; gap:6px; width:auto;
+    background:var(--panel-alt); border:1px solid var(--line-strong); color:var(--text);
+    font-family:'JetBrains Mono',monospace; font-size:11.5px; font-weight:700;
+    letter-spacing:0.04em; text-transform:uppercase;
+    padding:8px 14px; border-radius:20px; cursor:pointer; margin:0 0 16px;
+    transition:border-color .12s ease, color .12s ease, background .12s ease;
+  }
+  .back-btn:hover{ border-color:var(--blue); color:var(--blue); background:var(--blue-dim); }
+
+  .btn{
+    width:100%; padding:14px 16px; border-radius:8px; border:none; font-family:'Inter',sans-serif;
+    font-weight:800; font-size:14px; letter-spacing:0.03em; text-transform:uppercase;
+    cursor:pointer; transition:transform .08s ease, opacity .12s ease; margin-top:16px;
+  }
+  .btn:active{transform:scale(0.98);}
+  .btn[disabled]{opacity:0.5; cursor:not-allowed;}
+  .btn-primary{ background:var(--blue); color:#fff; }
+  .btn-primary:hover:not([disabled]){background:var(--blue-dark);}
+  .btn-gold{ background:var(--gold); color:#fff; }
+  .btn-gold:hover:not([disabled]){background:var(--gold-dark);}
+  .btn-secondary{ background:transparent; border:1px solid var(--line-strong); color:var(--text); }
+  .btn-secondary:hover{ border-color:var(--blue); color:var(--blue); }
+  a.btn{ display:block; text-align:center; text-decoration:none; box-sizing:border-box; }
+
+  .switch-link{
+    display:block; text-align:center; margin-top:16px; font-family:'JetBrains Mono',monospace;
+    font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-faint);
+    background:none; border:none; cursor:pointer; width:100%;
+  }
+  .switch-link:hover{color:var(--blue);}
+
+  .setup-warning{
+    background:var(--danger-dim); border:1px solid rgba(192,57,43,0.3); color:var(--danger);
+    font-size:12px; padding:10px 12px; border-radius:8px; margin-bottom:18px; line-height:1.5;
+  }
+  .id-hint{
+    background:var(--gold-dim); border:1px solid rgba(184,134,11,0.3); color:var(--gold-dark);
+    font-size:12px; padding:10px 12px; border-radius:8px; margin-bottom:14px; line-height:1.5;
+  }
+
+  /* Confirm overlay (registration) — scoped to the Register tab panel,
+     not the whole card, so it covers just the form instead of also
+     swallowing the header and tab bar above it. */
+  #tab-register{ position:relative; }
+  .confirm-overlay{
+    position:absolute; inset:0; background:var(--panel); border-radius:16px; display:none;
+    align-items:center; justify-content:center; flex-direction:column; text-align:center; padding:30px;
+    z-index:5;
+  }
+  .confirm-overlay.show{display:flex;}
+  .confirm-icon{
+    width:56px; height:56px; border-radius:50%; background:var(--blue-dim); color:var(--blue);
+    display:flex; align-items:center; justify-content:center; font-size:28px; margin-bottom:16px;
+  }
+  .confirm-overlay.error .confirm-icon{ background:var(--danger-dim); color:var(--danger); }
+  .confirm-overlay h2{ font-family:'Bebas Neue',sans-serif; font-size:28px; margin:0 0 6px; letter-spacing:0.02em; }
+  .confirm-overlay p{ color:var(--text-dim); font-size:13.5px; margin:0; max-width:320px; }
+
+  .approval-wait-overlay{ overflow-y:auto; }
+  .approval-wait-overlay .btn{ margin-top:20px; width:auto; padding-left:24px; padding-right:24px; }
+  .approval-wait-spinner{
+    width:40px; height:40px; border-radius:50%; border:3px solid var(--blue-dim); border-top-color:var(--blue);
+    margin:0 auto 16px; animation:approvalWaitSpin .8s linear infinite;
+  }
+  @keyframes approvalWaitSpin{ to{ transform:rotate(360deg); } }
+  .approval-wait-codes{ display:flex; flex-direction:column; gap:10px; width:100%; margin:14px 0 0; text-align:left; }
+  .approval-wait-member-name{ font-size:12.5px; color:var(--text-dim); margin-bottom:4px; text-align:center; }
+
+  /* Sign-in result */
+  .result{ text-align:center; }
+  .result-icon{
+    width:64px; height:64px; border-radius:50%; background:var(--blue-dim); color:var(--blue);
+    display:flex; align-items:center; justify-content:center; font-size:32px; margin:0 auto 16px;
+  }
+  .result.error .result-icon, .result.expired .result-icon{ background:var(--danger-dim); color:var(--danger); }
+  .result-name{ font-family:'Bebas Neue',sans-serif; font-size:32px; letter-spacing:0.02em; margin:0 0 4px; }
+  .result-sub{ font-size:12.5px; color:var(--text-dim); margin:0 0 22px; }
+  .countdown-box{
+    background:var(--panel-alt); border:1px solid var(--line); border-radius:12px; padding:20px; margin-bottom:16px;
+  }
+  .lookup-results-list{ text-align:left; margin-bottom:16px; }
+  .lookup-result-row{
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    background:var(--panel-alt); border:1px solid var(--line); border-radius:10px;
+    padding:12px 14px; margin-bottom:8px;
+  }
+  .lookup-result-name{ font-weight:700; font-size:14px; color:var(--text); }
+  .lookup-result-sub{ font-size:11.5px; color:var(--text-dim); margin-top:2px; }
+  .countdown-box.expired{ border:2px solid var(--danger); background:var(--danger-dim); }
+  .countdown-num{ font-family:'Bebas Neue',sans-serif; font-size:52px; line-height:1; color:var(--gold-dark); }
+  .countdown-box.expired .countdown-num{ color:var(--danger); font-size:34px; font-weight:800; }
+  .countdown-label{
+    font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--text-dim); margin-top:6px;
+  }
+  .countdown-box.expired .countdown-label{ color:var(--danger); font-weight:700; }
+  .expired-tag{ color:var(--danger); font-weight:700; }
+  .code-chip{
+    display:inline-block; background:var(--gold-dim); color:var(--gold-dark); font-family:'JetBrains Mono',monospace;
+    font-size:22px; font-weight:700; letter-spacing:0.12em; padding:10px 18px; border-radius:8px; margin-bottom:16px;
+  }
+  .code-chip-row{ display:flex; flex-direction:column; align-items:center; gap:6px; margin-bottom:16px; }
+  .code-chip-row .code-chip{ margin-bottom:0; }
+  .lookup-result-row .code-chip-row{ margin-bottom:0; }
+  .lookup-result-row .code-chip{ font-size:15px; padding:6px 12px; }
+  .copy-code-btn{
+    background:var(--panel-alt); border:1px solid var(--line-strong); color:var(--blue); font-size:11px;
+    font-weight:700; padding:6px 14px; border-radius:8px; cursor:pointer; font-family:'Inter',sans-serif;
+    text-transform:uppercase; letter-spacing:0.03em;
+  }
+  .copy-code-btn:hover{ border-color:var(--blue); }
+  .copy-code-btn.copied{ background:var(--blue-dim); color:var(--blue-dark); border-color:var(--blue); }
+  .lookup-result-row .copy-code-btn{ font-size:10px; padding:4px 10px; }
+  .error-msg{ color:var(--text-dim); font-size:13.5px; margin:0 0 20px; }
+  input.code-input{
+    font-family:'JetBrains Mono',monospace; font-size:20px; letter-spacing:0.08em; text-align:center;
+  }
+  input.code-input::placeholder{ font-size:14px; letter-spacing:normal; font-family:'Inter',sans-serif; }
+
+  /* ---- Phone screens ---- */
+  @media (max-width:480px){
+    body{ padding:16px 10px; }
+    .card{ padding:22px 16px; }
+    h1{ font-size:32px; }
+    .field-row{ grid-template-columns:1fr; }
+    /* All 4 tabs squeezed onto one row were cramped enough on a narrow
+       phone to wrap their label text, which could make a tab look cut
+       off or broken rather than like a button — easy to miss it's even
+       there to tap. Two rows of two gives each tab roughly double the
+       width instead, so every label sits on one line and all four stay
+       visible at once (no scrolling needed to discover the rest). */
+    .tab-bar{ flex-wrap:wrap; }
+    .tab-btn{ flex:1 1 45%; }
+  }
+  @media (max-width:360px){
+    .activity-grid{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="screen active" id="screen-picker">
+  <div class="card">
+    <div class="brand-lockup">
+      <span class="brand-logo" role="img" aria-label="University of Ghana coat of arms"></span>
+      <p class="brand-eyebrow">University of Ghana Sports and Wellness Directorate</p>
+    </div>
+    <button type="button" class="back-btn" id="activityPickerBack" style="display:none;">← Back</button>
+    <h1 id="activityPickerTitle">CHOOSE YOUR ACTIVITY</h1>
+    <p class="subhead" id="activityPickerSub" style="display:none;"></p>
+    <div class="setup-warning" id="setupWarningPicker" style="display:none;">
+      ⚠ SCRIPT_URL isn't set yet. Open this file's code and paste in your Apps Script /exec URL.
+    </div>
+    <div class="activity-grid" id="activityGrid"></div>
+    <a href="brochure.html" target="_blank" rel="noopener" class="btn btn-secondary" id="brochureLinkBtn">Rates &amp; Schedule Guide</a>
+  </div>
+</div>
+
+<div class="screen" id="screen-app">
+  <div class="card">
+  <div class="activity-chip-row">
+    <span class="activity-chip" id="activeActivityChip"></span>
+    <button type="button" class="back-btn" id="changeActivityBtn">← Back</button>
+  </div>
+  <h1 id="mainTitle">GYM MEMBERSHIP</h1>
+
+  <div class="setup-warning" id="setupWarning" style="display:none;">
+    ⚠ SCRIPT_URL isn't set yet. Open this file's code and paste in your Apps Script /exec URL.
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn" data-tab="register">Register</button>
+    <button class="tab-btn" data-tab="renew">Renewal</button>
+    <button class="tab-btn active" data-tab="signin">Sign In</button>
+    <button class="tab-btn" data-tab="signout">Sign Out</button>
+  </div>
+
+  <!-- ============ REGISTRATION TAB ============ -->
+  <div class="tab-panel" id="tab-register">
+    <p class="subhead">Your registration will be reviewed by the front desk before it's confirmed.</p>
+
+    <div class="wizard-progress" id="wizardProgress">
+      <div class="wizard-progress-step active" data-step="1" role="button" tabindex="0"><span class="wizard-progress-dot">1</span><span class="wizard-progress-label">Basic</span></div>
+      <div class="wizard-progress-step" data-step="2" role="button" tabindex="-1"><span class="wizard-progress-dot">2</span><span class="wizard-progress-label">Personal</span></div>
+      <div class="wizard-progress-step" data-step="3" role="button" tabindex="-1"><span class="wizard-progress-dot">3</span><span class="wizard-progress-label">Contact</span></div>
+      <div class="wizard-progress-step" data-step="4" role="button" tabindex="-1"><span class="wizard-progress-dot">4</span><span class="wizard-progress-label">Plan</span></div>
+      <div class="wizard-progress-step" data-step="5" role="button" tabindex="-1"><span class="wizard-progress-dot">5</span><span class="wizard-progress-label">SOS</span></div>
+      <div class="wizard-progress-step" data-step="6" role="button" tabindex="-1"><span class="wizard-progress-dot">6</span><span class="wizard-progress-label">Confirm</span></div>
+    </div>
+
+    <form id="regForm" novalidate>
+      <div class="wizard-step active" data-step="1">
+      <p class="section-label">Basic details</p>
+      <div class="field" id="field-class">
+        <label for="regClass">Registration Category</label>
+        <select id="regClass"></select>
+        <p class="field-error">Please select a category.</p>
+      </div>
+
+      <div class="field-row">
+        <div class="field" id="field-surname">
+          <label for="regSurname">Surname</label>
+          <input type="text" id="regSurname" placeholder="e.g. Owusu">
+          <p class="field-error">Required.</p>
+        </div>
+        <div class="field" id="field-otherNames">
+          <label for="regOtherNames">Other Names</label>
+          <input type="text" id="regOtherNames" placeholder="e.g. Kwame Yaw">
+          <p class="field-error">Required.</p>
+        </div>
+      </div>
+
+      <div class="field" id="field-dept">
+        <label for="regDept">Department <span id="deptOptionalTag" style="color:var(--text-dim);text-transform:none;font-weight:400;">(optional)</span></label>
+        <input type="text" id="regDept" placeholder="e.g. Computer Science">
+        <p class="field-error" id="deptFieldError">Required for this category.</p>
+      </div>
+
+      <div class="field" id="field-id">
+        <label for="regId">ID No. <span id="idOptionalTag" style="display:none;color:var(--text-dim);text-transform:none;font-weight:400;">(optional)</span></label>
+        <input type="text" id="regId" placeholder="e.g. 10123456 / Staff ID">
+        <p class="field-error">Please enter your ID number.</p>
+      </div>
+      <div class="id-hint" id="idOptionalHint" style="display:none;">
+        No ID needed — a member code will be generated for you automatically once your registration is approved. Find it later on the Sign In tab.
+      </div>
+
+      <div class="field" id="field-staffRelation" style="display:none;">
+        <label>Related UG Staff Member <span style="color:var(--text-dim);text-transform:none;font-weight:400;">(Spouse or Child only)</span></label>
+        <div class="field-row">
+          <div class="field" id="field-relatedStaffSurname">
+            <label for="regRelatedStaffSurname">Surname</label>
+            <input type="text" id="regRelatedStaffSurname" placeholder="e.g. Owusu">
+            <p class="field-error">Required.</p>
+          </div>
+          <div class="field" id="field-relatedStaffOtherNames">
+            <label for="regRelatedStaffOtherNames">Other Names</label>
+            <input type="text" id="regRelatedStaffOtherNames" placeholder="e.g. Kwame">
+            <p class="field-error">Required.</p>
+          </div>
+        </div>
+        <div class="field" id="field-relatedStaffIdNo">
+          <label for="regRelatedStaffIdNo">ID No.</label>
+          <input type="text" id="regRelatedStaffIdNo" placeholder="Staff ID">
+          <p class="field-error">Required.</p>
+        </div>
+        <div class="field" id="field-staffRelationship" style="margin-bottom:0;">
+          <label>Relationship to Staff Member</label>
+          <div class="tick-row" id="staffRelationshipRow">
+            <div class="tick-box" data-value="Spouse"><span class="box"></span> Spouse</div>
+            <div class="tick-box" data-value="Child"><span class="box"></span> Child</div>
+          </div>
+          <p class="field-error">Please select Spouse or Child.</p>
+        </div>
+      </div>
+
+      <div class="field" id="field-photo">
+        <label for="regPhotoInput">Photo</label>
+        <div class="photo-upload" id="photoUploadBox">
+          <div class="photo-thumb" id="photoThumb">📷</div>
+          <div class="photo-copy">
+            <div id="photoCopyMain">Tap to add a photo</div>
+            <div class="sub" id="photoCopySub">Clear photo of your face</div>
+          </div>
+          <input type="file" id="regPhotoInputSelfie" accept="image/*" capture="user" hidden>
+          <input type="file" id="regPhotoInputGallery" accept="image/*" hidden>
+        </div>
+        <p class="field-error">A photo is required.</p>
+      </div>
+
+      </div>
+
+      <div class="wizard-step" data-step="2">
+      <p class="section-label">Personal information</p>
+      <div class="field-row">
+        <div class="field" id="field-dob">
+          <label for="regDob">Date of Birth</label>
+          <input type="date" id="regDob">
+          <p class="field-error">Please enter a date of birth.</p>
+        </div>
+        <div class="field" id="field-gender">
+          <label>Gender</label>
+          <div class="tick-row" id="genderRow">
+            <div class="tick-box" data-value="Male"><span class="box"></span> Male</div>
+            <div class="tick-box" data-value="Female"><span class="box"></span> Female</div>
+          </div>
+          <p class="field-error">Please select a gender.</p>
+        </div>
+      </div>
+
+      <div class="field" id="field-nationality">
+        <label for="regNationality">Nationality</label>
+        <input type="text" id="regNationality" placeholder="e.g. Ghanaian">
+        <p class="field-error">Required.</p>
+      </div>
+
+      <div class="field" id="field-medicalCondition">
+        <label>Do you have any of the following or similar medical conditions — for example hypertension, asthma, cardiovascular and respiratory disorders, epilepsy, etc?</label>
+        <div class="tick-row" id="medicalConditionRow">
+          <div class="tick-box" data-value="Yes"><span class="box"></span> Yes</div>
+          <div class="tick-box" data-value="No"><span class="box"></span> No</div>
+        </div>
+        <p class="field-error">Please select yes or no.</p>
+      </div>
+
+      <div class="field" id="field-medicalConditionDetails" style="display:none;">
+        <label for="regMedicalConditionDetails">Please state</label>
+        <input type="text" id="regMedicalConditionDetails" placeholder="e.g. Asthma">
+        <p class="field-error">Please state your medical condition.</p>
+      </div>
+
+      </div>
+
+      <div class="wizard-step" data-step="3">
+      <p class="section-label">Contact</p>
+      <div class="field" id="field-phone">
+        <label for="regPhone">Phone Number</label>
+        <div class="phone-group">
+          <select id="regPhoneCode" class="country-code-select"></select>
+          <input type="text" id="regPhone" placeholder="24 123 4567" inputmode="tel">
+        </div>
+        <p class="field-error">Please enter a valid phone number.</p>
+      </div>
+
+      <div class="field" id="field-email">
+        <label for="regEmail">Email Address</label>
+        <input type="email" id="regEmail" placeholder="e.g. kwame@example.com">
+        <p class="field-error">Please enter a valid email address.</p>
+      </div>
+
+      <div class="field" id="field-address">
+        <label for="regAddress">Address <span style="color:var(--text-dim);text-transform:none;font-weight:400;">(digital, postal, or residential)</span></label>
+        <input type="text" id="regAddress" placeholder="e.g. GA-184-9021, or P.O. Box LG 25, or House No. 12 East Legon">
+        <p class="field-error">Required.</p>
+      </div>
+
+      </div>
+
+      <div class="wizard-step" data-step="4">
+      <p class="section-label">Plan</p>
+      <div class="field" id="field-duration">
+        <label>Plan</label>
+        <div class="duration-grid" id="durationGrid"></div>
+        <p class="field-error">Please choose a plan.</p>
+      </div>
+
+      <div class="id-hint" id="planDisclaimer" style="display:none;"></div>
+
+      <div class="field" id="field-familyMembers" style="display:none;">
+        <label>Additional Family Members <span style="color:var(--text-dim);text-transform:none;font-weight:400;">(up to 4 more — you're member 1 of up to 5)</span></label>
+        <div id="familyMembersList"></div>
+        <button type="button" class="btn btn-secondary" id="addFamilyMemberBtn" style="margin-top:2px;">+ Add Family Member</button>
+        <p class="field-error" id="familyMembersError">Enter a surname, other names, gender, and relationship to you for each family member, or remove the row.</p>
+      </div>
+
+      </div>
+
+      <div class="wizard-step" data-step="5">
+      <div class="emergency-box">
+        <p class="emergency-box-title">Emergency Contact</p>
+        <p class="emergency-box-sub">Who should we call if something happens to you on-site?</p>
+        <div class="field-row">
+          <div class="field" id="field-emergencySurname">
+            <label for="regEmergencySurname">Surname</label>
+            <input type="text" id="regEmergencySurname" placeholder="e.g. Owusu">
+            <p class="field-error">Required.</p>
+          </div>
+          <div class="field" id="field-emergencyOtherNames">
+            <label for="regEmergencyOtherNames">Other Names</label>
+            <input type="text" id="regEmergencyOtherNames" placeholder="e.g. Ama">
+            <p class="field-error">Required.</p>
+          </div>
+        </div>
+
+        <div class="field" id="field-emergencyPhone">
+          <label for="regEmergencyPhone">Contact Phone</label>
+          <div class="phone-group">
+            <select id="regEmergencyPhoneCode" class="country-code-select"></select>
+            <input type="text" id="regEmergencyPhone" placeholder="20 987 6543" inputmode="tel">
+          </div>
+          <p class="field-error">Please enter a valid phone number.</p>
+        </div>
+        <div class="field" id="field-emergencyRelationship">
+          <label for="regEmergencyRelationship">Relationship</label>
+          <input type="text" id="regEmergencyRelationship" placeholder="e.g. Spouse, Parent">
+          <p class="field-error">Required.</p>
+        </div>
+      </div>
+
+      </div>
+
+      <div class="wizard-step" data-step="6">
+      <p class="section-label">Declaration</p>
+      <div class="field" id="field-declaration">
+        <div class="declaration-box">
+          <p class="declaration-text">I, <strong id="declarationName">&mdash;</strong>, do promise to adhere to the rules, regulations, terms and conditions governing membership and use of the University of Ghana Sports and Wellness Directorate facilities.</p>
+        </div>
+        <div class="tick-row" id="declarationRow">
+          <div class="tick-box" data-value="Yes"><span class="box"></span> Yes</div>
+          <div class="tick-box" data-value="No"><span class="box"></span> No</div>
+        </div>
+        <p class="field-error">Please confirm the declaration to continue.</p>
+      </div>
+
+      <div class="field" id="field-infoCorrect">
+        <div class="tick-box tick-box-full" id="infoCorrectBox" tabindex="0" role="checkbox" aria-checked="false">
+          <span class="box"></span><span class="label-text">I confirm that the information I have entered is correct and accurate</span>
+        </div>
+        <p class="field-error">Please confirm your information is correct to continue.</p>
+      </div>
+
+      <div class="field" id="field-signature">
+        <label>Signature of Applicant</label>
+        <div class="signature-pad-wrap" id="signaturePadWrap">
+          <canvas id="signatureCanvas"></canvas>
+          <div class="signature-pad-footer">
+            <span class="signature-pad-hint">Sign above using your mouse or finger</span>
+            <button type="button" class="switch-link" id="clearSignatureBtn">Clear</button>
+          </div>
+        </div>
+        <p class="field-error">Please sign to continue.</p>
+      </div>
+
+      </div>
+
+      <div class="wizard-nav">
+        <button type="button" class="btn btn-secondary" id="wizBackBtn" style="display:none;">← Back</button>
+        <button type="button" class="btn btn-primary" id="wizNextBtn">Continue</button>
+        <button type="submit" class="btn btn-primary" id="submitBtn" style="display:none;" disabled>Submit for Approval</button>
+      </div>
+    </form>
+
+    <div class="confirm-overlay" id="confirmOverlay">
+      <div class="confirm-icon" id="confirmIcon">✓</div>
+      <h2 id="confirmTitle">Submitted!</h2>
+      <p id="confirmDetail"></p>
+    </div>
+
+    <!-- Shown right after a fresh (non-renewal) submission — stays up and
+         polls in the background so the code pops up here automatically
+         the moment the front desk approves, instead of making the
+         registrant come back and look themselves up. -->
+    <div class="confirm-overlay approval-wait-overlay" id="approvalWaitOverlay">
+      <div id="approvalWaitPending">
+        <div class="approval-wait-spinner"></div>
+        <h2>Submitted!</h2>
+        <p id="approvalWaitPendingDetail">Waiting for front desk approval…</p>
+      </div>
+      <div id="approvalWaitApproved" style="display:none;">
+        <div class="confirm-icon">✓</div>
+        <h2>Approved!</h2>
+        <p id="approvalWaitApprovedDetail"></p>
+        <div class="approval-wait-codes" id="approvalWaitCodes"></div>
+      </div>
+      <button type="button" class="btn btn-secondary" id="approvalWaitDoneBtn">Done</button>
+    </div>
+
+    <div class="photo-sheet-overlay" id="photoSheetOverlay">
+      <div class="photo-sheet">
+        <div class="photo-sheet-title">Add photo</div>
+        <button type="button" class="photo-sheet-btn" id="photoSheetSelfie">
+          <span>Take a selfie</span>
+        </button>
+        <button type="button" class="photo-sheet-btn" id="photoSheetGallery">
+          <span>Choose from gallery</span>
+        </button>
+        <button type="button" class="photo-sheet-cancel" id="photoSheetCancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SIGN IN TAB ============ -->
+  <div class="tab-panel active" id="tab-signin">
+    <div class="view active" id="view-code">
+      <p class="subhead">Tap Sign In, then enter your member code or ID number.</p>
+      <button type="button" class="btn btn-primary" id="revealCodeBtn">Sign In</button>
+      <form id="codeForm" novalidate style="display:none;">
+        <div class="field" id="field-code">
+          <label for="codeInput">Member Code</label>
+          <input type="text" id="codeInput" class="code-input" placeholder="Code or ID number">
+          <p class="field-error">Enter your code or ID number.</p>
+        </div>
+        <button type="submit" class="btn btn-primary" id="checkinBtn">Sign In</button>
+      </form>
+      <button class="switch-link" id="toLookupBtn">Don't have your code? →</button>
+      <button class="btn btn-gold" id="toWalkinBtn">Walk-in →</button>
+    </div>
+
+    <div class="view" id="view-lookup">
+      <button type="button" class="back-btn" id="toCodeBtn">← Back</button>
+      <p class="subhead">Find your code using the phone number you registered with.</p>
+      <form id="lookupForm" novalidate>
+        <div class="field" id="field-phone-lookup">
+          <label for="phoneInput">Phone Number</label>
+          <div class="phone-group">
+            <select id="phoneInputCode" class="country-code-select"></select>
+            <input type="text" id="phoneInput" placeholder="24 123 4567">
+          </div>
+          <p class="field-error">Enter the phone number you registered with.</p>
+        </div>
+        <button type="submit" class="btn btn-primary" id="lookupBtn">Find My Status</button>
+      </form>
+    </div>
+
+    <div class="view" id="view-walkin">
+      <button type="button" class="back-btn" id="toCodeFromWalkinBtn">← Back</button>
+      <p class="subhead">Quick walk-in entry — enter your phone or ID number and hit submit. If you've visited before, that's all you need.</p>
+      <form id="walkinSigninForm" novalidate>
+        <div class="field" id="field-walkin-class">
+          <label for="walkinClass">Category</label>
+          <select id="walkinClass"></select>
+          <p class="field-error">Please select a category.</p>
+        </div>
+        <div class="field" id="field-walkin-phone">
+          <label for="walkinPhone">Phone Number</label>
+          <div class="phone-group">
+            <select id="walkinPhoneCode" class="country-code-select"></select>
+            <input type="text" id="walkinPhone" placeholder="24 123 4567" inputmode="tel">
+          </div>
+          <p class="field-error">Please enter a valid phone number.</p>
+        </div>
+        <div class="field" id="field-walkin-id">
+          <label for="walkinId">ID Number <span style="font-weight:400; color:var(--text-faint);">(if you have one)</span></label>
+          <input type="text" id="walkinId" placeholder="Your student/staff ID">
+          <p class="field-error">Required for this category.</p>
+        </div>
+        <p class="autofill-hint" id="walkinAutofillHint"></p>
+        <div class="field-row">
+          <div class="field" id="field-walkin-surname">
+            <label for="walkinSurname">Surname</label>
+            <input type="text" id="walkinSurname" placeholder="e.g. Owusu">
+            <p class="field-error">Required.</p>
+          </div>
+          <div class="field" id="field-walkin-otherNames">
+            <label for="walkinOtherNames">Other Names</label>
+            <input type="text" id="walkinOtherNames" placeholder="e.g. Kwame">
+            <p class="field-error">Required.</p>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" id="walkinSubmitBtn">Submit Walk-in</button>
+      </form>
+    </div>
+
+    <div class="view" id="view-result">
+      <div class="result" id="resultBody"></div>
+    </div>
+  </div>
+
+  <!-- ============ SIGN OUT TAB ============ -->
+  <div class="tab-panel" id="tab-signout">
+    <div class="view active" id="view-out-start">
+      <p class="subhead">Ready to head out?</p>
+      <button type="button" class="btn btn-primary" id="toOutCodeFromStartBtn">Sign Out</button>
+      <button class="btn btn-gold" id="toOutPhoneFromStartBtn">Walk-in Sign Out →</button>
+    </div>
+
+    <div class="view" id="view-out-code">
+      <button type="button" class="back-btn" id="toOutStartBtn">← Back</button>
+      <p class="subhead">Enter your member code or ID number to sign out.</p>
+      <form id="codeOutForm" novalidate>
+        <div class="field" id="field-code-out">
+          <label for="codeOutInput">Member Code</label>
+          <input type="text" id="codeOutInput" class="code-input" placeholder="Code or ID number">
+          <p class="field-error">Enter your code or ID number.</p>
+        </div>
+        <button type="submit" class="btn btn-primary" id="checkoutBtn">Sign Out</button>
+      </form>
+    </div>
+
+    <div class="view" id="view-out-phone">
+      <button type="button" class="back-btn" id="toOutCodeBtn">← Back</button>
+      <p class="subhead">Sign out using the phone number you entered when you walked in.</p>
+      <form id="phoneOutForm" novalidate>
+        <div class="field" id="field-phone-out">
+          <label for="phoneOutInput">Phone Number</label>
+          <div class="phone-group">
+            <select id="phoneOutCode" class="country-code-select"></select>
+            <input type="text" id="phoneOutInput" placeholder="24 123 4567" inputmode="tel">
+          </div>
+          <p class="field-error">Enter the phone number you signed in with.</p>
+        </div>
+        <button type="submit" class="btn btn-primary" id="checkoutPhoneBtn">Sign Out</button>
+      </form>
+    </div>
+
+    <div class="view" id="view-out-result">
+      <div class="result" id="resultOutBody"></div>
+    </div>
+  </div>
+
+  <!-- ============ RENEW / UPDATE DETAILS TAB ============ -->
+  <div class="tab-panel" id="tab-renew">
+    <div class="view active" id="view-renew-code">
+      <p class="subhead">Enter your member code or ID number to renew your plan or update your details.</p>
+      <form id="renewCodeForm" novalidate>
+        <div class="field" id="field-renew-code">
+          <label for="renewCodeInput">Your Code</label>
+          <input type="text" id="renewCodeInput" class="code-input" placeholder="Code or ID number">
+          <p class="field-error">Enter your code or ID number.</p>
+        </div>
+        <button type="submit" class="btn btn-primary" id="renewVerifyBtn">Continue</button>
+      </form>
+    </div>
+
+    <div class="view" id="view-renew-menu">
+      <div class="renew-member-card">
+        <div>
+          <div class="renew-member-name" id="renewMemberName"></div>
+          <div class="renew-member-sub" id="renewMemberSub"></div>
+        </div>
+        <button type="button" class="renew-change-code" id="renewChangeCodeBtn">Not you?</button>
+      </div>
+
+      <div class="renew-option" id="renewOptionSubscription" tabindex="0" role="button">
+        <div>
+          <div class="renew-option-title">Renew Plan</div>
+          <div class="renew-option-sub" id="renewSubStatus">Extend your plan — needs front-desk approval</div>
+        </div>
+        <span class="renew-option-arrow">→</span>
+      </div>
+
+      <div class="renew-option" id="renewOptionDetails" tabindex="0" role="button">
+        <div>
+          <div class="renew-option-title">Update My Details</div>
+          <div class="renew-option-sub">Phone, email, address, emergency contact</div>
+        </div>
+        <span class="renew-option-arrow">→</span>
+      </div>
+    </div>
+
+    <div class="view" id="view-renew-duration">
+      <button type="button" class="back-btn" id="toRenewMenuFromDurationBtn">← Back</button>
+      <p class="section-label">Choose a new plan</p>
+      <div class="field" id="field-renew-duration">
+        <div class="duration-grid" id="renewDurationGrid"></div>
+        <p class="field-error">Please choose a plan.</p>
+      </div>
+      <p class="renew-option-sub" style="margin:-6px 0 4px;">Your request goes to the front desk — your current plan keeps working until it's approved.</p>
+      <button type="button" class="btn btn-primary" id="renewConfirmBtn">Submit Renewal Request</button>
+    </div>
+
+    <div class="view" id="view-renew-details">
+      <button type="button" class="back-btn" id="toRenewMenuFromDetailsBtn">← Back</button>
+      <p class="section-label">Update your details</p>
+      <form id="renewDetailsForm" novalidate>
+        <div class="field" id="field-ren-phone">
+          <label for="renPhone">Phone Number</label>
+          <div class="phone-group">
+            <select id="renPhoneCode" class="country-code-select"></select>
+            <input type="text" id="renPhone" placeholder="24 123 4567" inputmode="tel">
+          </div>
+          <p class="field-error">Please enter a valid phone number.</p>
+        </div>
+        <div class="field" id="field-ren-email">
+          <label for="renEmail">Email Address</label>
+          <input type="email" id="renEmail" placeholder="e.g. kwame@example.com">
+          <p class="field-error">Please enter a valid email address.</p>
+        </div>
+        <div class="field" id="field-ren-address">
+          <label for="renAddress">Address</label>
+          <input type="text" id="renAddress" placeholder="e.g. GA-184-9021, or P.O. Box LG 25">
+          <p class="field-error">Required.</p>
+        </div>
+        <div class="emergency-box">
+          <p class="emergency-box-title">Emergency Contact</p>
+          <p class="emergency-box-sub">Who should we call if something happens to you on-site?</p>
+          <div class="field-row">
+            <div class="field" id="field-ren-emergencySurname">
+              <label for="renEmergencySurname">Surname</label>
+              <input type="text" id="renEmergencySurname" placeholder="e.g. Owusu">
+              <p class="field-error">Required.</p>
+            </div>
+            <div class="field" id="field-ren-emergencyOtherNames">
+              <label for="renEmergencyOtherNames">Other Names</label>
+              <input type="text" id="renEmergencyOtherNames" placeholder="e.g. Ama">
+              <p class="field-error">Required.</p>
+            </div>
+          </div>
+          <div class="field" id="field-ren-emergencyPhone">
+            <label for="renEmergencyPhone">Contact Phone</label>
+            <div class="phone-group">
+              <select id="renEmergencyPhoneCode" class="country-code-select"></select>
+              <input type="text" id="renEmergencyPhone" placeholder="20 987 6543" inputmode="tel">
+            </div>
+            <p class="field-error">Please enter a valid phone number.</p>
+          </div>
+          <div class="field" id="field-ren-emergencyRelationship">
+            <label for="renEmergencyRelationship">Relationship</label>
+            <input type="text" id="renEmergencyRelationship" placeholder="e.g. Spouse, Parent">
+            <p class="field-error">Required.</p>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary" id="renewDetailsSubmitBtn">Save Changes</button>
+      </form>
+    </div>
+
+    <div class="view" id="view-renew-result">
+      <div class="result" id="resultRenewBody"></div>
+    </div>
+  </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // ---- PASTE YOUR APPS SCRIPT WEB APP URL HERE ----
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwUCJRzZC--3sh2uOi9bRfLjgtMCNlZE4BmCJSURohckusFCxRatuemTUB1XpP-Al6vDQ/exec";
+  // ---------------------------------------------------
+
+  // Wraps fetch+json with a couple of quick, silent retries before
+  // giving up — a single dropped packet or a slow Apps Script cold
+  // start used to surface immediately as a scary "No connection" error
+  // on the very first hiccup. Retrying almost always clears it before
+  // the person registering/signing in ever sees anything.
+  // Apps Script Web Apps on a free/consumer account have a real cap on
+  // how many executions of this script can run at once — every open
+  // front desk tab polling every few seconds, every registrant sitting
+  // on an approval-wait or walk-in-status poll, all hitting the same
+  // script, can genuinely exceed it at a busy moment. That shows up
+  // here as fetch() rejecting or the response not being valid JSON
+  // (Google serves an HTML "too many requests" page instead) — not a
+  // real network outage, just the script momentarily too busy to take
+  // one more concurrent execution, which normally clears within a
+  // couple of seconds as other requests finish. The old 2-retry/500ms
+  // policy gave that under 1.5 seconds total to clear before giving up
+  // and telling someone "No connection" — nowhere near enough. This
+  // retries more patiently (5 attempts total, roughly doubling the
+  // wait each time: 0.6s, 1.2s, 2.4s, 4.8s) so a genuine busy-moment
+  // failure gets a real chance to resolve itself before surfacing as
+  // an error.
+  function fetchJSON(url, options, attempt){
+    if(attempt === undefined) attempt = 0;
+    return fetch(url, options)
+      .then(r => r.json())
+      .catch(err => {
+        if(attempt < 4){
+          return new Promise(resolve => setTimeout(resolve, 600 * Math.pow(2, attempt)))
+            .then(() => fetchJSON(url, options, attempt + 1));
+        }
+        throw err;
+      });
+  }
+
+  // A page left open a long time — a front-desk kiosk tab, or a
+  // registrant's phone locked and reopened later — can lose its
+  // activity selection out from under it: Android Chrome in particular
+  // will silently reload a backgrounded tab under memory pressure,
+  // which resets currentActivity to null along with the rest of the
+  // JS state. Without this guard, submitting from that now-stale form
+  // sends the server a request with no activity and gets back "Unknown
+  // or missing activity" — a dead end that doesn't explain anything.
+  // Called at the top of every action that depends on currentActivity;
+  // sends them back to pick their activity again instead of failing.
+  function requireCurrentActivity(){
+    if(currentActivity) return true;
+    pickerSection = null;
+    renderActivityPicker();
+    showScreen('picker');
+    return false;
+  }
+
+  if(!SCRIPT_URL || SCRIPT_URL.indexOf("PASTE_") === 0){
+    document.getElementById('setupWarning').style.display = 'block';
+    document.getElementById('setupWarningPicker').style.display = 'block';
+  }
+
+  function escapeHtml(str){
+    const d = document.createElement('div');
+    d.textContent = str == null ? '' : String(str);
+    return d.innerHTML;
+  }
+
+  // Date sent to the backend must always be month-first (M/d/yyyy) to
+  // match how it's stored and parsed server-side. Plain toLocaleDateString()
+  // depends on the browser's locale (day-first in many regions, including
+  // Ghana), so build the string explicitly instead of relying on it.
+  // Matches Code.gs's DATE_FORMAT ("dd/MM/yyyy") — zero-padded day,
+  // then month, then year.
+  function formatDateDMY(d){
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    return `${dd}/${mm}/${d.getFullYear()}`;
+  }
+
+  /* ===================== ACTIVITIES (mirrors Code.gs ACTIVITIES — keep in sync) ===================== */
+  const FAMILY_CATEGORY = "Family Package (Max 5)";
+  // Leisure Tennis, Tennis Lessons, Leisure Swimming and Swimming
+  // Lessons all share this 7-category set (per the printed rate
+  // cards) — only Gym keeps the plain 4-category set.
+  const LESSON_STYLE_CATEGORIES = [
+    "UG Student", "UG Staff",
+    "UG Staff Relation (Under 17)", "UG Staff Relation (17 & Above)",
+    "Public Child (Under 17)", "Public Adult (17 & Above)",
+    FAMILY_CATEGORY
+  ];
+  // A UG Staff Relation must name the UG staff member they're related
+  // to, that staff member's own ID number, and their relationship —
+  // restricted to Spouse or Child, nothing else is eligible.
+  const UG_STAFF_RELATION_CATEGORIES = ["UG Staff Relation (Under 17)", "UG Staff Relation (17 & Above)"];
+  const ACTIVITIES = {
+    gym: {
+      key: "gym", label: "Gymnasium", short: "Gym",
+      categories: ["UG Student", "UG Staff", "Non-UG Student", "Public"],
+      idRequiredCategories: ["UG Student", "UG Staff"],
+      deptRequiredCategories: ["UG Student", "UG Staff"],
+      durations: {
+        "Walk-in": { days: 1 },
+        "Monthly": { days: 30 },
+        "Semesterly": { days: 120, onlyFor: ["UG Student"] },
+        "Quarterly": { days: 90, hideFor: ["UG Student"] },
+        "Half-yearly": { days: 182 },
+        "Yearly": { days: 365 }
+      }
+    },
+    // Leisure Tennis is Walk-in/Monthly only — no Semesterly/Quarterly/
+    // Half-yearly/Yearly (unlike Gym and Leisure Swimming).
+    leisureTennis: {
+      key: "leisureTennis", label: "Leisure Tennis", short: "Leisure Tennis",
+      categories: LESSON_STYLE_CATEGORIES,
+      idRequiredCategories: ["UG Student", "UG Staff"],
+      deptRequiredCategories: ["UG Student", "UG Staff"],
+      durations: {
+        "Walk-in": { days: 1 },
+        "Monthly": { days: 30 }
+      }
+    },
+    leisureSwimming: {
+      key: "leisureSwimming", label: "Leisure Swimming", short: "Leisure Swimming",
+      categories: LESSON_STYLE_CATEGORIES,
+      idRequiredCategories: ["UG Student", "UG Staff"],
+      deptRequiredCategories: ["UG Student", "UG Staff"],
+      durations: {
+        "Walk-in": { days: 1 },
+        "Monthly": { days: 30 },
+        "Semesterly": { days: 120, onlyFor: ["UG Student"] },
+        "Quarterly": { days: 90, hideFor: ["UG Student"] },
+        "Half-yearly": { days: 182 },
+        "Yearly": { days: 365 }
+      }
+    },
+    tennisLessons: {
+      key: "tennisLessons", label: "Tennis Lessons", short: "Tennis Lessons",
+      categories: LESSON_STYLE_CATEGORIES,
+      idRequiredCategories: ["UG Student", "UG Staff"],
+      deptRequiredCategories: ["UG Student", "UG Staff"],
+      durations: {
+        "Walk-in": { days: 1 },
+        "Monthly": { days: 30 }
+      }
+    },
+    // Only ONE plan exists for Swimming Lessons — no Walk-in.
+    swimmingLessons: {
+      key: "swimmingLessons", label: "Swimming Lessons", short: "Swimming Lessons",
+      categories: LESSON_STYLE_CATEGORIES,
+      idRequiredCategories: ["UG Student", "UG Staff"],
+      deptRequiredCategories: ["UG Student", "UG Staff"],
+      durations: {
+        "12-Session Package": { days: 42, sessionCap: 12 }
+      },
+      planDisclaimer: "Swimming lessons consist of 12 sessions held over 6 weeks. All 12 sessions must be completed within that 6-week window — sessions do not carry over beyond it."
+    }
+  };
+
+  function durationAllowedForCategory(cfg, category){
+    if(!cfg) return false;
+    if(cfg.onlyFor && cfg.onlyFor.indexOf(category) === -1) return false;
+    if(cfg.hideFor && cfg.hideFor.indexOf(category) !== -1) return false;
+    return true;
+  }
+  function durationLabel(key, cfg){
+    // Session-capped plans (Swimming Lessons) get their own disclaimer
+    // paragraph instead of a long parenthetical here.
+    return key;
+  }
+
+  let currentActivity = null;
+
+  // ---- Country codes for phone fields ----
+  const COUNTRY_CODES = [
+    { code:"+233", label:"🇬🇭 +233", def:true },
+    { code:"+234", label:"🇳🇬 +234" },
+    { code:"+225", label:"🇨🇮 +225" },
+    { code:"+228", label:"🇹🇬 +228" },
+    { code:"+229", label:"🇧🇯 +229" },
+    { code:"+226", label:"🇧🇫 +226" },
+    { code:"+223", label:"🇲🇱 +223" },
+    { code:"+221", label:"🇸🇳 +221" },
+    { code:"+232", label:"🇸🇱 +232" },
+    { code:"+231", label:"🇱🇷 +231" },
+    { code:"+27",  label:"🇿🇦 +27" },
+    { code:"+254", label:"🇰🇪 +254" },
+    { code:"+1",   label:"🇺🇸 +1" },
+    { code:"+44",  label:"🇬🇧 +44" },
+    { code:"+91",  label:"🇮🇳 +91" },
+    { code:"+86",  label:"🇨🇳 +86" }
+  ];
+  function populateCountryCodeSelects(){
+    document.querySelectorAll('select.country-code-select').forEach(sel => {
+      sel.innerHTML = COUNTRY_CODES.map(c =>
+        `<option value="${c.code}"${c.def ? ' selected' : ''}>${c.label}</option>`
+      ).join('');
+    });
+  }
+  populateCountryCodeSelects();
+
+  // Ghanaian habit: local numbers are usually written with a leading 0
+  // ("024 123 4567") even though every phone field here already pairs
+  // with an explicit country code select that accounts for it — so a
+  // leading 0 is dropped the moment it's typed, and typing is capped
+  // at 9 digits (the length of a local number once that 0 is gone).
+  document.querySelectorAll('.phone-group input[type="text"]').forEach(input => {
+    input.addEventListener('input', () => {
+      let value = input.value.replace(/^0/, '');
+      let digitCount = 0, cutIndex = value.length;
+      for(let i = 0; i < value.length; i++){
+        if(/\d/.test(value[i])){
+          digitCount++;
+          if(digitCount > 9){ cutIndex = i; break; }
+        }
+      }
+      value = value.slice(0, cutIndex);
+      if(value !== input.value) input.value = value;
+    });
+  });
+
+  /* ===================== Screens: activity picker <-> app ===================== */
+  const screens = {
+    picker: document.getElementById('screen-picker'),
+    app: document.getElementById('screen-app')
+  };
+  function showScreen(name){
+    Object.values(screens).forEach(s => s.classList.remove('active'));
+    screens[name].classList.add('active');
+  }
+
+  // Gym is its own section (its section key IS the activity key).
+  // Tennis and Swimming are each a Leisure activity + a Lessons
+  // activity combined into one section — picking the section reveals
+  // a second step to choose between the two.
+  const PICKER_SECTIONS = [
+    { key: 'gym', label: 'Gymnasium' },
+    { key: 'tennis', label: 'Tennis', options: ['leisureTennis', 'tennisLessons'] },
+    { key: 'swimming', label: 'Swimming', options: ['leisureSwimming', 'swimmingLessons'] }
+  ];
+  let pickerSection = null; // null = top-level section list; else the chosen section object
+
+  function renderActivityPicker(){
+    const grid = document.getElementById('activityGrid');
+    document.getElementById('activityPickerTitle').textContent = pickerSection ? pickerSection.label : 'CHOOSE YOUR ACTIVITY';
+    document.getElementById('activityPickerSub').textContent = pickerSection ? 'Leisure play, or structured lessons?' : '';
+    document.getElementById('activityPickerSub').style.display = pickerSection ? 'block' : 'none';
+    document.getElementById('activityPickerBack').style.display = pickerSection ? 'block' : 'none';
+    document.getElementById('brochureLinkBtn').style.display = pickerSection ? 'none' : 'block';
+
+    if(pickerSection){
+      grid.innerHTML = pickerSection.options.map(key => `
+        <div class="activity-card" data-key="${key}" tabindex="0" role="button">
+          <div class="activity-card-label">${escapeHtml(ACTIVITIES[key].label)}</div>
+        </div>`).join('');
+      grid.querySelectorAll('.activity-card').forEach(el => {
+        el.addEventListener('click', () => selectActivity(el.dataset.key));
+        el.addEventListener('keydown', (e) => {
+          if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); selectActivity(el.dataset.key); }
+        });
+      });
+    } else {
+      grid.innerHTML = PICKER_SECTIONS.map(s => `
+        <div class="activity-card" data-section="${s.key}" tabindex="0" role="button">
+          <div class="activity-card-label">${escapeHtml(s.label)}</div>
+          ${s.options ? '<div class="activity-card-sub">Leisure or Lessons</div>' : ''}
+        </div>`).join('');
+      grid.querySelectorAll('.activity-card').forEach(el => {
+        el.addEventListener('click', () => handleSectionClick(el.dataset.section));
+        el.addEventListener('keydown', (e) => {
+          if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); handleSectionClick(el.dataset.section); }
+        });
+      });
+    }
+  }
+  function handleSectionClick(sectionKey){
+    const section = PICKER_SECTIONS.find(s => s.key === sectionKey);
+    if(!section) return;
+    if(section.options){
+      pickerSection = section;
+      renderActivityPicker();
+    } else {
+      selectActivity(sectionKey);
+    }
+  }
+  document.getElementById('activityPickerBack').addEventListener('click', () => {
+    pickerSection = null;
+    renderActivityPicker();
+  });
+  renderActivityPicker();
+
+  function selectActivity(key){
+    const activity = ACTIVITIES[key];
+    if(!activity) return;
+    currentActivity = activity;
+    document.getElementById('activeActivityChip').textContent = activity.label;
+    document.getElementById('mainTitle').textContent = activity.label.toUpperCase();
+    applyActivityEverywhere();
+    resetAllFlows();
+    showScreen('app');
+  }
+  document.getElementById('changeActivityBtn').addEventListener('click', () => {
+    pickerSection = null;
+    renderActivityPicker();
+    showScreen('picker');
+  });
+
+  function populateCategorySelect(selectEl, activity){
+    selectEl.innerHTML = '<option value="" disabled selected>Select category</option>' +
+      activity.categories.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+  }
+
+  function populateDurationGrid(gridEl, activity, category){
+    // Walk-in is never a choice here — it has its own dedicated entry
+    // point on the Sign In tab ("Walk-in →"), not a plan you register
+    // or renew into.
+    const keys = Object.keys(activity.durations).filter(k => k !== 'Walk-in');
+    gridEl.innerHTML = keys.map(k => {
+      const cfg = activity.durations[k];
+      const allowed = durationAllowedForCategory(cfg, category);
+      return `<div class="duration-opt" data-value="${escapeHtml(k)}" style="${allowed ? '' : 'display:none;'}">${escapeHtml(durationLabel(k, cfg))}</div>`;
+    }).join('');
+  }
+
+  function applyActivityEverywhere(){
+    populateCategorySelect(classField, currentActivity);
+    populateCategorySelect(walkinClass, currentActivity);
+    updateConditionalFields();
+    // Swimming Lessons has no Walk-in plan — members must register for
+    // the 12-session package, so hide the walk-in path entirely (both
+    // the Sign In tab's walk-in entry and the Sign Out tab's walk-in
+    // sign-out-by-phone, since a Walk-in is the only kind of visit that
+    // ever needs signing out by phone instead of by code).
+    const hasWalkin = !!(currentActivity && currentActivity.durations['Walk-in']);
+    document.getElementById('toWalkinBtn').style.display = hasWalkin ? 'block' : 'none';
+    document.getElementById('toOutPhoneFromStartBtn').style.display = hasWalkin ? 'block' : 'none';
+  }
+
+  /* ===================== Top-level tabs (inside the app screen) ===================== */
+  const topTabs = document.querySelectorAll('.tab-bar > .tab-btn');
+  const topPanels = {
+    register: document.getElementById('tab-register'),
+    signin: document.getElementById('tab-signin'),
+    signout: document.getElementById('tab-signout'),
+    renew: document.getElementById('tab-renew')
+  };
+  topTabs.forEach(btn => {
+    btn.addEventListener('click', () => {
+      topTabs.forEach(b => b.classList.remove('active'));
+      Object.values(topPanels).forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      topPanels[btn.dataset.tab].classList.add('active');
+    });
+  });
+
+  /* ===================== MEMBERSHIP REGISTRATION ===================== */
+  let selectedDuration = null;
+  let selectedGender = null;
+  let selectedMedicalCondition = null;
+  let selectedDeclaration = null;
+  let selectedStaffRelationship = null;
+
+  const form = document.getElementById('regForm');
+  const classField = document.getElementById('regClass');
+  const otherNamesField = document.getElementById('regOtherNames');
+  const surnameField = document.getElementById('regSurname');
+  const deptFieldWrap = document.getElementById('field-dept');
+  const deptField = document.getElementById('regDept');
+  const deptOptionalTag = document.getElementById('deptOptionalTag');
+  const idFieldWrap = document.getElementById('field-id');
+  const idField = document.getElementById('regId');
+  const idOptionalTag = document.getElementById('idOptionalTag');
+  const idOptionalHint = document.getElementById('idOptionalHint');
+  const staffRelationSection = document.getElementById('field-staffRelation');
+  const relatedStaffSurnameField = document.getElementById('regRelatedStaffSurname');
+  const relatedStaffOtherNamesField = document.getElementById('regRelatedStaffOtherNames');
+  const relatedStaffIdNoField = document.getElementById('regRelatedStaffIdNo');
+  const staffRelationshipRow = document.getElementById('staffRelationshipRow');
+  const photoUploadBox = document.getElementById('photoUploadBox');
+  const photoInputSelfie = document.getElementById('regPhotoInputSelfie');
+  const photoInputGallery = document.getElementById('regPhotoInputGallery');
+  const photoThumb = document.getElementById('photoThumb');
+  const photoCopyMain = document.getElementById('photoCopyMain');
+  const photoCopySub = document.getElementById('photoCopySub');
+  const photoSheetOverlay = document.getElementById('photoSheetOverlay');
+  const photoSheetSelfie = document.getElementById('photoSheetSelfie');
+  const photoSheetGallery = document.getElementById('photoSheetGallery');
+  const photoSheetCancel = document.getElementById('photoSheetCancel');
+  const regPhoneCode = document.getElementById('regPhoneCode');
+  const regEmergencyPhoneCode = document.getElementById('regEmergencyPhoneCode');
+  const dobField = document.getElementById('regDob');
+  const genderRow = document.getElementById('genderRow');
+  const nationalityField = document.getElementById('regNationality');
+  const medicalConditionRow = document.getElementById('medicalConditionRow');
+  const medicalConditionDetailsField = document.getElementById('field-medicalConditionDetails');
+  const medicalConditionDetailsInput = document.getElementById('regMedicalConditionDetails');
+  const phoneField = document.getElementById('regPhone');
+  const emailField = document.getElementById('regEmail');
+  const addressField = document.getElementById('regAddress');
+  const durationGrid = document.getElementById('durationGrid');
+  const planDisclaimerEl = document.getElementById('planDisclaimer');
+  const signatureFieldWrap = document.getElementById('field-signature');
+  const familyMembersField = document.getElementById('field-familyMembers');
+  const familyMembersList = document.getElementById('familyMembersList');
+  const addFamilyMemberBtn = document.getElementById('addFamilyMemberBtn');
+  const emergencySurnameField = document.getElementById('regEmergencySurname');
+  const emergencyOtherNamesField = document.getElementById('regEmergencyOtherNames');
+  const emergencyPhoneField = document.getElementById('regEmergencyPhone');
+  const emergencyRelationshipField = document.getElementById('regEmergencyRelationship');
+  const confirmOverlay = document.getElementById('confirmOverlay');
+  const confirmIcon = document.getElementById('confirmIcon');
+  const confirmTitle = document.getElementById('confirmTitle');
+  const confirmDetail = document.getElementById('confirmDetail');
+  const submitBtn = document.getElementById('submitBtn');
+  const declarationNameEl = document.getElementById('declarationName');
+  const declarationRow = document.getElementById('declarationRow');
+  const infoCorrectBox = document.getElementById('infoCorrectBox');
+  const signatureCanvas = document.getElementById('signatureCanvas');
+  const sigCtx = signatureCanvas.getContext('2d');
+  const signaturePadWrap = document.getElementById('signaturePadWrap');
+  const clearSignatureBtn = document.getElementById('clearSignatureBtn');
+
+  function isIdRequired(){ return currentActivity && currentActivity.idRequiredCategories.indexOf(classField.value) !== -1; }
+  function isDeptRequired(){ return currentActivity && currentActivity.deptRequiredCategories.indexOf(classField.value) !== -1; }
+  // Public members never have a department or a student/staff ID to
+  // give, so those two sections are hidden entirely for them rather
+  // than shown-but-optional.
+  function isPublicCategory(){ return classField.value.indexOf('Public') !== -1; }
+  // A minor can't legally sign the membership declaration themselves,
+  // so the signature pad is skipped entirely for these categories.
+  const MINOR_CATEGORIES = ["UG Staff Relation (Under 17)", "Public Child (Under 17)"];
+  function isMinorCategory(){ return MINOR_CATEGORIES.indexOf(classField.value) !== -1; }
+
+  /* ---- Additional family member name rows (Family Package) ---- */
+  const MAX_EXTRA_FAMILY_MEMBERS = 4; // + the person filling the form = 5 total
+
+  function addFamilyMemberRow(){
+    if(familyMembersList.children.length >= MAX_EXTRA_FAMILY_MEMBERS) return;
+    const row = document.createElement('div');
+    row.className = 'family-member-row';
+    row.innerHTML = `
+      <div class="family-member-top">
+        <input type="text" class="family-member-surname" placeholder="Surname, e.g. Owusu">
+        <input type="text" class="family-member-otherNames" placeholder="Other Names, e.g. Kwame">
+        <button type="button" class="family-member-remove" aria-label="Remove">&times;</button>
+      </div>
+      <div class="family-member-fields-row">
+        <div class="family-member-gender-row" role="group" aria-label="Gender">
+          <div class="tick-box family-member-gender" data-value="Male"><span class="box"></span> Male</div>
+          <div class="tick-box family-member-gender" data-value="Female"><span class="box"></span> Female</div>
+        </div>
+        <input type="text" class="family-member-relationship" placeholder="Relationship to you (e.g. Spouse, Child)">
+      </div>
+      <input type="text" class="family-member-medical" placeholder="Medical conditions (leave blank if none)">`;
+    row.querySelector('.family-member-remove').addEventListener('click', () => {
+      row.remove();
+      updateAddFamilyMemberBtn();
+    });
+    row.querySelectorAll('.family-member-gender').forEach(opt => {
+      opt.addEventListener('click', () => {
+        row.querySelectorAll('.family-member-gender').forEach(o => o.classList.remove('active'));
+        opt.classList.add('active');
+        clearFieldError('field-familyMembers');
+      });
+    });
+    familyMembersList.appendChild(row);
+    updateAddFamilyMemberBtn();
+    row.querySelector('.family-member-surname').focus();
+  }
+  function updateAddFamilyMemberBtn(){
+    addFamilyMemberBtn.style.display = familyMembersList.children.length >= MAX_EXTRA_FAMILY_MEMBERS ? 'none' : 'block';
+  }
+  function resetFamilyMembers(){
+    familyMembersList.innerHTML = '';
+    updateAddFamilyMemberBtn();
+    clearFieldError('field-familyMembers');
+  }
+  function collectFamilyMembers(){
+    return [...familyMembersList.children].map(row => {
+      const activeGender = row.querySelector('.family-member-gender.active');
+      const surname = row.querySelector('.family-member-surname').value.trim();
+      const otherNames = row.querySelector('.family-member-otherNames').value.trim();
+      return {
+        surname: surname,
+        otherNames: otherNames,
+        name: `${surname} ${otherNames}`.trim(),
+        gender: activeGender ? activeGender.dataset.value : '',
+        relationship: row.querySelector('.family-member-relationship').value.trim(),
+        medicalConditions: row.querySelector('.family-member-medical').value.trim()
+      };
+    });
+  }
+  addFamilyMemberBtn.addEventListener('click', addFamilyMemberRow);
+
+  function updateConditionalFields(){
+    if(!currentActivity) return;
+    const isPublic = isPublicCategory();
+
+    const dept = isDeptRequired();
+    deptFieldWrap.style.display = isPublic ? 'none' : 'block';
+    deptOptionalTag.style.display = dept ? 'none' : 'inline';
+    if(isPublic){ deptField.value = ''; }
+    if(isPublic || !dept) clearFieldError('field-dept');
+
+    const idRequired = isIdRequired();
+    idFieldWrap.style.display = isPublic ? 'none' : 'block';
+    idOptionalTag.style.display = idRequired ? 'none' : 'inline';
+    idOptionalHint.style.display = idRequired ? 'none' : 'block';
+    if(isPublic){ idField.value = ''; }
+    if(isPublic || !idRequired) clearFieldError('field-id');
+
+    const isFamily = classField.value === FAMILY_CATEGORY;
+    familyMembersField.style.display = isFamily ? 'block' : 'none';
+    if(!isFamily) resetFamilyMembers();
+
+    const isStaffRelation = UG_STAFF_RELATION_CATEGORIES.indexOf(classField.value) !== -1;
+    staffRelationSection.style.display = isStaffRelation ? 'block' : 'none';
+    if(!isStaffRelation){
+      relatedStaffSurnameField.value = '';
+      relatedStaffOtherNamesField.value = '';
+      relatedStaffIdNoField.value = '';
+      selectedStaffRelationship = null;
+      [...staffRelationshipRow.children].forEach(c => c.classList.remove('active'));
+      clearFieldError('field-relatedStaffSurname');
+      clearFieldError('field-relatedStaffOtherNames');
+      clearFieldError('field-relatedStaffIdNo');
+      clearFieldError('field-staffRelationship');
+    }
+
+    const isMinor = isMinorCategory();
+    signatureFieldWrap.style.display = isMinor ? 'none' : 'block';
+    if(isMinor){ resetSignaturePad(); clearFieldError('field-signature'); }
+
+    updateDurationOptions();
+  }
+  classField.addEventListener('change', updateConditionalFields);
+
+  staffRelationshipRow.addEventListener('click', (e) => {
+    const opt = e.target.closest('.tick-box');
+    if(!opt) return;
+    [...staffRelationshipRow.children].forEach(c => c.classList.remove('active'));
+    opt.classList.add('active');
+    selectedStaffRelationship = opt.dataset.value;
+    clearFieldError('field-staffRelationship');
+  });
+
+  function updateDurationOptions(){
+    populateDurationGrid(durationGrid, currentActivity, classField.value);
+    selectedDuration = null;
+
+    // Only one plan exists (Swimming Lessons) — nothing to choose, so
+    // select it automatically instead of making the member click it.
+    const visibleOpts = [...durationGrid.children].filter(el => el.style.display !== 'none');
+    if(visibleOpts.length === 1){
+      visibleOpts[0].classList.add('active');
+      selectedDuration = visibleOpts[0].dataset.value;
+    }
+
+    if(currentActivity && currentActivity.planDisclaimer){
+      planDisclaimerEl.textContent = currentActivity.planDisclaimer;
+      planDisclaimerEl.style.display = 'block';
+    } else {
+      planDisclaimerEl.style.display = 'none';
+    }
+  }
+
+  genderRow.addEventListener('click', (e) => {
+    const opt = e.target.closest('.tick-box');
+    if(!opt) return;
+    [...genderRow.children].forEach(c => c.classList.remove('active'));
+    opt.classList.add('active');
+    selectedGender = opt.dataset.value;
+    clearFieldError('field-gender');
+  });
+
+  medicalConditionRow.addEventListener('click', (e) => {
+    const opt = e.target.closest('.tick-box');
+    if(!opt) return;
+    [...medicalConditionRow.children].forEach(c => c.classList.remove('active'));
+    opt.classList.add('active');
+    selectedMedicalCondition = opt.dataset.value;
+    clearFieldError('field-medicalCondition');
+    if(selectedMedicalCondition === 'Yes'){
+      medicalConditionDetailsField.style.display = '';
+    } else {
+      medicalConditionDetailsField.style.display = 'none';
+      medicalConditionDetailsInput.value = '';
+      clearFieldError('field-medicalConditionDetails');
+    }
+  });
+
+  durationGrid.addEventListener('click', (e) => {
+    const opt = e.target.closest('.duration-opt');
+    if(!opt) return;
+    [...durationGrid.children].forEach(c => c.classList.remove('active'));
+    opt.classList.add('active');
+    selectedDuration = opt.dataset.value;
+    clearFieldError('field-duration');
+  });
+
+  // ---- Declaration tick boxes ----
+  let infoCorrectAgreed = false;
+
+  function toggleTickBox(box, onToggle){
+    const nowActive = !box.classList.contains('active');
+    box.classList.toggle('active', nowActive);
+    box.setAttribute('aria-checked', String(nowActive));
+    onToggle(nowActive);
+  }
+  declarationRow.addEventListener('click', (e) => {
+    const opt = e.target.closest('.tick-box');
+    if(!opt) return;
+    [...declarationRow.children].forEach(c => c.classList.remove('active'));
+    opt.classList.add('active');
+    selectedDeclaration = opt.dataset.value;
+    clearFieldError('field-declaration');
+  });
+  infoCorrectBox.addEventListener('click', () => {
+    toggleTickBox(infoCorrectBox, (active) => { infoCorrectAgreed = active; });
+    if(infoCorrectAgreed) clearFieldError('field-infoCorrect');
+  });
+  infoCorrectBox.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); infoCorrectBox.click(); }
+  });
+
+  // ---- Signature pad ----
+  let signatureSized = false;
+  let hasSignature = false;
+  let isDrawingSignature = false;
+  let lastSigX = 0, lastSigY = 0;
+
+  function sizeSignatureCanvas(){
+    if(signatureSized) return;
+    const rect = signatureCanvas.getBoundingClientRect();
+    if(rect.width === 0) return;
+    const ratio = window.devicePixelRatio || 1;
+    signatureCanvas.width = rect.width * ratio;
+    signatureCanvas.height = rect.height * ratio;
+    sigCtx.scale(ratio, ratio);
+    sigCtx.strokeStyle = '#0F1D3B';
+    sigCtx.lineWidth = 2;
+    sigCtx.lineCap = 'round';
+    sigCtx.lineJoin = 'round';
+    signatureSized = true;
+  }
+
+  function getSignaturePos(e){
+    const rect = signatureCanvas.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  signatureCanvas.addEventListener('pointerdown', (e) => {
+    isDrawingSignature = true;
+    hasSignature = true;
+    signaturePadWrap.classList.add('has-signature');
+    clearFieldError('field-signature');
+    const pos = getSignaturePos(e);
+    lastSigX = pos.x; lastSigY = pos.y;
+    signatureCanvas.setPointerCapture(e.pointerId);
+  });
+  signatureCanvas.addEventListener('pointermove', (e) => {
+    if(!isDrawingSignature) return;
+    const pos = getSignaturePos(e);
+    sigCtx.beginPath();
+    sigCtx.moveTo(lastSigX, lastSigY);
+    sigCtx.lineTo(pos.x, pos.y);
+    sigCtx.stroke();
+    lastSigX = pos.x; lastSigY = pos.y;
+  });
+  function stopSignatureDrawing(){ isDrawingSignature = false; }
+  signatureCanvas.addEventListener('pointerup', stopSignatureDrawing);
+  signatureCanvas.addEventListener('pointerleave', stopSignatureDrawing);
+  signatureCanvas.addEventListener('pointercancel', stopSignatureDrawing);
+
+  clearSignatureBtn.addEventListener('click', () => {
+    if(signatureCanvas.width > 0) sigCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+    hasSignature = false;
+    signaturePadWrap.classList.remove('has-signature');
+  });
+
+  function resetSignaturePad(){
+    if(signatureCanvas.width > 0) sigCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+    hasSignature = false;
+    signaturePadWrap.classList.remove('has-signature');
+  }
+
+  // ---- Photo upload ----
+  let photoBase64 = null;
+  let photoMimeType = null;
+  const MAX_PHOTO_BYTES = 4 * 1024 * 1024; // ~4MB, generous but keeps requests small
+
+  function resetPhotoUI(){
+    photoBase64 = null;
+    photoMimeType = null;
+    photoThumb.innerHTML = "📷";
+    photoCopyMain.textContent = "Tap to add a photo";
+    photoCopySub.textContent = "Clear photo of your face";
+    photoUploadBox.classList.remove('has-photo');
+  }
+
+  function openPhotoSheet(){ photoSheetOverlay.classList.add('show'); }
+  function closePhotoSheet(){ photoSheetOverlay.classList.remove('show'); }
+
+  photoUploadBox.addEventListener('click', openPhotoSheet);
+  photoSheetCancel.addEventListener('click', closePhotoSheet);
+  photoSheetOverlay.addEventListener('click', (e) => {
+    if(e.target === photoSheetOverlay) closePhotoSheet();
+  });
+  photoSheetSelfie.addEventListener('click', () => {
+    closePhotoSheet();
+    photoInputSelfie.click();
+  });
+  photoSheetGallery.addEventListener('click', () => {
+    closePhotoSheet();
+    photoInputGallery.click();
+  });
+
+  function handlePhotoFile(inputEl){
+    const file = inputEl.files[0];
+    if(!file) return;
+    if(!file.type.startsWith('image/')){
+      showConfirm(true, "Not an image", "Please choose an image file.");
+      inputEl.value = '';
+      return;
+    }
+    if(file.size > MAX_PHOTO_BYTES){
+      showConfirm(true, "Photo too large", "Please choose a photo under 4MB.");
+      inputEl.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      photoBase64 = reader.result;
+      photoMimeType = file.type;
+      photoThumb.innerHTML = `<img src="${reader.result}" alt="Selected photo">`;
+      photoCopyMain.textContent = "Photo added — tap to change";
+      photoCopySub.textContent = "Clear photo of your face";
+      photoUploadBox.classList.add('has-photo');
+      clearFieldError('field-photo');
+    };
+    reader.readAsDataURL(file);
+  }
+
+  photoInputSelfie.addEventListener('change', () => handlePhotoFile(photoInputSelfie));
+  photoInputGallery.addEventListener('change', () => handlePhotoFile(photoInputGallery));
+
+  function clearFieldError(id){ document.getElementById(id).classList.remove('invalid'); }
+  function markInvalid(id){ document.getElementById(id).classList.add('invalid'); }
+  function isValidEmail(v){ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+
+  function showConfirm(isError, title, detail){
+    confirmOverlay.classList.toggle('error', isError);
+    confirmIcon.textContent = isError ? '✕' : '✓';
+    confirmTitle.textContent = title;
+    confirmDetail.textContent = detail;
+    confirmOverlay.classList.add('show');
+    setTimeout(() => confirmOverlay.classList.remove('show'), 4200);
+  }
+
+  // ---- Post-submission approval wait: pop the code up automatically
+  // the moment the front desk approves, instead of making the
+  // registrant come back and look themselves up by phone. That phone
+  // lookup (Sign In tab) still exists as the fallback — for a
+  // different device, a closed tab, or if this wait times out. ----
+  const approvalWaitOverlay = document.getElementById('approvalWaitOverlay');
+  const approvalWaitPending = document.getElementById('approvalWaitPending');
+  const approvalWaitApproved = document.getElementById('approvalWaitApproved');
+  const approvalWaitPendingDetail = document.getElementById('approvalWaitPendingDetail');
+  const approvalWaitApprovedDetail = document.getElementById('approvalWaitApprovedDetail');
+  const approvalWaitCodes = document.getElementById('approvalWaitCodes');
+  // Bumped from 3000 to 5000 — every registrant sitting on this screen
+  // is its own poll against the same Apps Script backend the front
+  // desks are also polling; at a busy moment (a rush of new
+  // registrants, each polling every few seconds) that's real
+  // concurrent load against a real per-script execution cap. Max
+  // attempts scaled down to match so the overall ~10 minute timeout
+  // window stays the same.
+  const APPROVAL_POLL_INTERVAL_MS = 5000;
+  const APPROVAL_POLL_MAX_ATTEMPTS = 120; // ~10 minutes, then fall back to telling them to check later
+  let approvalPollTimer = null;
+
+  function stopApprovalPoll(){
+    if(approvalPollTimer){ clearTimeout(approvalPollTimer); approvalPollTimer = null; }
+  }
+  document.getElementById('approvalWaitDoneBtn').addEventListener('click', () => {
+    stopApprovalPoll();
+    approvalWaitOverlay.classList.remove('show');
+  });
+
+  // members: [{ idNo, name }, ...] — everyone from this one submission
+  // (just the applicant, or the whole Family Package).
+  function startApprovalWait(members, activityForPoll){
+    stopApprovalPoll();
+    let attempts = 0;
+    let stillPending = members.slice();
+    const approvedSoFar = [];
+
+    approvalWaitPending.style.display = 'block';
+    approvalWaitApproved.style.display = 'none';
+    approvalWaitPendingDetail.textContent = stillPending.length > 1
+      ? `Waiting for the front desk to approve ${stillPending.length} people — this updates automatically.`
+      : "Waiting for the front desk to approve your registration — this updates automatically.";
+    approvalWaitOverlay.classList.remove('error');
+    approvalWaitOverlay.classList.add('show');
+
+    function renderApprovedCodes(){
+      approvalWaitCodes.innerHTML = approvedSoFar.map(m => `
+        <div>
+          <div class="approval-wait-member-name">${escapeHtml(m.name||'')}</div>
+          ${codeChipWithCopyHtml(m.idNo)}
+        </div>`).join('');
+      attachCopyButtons(approvalWaitCodes);
+    }
+
+    // Self-rescheduling instead of setInterval: the next check is only
+    // queued once this one's fetch has fully settled, so a slow
+    // response never stacks up overlapping requests behind it.
+    function poll(){
+      if(stillPending.length === 0){ stopApprovalPoll(); return; }
+      attempts++;
+      fetchJSON(SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "checkApproved", activity: activityForPoll.key, idNos: stillPending.map(m => m.idNo) })
+      })
+      .then(data => {
+        if(data.status !== "ok") return;
+        const approvedNow = data.approvedMembers || [];
+        if(approvedNow.length === 0){
+          if(attempts >= APPROVAL_POLL_MAX_ATTEMPTS){
+            stopApprovalPoll();
+            approvalWaitPendingDetail.textContent = "Still waiting on approval — use the Sign In tab with your phone number to check back later.";
+          }
+          return;
+        }
+        const approvedIds = new Set(approvedNow.map(m => String(m.idNo).trim()));
+        approvedNow.forEach(m => approvedSoFar.push(m));
+        stillPending = stillPending.filter(m => !approvedIds.has(String(m.idNo).trim()));
+
+        approvalWaitPending.style.display = stillPending.length ? 'block' : 'none';
+        approvalWaitApproved.style.display = 'block';
+        approvalWaitApprovedDetail.textContent = stillPending.length
+          ? `${approvedSoFar.length} approved so far — still waiting on ${stillPending.length} more.`
+          : (approvedSoFar.length > 1 ? "Everyone's approved — here are your codes:" : "Copy your code below and use it to sign in.");
+        renderApprovedCodes();
+      })
+      .catch(() => { /* a network blip shouldn't stop the wait — just try again next tick */ })
+      .finally(() => {
+        if(stillPending.length > 0 && approvalPollTimer !== null){
+          approvalPollTimer = setTimeout(poll, APPROVAL_POLL_INTERVAL_MS);
+        }
+      });
+    }
+
+    approvalPollTimer = -1; // truthy placeholder so stopApprovalPoll()/finally() work before the first real timer id lands
+    poll();
+  }
+
+  /* ---- Per-step validation (also used by the wizard's Continue button) ---- */
+  function validateStep1(){
+    let valid = true;
+    const dept = isDeptRequired();
+    if(!classField.value){ markInvalid('field-class'); valid = false; } else clearFieldError('field-class');
+    if(!otherNamesField.value.trim()){ markInvalid('field-otherNames'); valid = false; } else clearFieldError('field-otherNames');
+    if(!surnameField.value.trim()){ markInvalid('field-surname'); valid = false; } else clearFieldError('field-surname');
+    if(dept && !deptField.value.trim()){ markInvalid('field-dept'); valid = false; } else clearFieldError('field-dept');
+    if(isIdRequired() && !idField.value.trim()){ markInvalid('field-id'); valid = false; } else clearFieldError('field-id');
+    if(UG_STAFF_RELATION_CATEGORIES.indexOf(classField.value) !== -1){
+      if(!relatedStaffSurnameField.value.trim()){ markInvalid('field-relatedStaffSurname'); valid = false; } else clearFieldError('field-relatedStaffSurname');
+      if(!relatedStaffOtherNamesField.value.trim()){ markInvalid('field-relatedStaffOtherNames'); valid = false; } else clearFieldError('field-relatedStaffOtherNames');
+      if(!relatedStaffIdNoField.value.trim()){ markInvalid('field-relatedStaffIdNo'); valid = false; } else clearFieldError('field-relatedStaffIdNo');
+      if(!selectedStaffRelationship){ markInvalid('field-staffRelationship'); valid = false; } else clearFieldError('field-staffRelationship');
+    }
+    if(!photoBase64){ markInvalid('field-photo'); valid = false; } else clearFieldError('field-photo');
+    return valid;
+  }
+  function validateStep2(){
+    let valid = true;
+    if(!dobField.value){ markInvalid('field-dob'); valid = false; } else clearFieldError('field-dob');
+    if(!selectedGender){ markInvalid('field-gender'); valid = false; } else clearFieldError('field-gender');
+    if(!nationalityField.value.trim()){ markInvalid('field-nationality'); valid = false; } else clearFieldError('field-nationality');
+    if(!selectedMedicalCondition){ markInvalid('field-medicalCondition'); valid = false; } else clearFieldError('field-medicalCondition');
+    if(selectedMedicalCondition === 'Yes' && !medicalConditionDetailsInput.value.trim()){ markInvalid('field-medicalConditionDetails'); valid = false; } else clearFieldError('field-medicalConditionDetails');
+    return valid;
+  }
+  function validateStep3(){
+    let valid = true;
+    const phoneDigits = phoneField.value.replace(/[^0-9+]/g, '');
+    if(!phoneDigits || phoneDigits.replace(/\D/g,'').length < 9){ markInvalid('field-phone'); valid = false; } else clearFieldError('field-phone');
+    if(!isValidEmail(emailField.value.trim())){ markInvalid('field-email'); valid = false; } else clearFieldError('field-email');
+    if(!addressField.value.trim()){ markInvalid('field-address'); valid = false; } else clearFieldError('field-address');
+    return valid;
+  }
+  function validateStep4(){
+    let valid = true;
+    if(!selectedDuration){ markInvalid('field-duration'); valid = false; } else clearFieldError('field-duration');
+    if(classField.value === FAMILY_CATEGORY){
+      const members = collectFamilyMembers();
+      if(members.some(m => !m.surname || !m.otherNames || !m.gender || !m.relationship)){ markInvalid('field-familyMembers'); valid = false; } else clearFieldError('field-familyMembers');
+    }
+    return valid;
+  }
+  function validateStep5(){
+    let valid = true;
+    if(!emergencySurnameField.value.trim()){ markInvalid('field-emergencySurname'); valid = false; } else clearFieldError('field-emergencySurname');
+    if(!emergencyOtherNamesField.value.trim()){ markInvalid('field-emergencyOtherNames'); valid = false; } else clearFieldError('field-emergencyOtherNames');
+    const emPhoneDigits = emergencyPhoneField.value.replace(/[^0-9+]/g, '');
+    if(!emPhoneDigits || emPhoneDigits.replace(/\D/g,'').length < 9){ markInvalid('field-emergencyPhone'); valid = false; } else clearFieldError('field-emergencyPhone');
+    if(!emergencyRelationshipField.value.trim()){ markInvalid('field-emergencyRelationship'); valid = false; } else clearFieldError('field-emergencyRelationship');
+    return valid;
+  }
+  function validateStep6(){
+    let valid = true;
+    if(selectedDeclaration !== 'Yes'){ markInvalid('field-declaration'); valid = false; } else clearFieldError('field-declaration');
+    if(!infoCorrectAgreed){ markInvalid('field-infoCorrect'); valid = false; } else clearFieldError('field-infoCorrect');
+    if(!isMinorCategory() && !hasSignature){ markInvalid('field-signature'); valid = false; } else clearFieldError('field-signature');
+    return valid;
+  }
+  const stepValidators = { 1:validateStep1, 2:validateStep2, 3:validateStep3, 4:validateStep4, 5:validateStep5, 6:validateStep6 };
+
+  /* ---- Wizard step navigation ---- */
+  const TOTAL_STEPS = 6;
+  let currentStep = 1;
+  let maxStepReached = 1;
+  const wizardStepEls = document.querySelectorAll('#regForm .wizard-step');
+  const progressStepEls = document.querySelectorAll('#wizardProgress .wizard-progress-step');
+  const wizBackBtn = document.getElementById('wizBackBtn');
+  const wizNextBtn = document.getElementById('wizNextBtn');
+
+  function updateDeclarationName(){
+    const fullName = `${surnameField.value.trim()} ${otherNamesField.value.trim()}`.trim();
+    const isFamily = classField.value === FAMILY_CATEGORY;
+    declarationNameEl.textContent = fullName ? (fullName + (isFamily ? ' and family' : '')) : '—';
+  }
+
+  function showWizardStep(n){
+    currentStep = n;
+    if(n > maxStepReached) maxStepReached = n;
+    if(n === TOTAL_STEPS){ updateDeclarationName(); requestAnimationFrame(sizeSignatureCanvas); }
+    wizardStepEls.forEach(s => s.classList.toggle('active', Number(s.dataset.step) === n));
+    progressStepEls.forEach(d => {
+      const step = Number(d.dataset.step);
+      const reachable = step <= maxStepReached && step !== n;
+      d.classList.toggle('active', step === n);
+      d.classList.toggle('done', step < n);
+      d.classList.toggle('reachable', reachable);
+      d.setAttribute('tabindex', reachable ? '0' : '-1');
+      d.setAttribute('aria-current', step === n ? 'step' : 'false');
+    });
+    const isLast = n === TOTAL_STEPS;
+    wizBackBtn.style.display = n === 1 ? 'none' : 'inline-block';
+    wizNextBtn.style.display = isLast ? 'none' : 'block';
+    submitBtn.style.display = isLast ? 'block' : 'none';
+    submitBtn.disabled = !isLast;
+    document.querySelector('#screen-app .card').scrollIntoView({behavior:'smooth', block:'start'});
+  }
+
+  function goToStepIfReachable(n){
+    if(n === currentStep) return;
+    if(n < currentStep || n <= maxStepReached) showWizardStep(n);
+  }
+
+  progressStepEls.forEach(d => {
+    const step = Number(d.dataset.step);
+    d.addEventListener('click', () => goToStepIfReachable(step));
+    d.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); goToStepIfReachable(step); }
+    });
+  });
+
+  wizNextBtn.addEventListener('click', () => {
+    if(!stepValidators[currentStep]()) return;
+    if(currentStep < TOTAL_STEPS) showWizardStep(currentStep + 1);
+  });
+  wizBackBtn.addEventListener('click', () => {
+    if(currentStep > 1) showWizardStep(currentStep - 1);
+  });
+
+  function resetRegisterForm(){
+    form.reset();
+    if(currentActivity) populateCategorySelect(classField, currentActivity);
+    resetFamilyMembers();
+    [...durationGrid.children].forEach(c => c.classList.remove('active'));
+    [...genderRow.children].forEach(c => c.classList.remove('active'));
+    [...medicalConditionRow.children].forEach(c => c.classList.remove('active'));
+    [...declarationRow.children].forEach(c => c.classList.remove('active'));
+    medicalConditionDetailsField.style.display = 'none';
+    selectedDuration = null;
+    selectedGender = null;
+    selectedMedicalCondition = null;
+    selectedDeclaration = null;
+    infoCorrectAgreed = false;
+    infoCorrectBox.classList.remove('active');
+    infoCorrectBox.setAttribute('aria-checked', 'false');
+    resetSignaturePad();
+    resetPhotoUI();
+    populateCountryCodeSelects();
+    updateConditionalFields();
+    maxStepReached = 1;
+    showWizardStep(1);
+  }
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    let valid = true;
+    if(!validateStep1()) valid = false;
+    if(!validateStep2()) valid = false;
+    if(!validateStep3()) valid = false;
+    if(!validateStep4()) valid = false;
+    if(!validateStep5()) valid = false;
+    if(!validateStep6()) valid = false;
+    if(!valid) return;
+
+    const now = new Date();
+    const fullName = `${surnameField.value.trim()} ${otherNamesField.value.trim()}`.trim();
+    const payload = {
+      action: "submit",
+      activity: currentActivity.key,
+      class: classField.value,
+      name: fullName,
+      department: deptField.value.trim(),
+      idNo: idField.value.trim(),
+      relatedStaffName: UG_STAFF_RELATION_CATEGORIES.indexOf(classField.value) !== -1 ? `${relatedStaffSurnameField.value.trim()} ${relatedStaffOtherNamesField.value.trim()}`.trim() : "",
+      relatedStaffIdNo: UG_STAFF_RELATION_CATEGORIES.indexOf(classField.value) !== -1 ? relatedStaffIdNoField.value.trim() : "",
+      staffRelationship: UG_STAFF_RELATION_CATEGORIES.indexOf(classField.value) !== -1 ? selectedStaffRelationship : "",
+      familyMembers: classField.value === FAMILY_CATEGORY ? collectFamilyMembers() : undefined,
+      dob: dobField.value,
+      gender: selectedGender,
+      nationality: nationalityField.value.trim(),
+      hasMedicalCondition: selectedMedicalCondition,
+      medicalConditionDetails: selectedMedicalCondition === 'Yes' ? medicalConditionDetailsInput.value.trim() : "",
+      phone: `${regPhoneCode.value} ${phoneField.value.trim()}`,
+      email: emailField.value.trim(),
+      address: addressField.value.trim(),
+      duration: selectedDuration,
+      emergencyName: `${emergencySurnameField.value.trim()} ${emergencyOtherNamesField.value.trim()}`.trim(),
+      emergencyPhone: `${regEmergencyPhoneCode.value} ${emergencyPhoneField.value.trim()}`,
+      emergencyRelationship: emergencyRelationshipField.value.trim(),
+      date: formatDateDMY(now),
+      time: now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}),
+      declarationAccepted: selectedDeclaration === 'Yes',
+      infoConfirmedCorrect: infoCorrectAgreed
+    };
+    // Sent separately, right after submission succeeds — see the
+    // fire-and-forget "addPhoto" call below.
+    const photoForUpload = photoBase64;
+    const photoMimeTypeForUpload = photoMimeType;
+    const signatureForUpload = hasSignature ? signatureCanvas.toDataURL('image/png') : "";
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Submitting…";
+
+    fetchJSON(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    })
+    .then(data => {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Submit for Approval";
+      if(data.status === "ok"){
+        // The row was written with photoUrl/signatureUrl blank — the
+        // server deliberately skips those (slow) Drive uploads on the
+        // request the registrant is waiting on. Firing this now, not
+        // awaited, lets the registrant move on to the approval-wait
+        // screen immediately while the photo/signature land a moment
+        // later. Never shown to the user — same "a photo problem never
+        // blocks a registration" philosophy the server follows.
+        fetch(SCRIPT_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({
+            action: "addPhoto",
+            activity: currentActivity.key,
+            idNo: data.idNo,
+            photoBase64: photoForUpload,
+            photoMimeType: photoMimeTypeForUpload,
+            signatureBase64: signatureForUpload,
+            signatureMimeType: "image/png"
+          })
+        }).catch(() => {});
+
+        const members = (data.familyMembers && data.familyMembers.length)
+          ? data.familyMembers
+          : [{ idNo: data.idNo, name: fullName }];
+        const activityForPoll = currentActivity;
+        resetRegisterForm();
+        startApprovalWait(members, activityForPoll);
+      } else {
+        showConfirm(true, "Couldn't submit", data.message || "Please try again or tell the front desk.");
+      }
+    })
+    .catch(() => {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Submit for Approval";
+      showConfirm(true, "No connection", "Check the network and try again.");
+    });
+  });
+
+  /* ===================== SIGN IN ===================== */
+  const views = {
+    code: document.getElementById('view-code'),
+    lookup: document.getElementById('view-lookup'),
+    walkin: document.getElementById('view-walkin'),
+    result: document.getElementById('view-result')
+  };
+  function showView(name){
+    Object.values(views).forEach(v => v.classList.remove('active'));
+    views[name].classList.add('active');
+  }
+  document.getElementById('toLookupBtn').addEventListener('click', () => showView('lookup'));
+  document.getElementById('toCodeBtn').addEventListener('click', () => showView('code'));
+  document.getElementById('toWalkinBtn').addEventListener('click', () => showView('walkin'));
+  document.getElementById('toCodeFromWalkinBtn').addEventListener('click', () => showView('code'));
+
+  function renderSigninMessage(isError, title, message){
+    document.getElementById('resultBody').innerHTML = `
+      <div class="result-icon">${isError ? '✕' : '✓'}</div>
+      <div class="result-name">${escapeHtml(title)}</div>
+      <p class="error-msg">${escapeHtml(message)}</p>
+      <button class="btn btn-secondary" id="doneSigninBtn">Done</button>
+    `;
+    document.querySelector('#view-result .result').className = 'result' + (isError ? ' error' : '');
+    showView('result');
+    document.getElementById('doneSigninBtn').addEventListener('click', () => {
+      resetWalkinForm();
+      showView('code');
+    });
+  }
+
+  // A Walk-in's approval never shows up via "checkApproved" (that only
+  // ever looks at Registrations, and a Walk-in never becomes a
+  // Registrations row — see checkWalkinStatus in Code.gs), so this is
+  // its own small self-rescheduling poll instead of reusing
+  // startApprovalWait() below, which is built around Registrations
+  // rows and showing off a member code — a Walk-in has neither.
+  // Same reasoning as APPROVAL_POLL_INTERVAL_MS above — fewer
+  // concurrent polls against the shared Apps Script backend, same
+  // overall ~10 minute timeout window.
+  const WALKIN_POLL_INTERVAL_MS = 5000;
+  const WALKIN_POLL_MAX_ATTEMPTS = 120; // ~10 minutes, then fall back to telling them to check with the front desk
+  let walkinPollTimer = null;
+  function stopWalkinPoll(){
+    if(walkinPollTimer){ clearTimeout(walkinPollTimer); walkinPollTimer = null; }
+  }
+  function startWalkinStatusWait(idNo, activityForPoll){
+    stopWalkinPoll();
+    let attempts = 0;
+
+    function renderPending(){
+      document.getElementById('resultBody').innerHTML = `
+        <div class="result-icon">⏳</div>
+        <div class="result-name">Pending Approval</div>
+        <p class="error-msg">Wait for the front desk to approve your walk-in — this updates automatically.</p>
+        <button class="btn btn-secondary" id="doneSigninBtn">Done</button>
+      `;
+      document.querySelector('#view-result .result').className = 'result';
+      showView('result');
+      document.getElementById('doneSigninBtn').addEventListener('click', () => {
+        stopWalkinPoll();
+        resetWalkinForm();
+        showView('code');
+      });
+    }
+    function renderSignedIn(){
+      document.getElementById('resultBody').innerHTML = `
+        <div class="result-icon">✓</div>
+        <div class="result-name">Signed In</div>
+        <p class="error-msg">You're all set.</p>
+        <button class="btn btn-secondary" id="doneSigninBtn">Done</button>
+      `;
+      document.querySelector('#view-result .result').className = 'result';
+      showView('result');
+      document.getElementById('doneSigninBtn').addEventListener('click', () => {
+        resetWalkinForm();
+        showView('code');
+      });
+    }
+
+    function poll(){
+      if(activityForPoll.key !== currentActivity.key) return; // switched away — stop quietly
+      if(attempts >= WALKIN_POLL_MAX_ATTEMPTS){
+        renderSigninMessage(false, "Still Pending", "This is taking a while — please check with the front desk.");
+        return;
+      }
+      attempts++;
+      fetchJSON(SCRIPT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "checkWalkinStatus", activity: activityForPoll.key, idNo: idNo })
+      })
+      .then(data => {
+        if(data.status === "ok" && data.state === "signedIn"){
+          renderSignedIn();
+        } else if(data.status === "ok" && data.state === "notFound"){
+          renderSigninMessage(true, "Not approved", "Please check with the front desk.");
+        } else {
+          // "pending", or a transient error — either way, keep polling.
+          walkinPollTimer = setTimeout(poll, WALKIN_POLL_INTERVAL_MS);
+        }
+      })
+      .catch(() => { walkinPollTimer = setTimeout(poll, WALKIN_POLL_INTERVAL_MS); });
+    }
+
+    renderPending();
+    poll();
+  }
+
+  function resetWalkinForm(){
+    stopWalkinPoll();
+    document.getElementById('walkinSigninForm').reset();
+    if(currentActivity) populateCategorySelect(walkinClass, currentActivity);
+    hideWalkinAutofillHint();
+    ['field-walkin-class','field-walkin-surname','field-walkin-otherNames','field-walkin-id','field-walkin-phone'].forEach(clearFieldError);
+  }
+
+  const walkinClass = document.getElementById('walkinClass');
+  const walkinId = document.getElementById('walkinId');
+  const walkinPhone = document.getElementById('walkinPhone');
+  const walkinPhoneCode = document.getElementById('walkinPhoneCode');
+  const walkinSurname = document.getElementById('walkinSurname');
+  const walkinOtherNames = document.getElementById('walkinOtherNames');
+  const walkinSigninForm = document.getElementById('walkinSigninForm');
+  const walkinSubmitBtn = document.getElementById('walkinSubmitBtn');
+  const walkinAutofillHint = document.getElementById('walkinAutofillHint');
+
+  function hideWalkinAutofillHint(){
+    walkinAutofillHint.className = 'autofill-hint';
+    walkinAutofillHint.textContent = '';
+  }
+
+  // Does the actual work of a walk-in submission: validates every
+  // field, then POSTs "submit" — used whether the name/category came
+  // from typing them in directly, or from quickWalkinLookupThenSubmit()
+  // below filling them in from a lookup.
+  function submitWalkinNow(){
+    const needsId = currentActivity && currentActivity.idRequiredCategories.indexOf(walkinClass.value) !== -1;
+    let valid = true;
+
+    if(!walkinClass.value){ markInvalid('field-walkin-class'); valid = false; } else clearFieldError('field-walkin-class');
+    if(!walkinSurname.value.trim()){ markInvalid('field-walkin-surname'); valid = false; } else clearFieldError('field-walkin-surname');
+    if(!walkinOtherNames.value.trim()){ markInvalid('field-walkin-otherNames'); valid = false; } else clearFieldError('field-walkin-otherNames');
+    if(needsId && !walkinId.value.trim()){ markInvalid('field-walkin-id'); valid = false; } else clearFieldError('field-walkin-id');
+    if(!/^\d{6,}$/.test(walkinPhone.value.replace(/\D/g,''))){ markInvalid('field-walkin-phone'); valid = false; } else clearFieldError('field-walkin-phone');
+    if(!valid){
+      walkinSubmitBtn.disabled = false;
+      walkinSubmitBtn.textContent = "Submit Walk-in";
+      return;
+    }
+
+    hideWalkinAutofillHint();
+    walkinSubmitBtn.disabled = true;
+    walkinSubmitBtn.textContent = "Submitting…";
+
+    const now = new Date();
+    fetchJSON(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        action: "submit",
+        activity: currentActivity.key,
+        class: walkinClass.value,
+        idNo: needsId ? walkinId.value.trim() : "",
+        duration: "Walk-in",
+        name: `${walkinSurname.value.trim()} ${walkinOtherNames.value.trim()}`.trim(),
+        phone: `${walkinPhoneCode.value} ${walkinPhone.value.trim()}`,
+        date: formatDateDMY(now),
+        time: now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})
+      })
+    })
+    .then(data => {
+      walkinSubmitBtn.disabled = false;
+      walkinSubmitBtn.textContent = "Submit Walk-in";
+      if(data.status === "ok"){
+        const activityForPoll = currentActivity;
+        startWalkinStatusWait(data.idNo, activityForPoll);
+      } else {
+        renderSigninMessage(true, "Couldn't submit", data.message || "Please try again or tell the front desk.");
+      }
+    })
+    .catch(() => {
+      walkinSubmitBtn.disabled = false;
+      walkinSubmitBtn.textContent = "Submit Walk-in";
+      renderSigninMessage(true, "No connection", "Check the network and try again.");
+    });
+  }
+
+  // Someone who's walked in before (or who's an actual member choosing
+  // to walk in) already has their name/phone/category on file — no
+  // reason to make them fill in a whole form for it. Looks up whatever
+  // they've entered (ID number or phone) against this activity's
+  // approved members, then its Visits history (a walk-in never becomes
+  // a Registrations row, so a returning walk-in visitor is usually only
+  // found there — see the "walkinQuickSubmit" action in Code.gs), and if
+  // that comes back with everything needed (name + category), submits
+  // immediately — one tap, nothing else to fill in or review. Only
+  // falls back to asking for name/category by hand when there's
+  // genuinely nothing (or an incomplete record) on file.
+  // One request instead of two — this used to look the person up
+  // ("walkinLookup"), then, on a match, make a SEPARATE "submit"
+  // request with what it found. Each one pays Apps Script's own
+  // per-request overhead, so back to back that made the "just enter
+  // phone or ID" shortcut slower than filling in the form once
+  // yourself. "walkinQuickSubmit" does the lookup AND the write in one
+  // execution — this either lands straight on the pending-approval
+  // screen, or (no match, or an incomplete one) falls back to filling
+  // in whatever was found and asking for the rest, same as before.
+  function quickWalkinLookupThenSubmit(){
+    walkinSubmitBtn.disabled = true;
+    walkinSubmitBtn.textContent = "Submitting…";
+    walkinAutofillHint.textContent = "Checking…";
+    walkinAutofillHint.className = 'autofill-hint show miss';
+
+    const idNo = walkinId.value.trim();
+    const phone = `${walkinPhoneCode.value} ${walkinPhone.value.trim()}`;
+
+    fetchJSON(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "walkinQuickSubmit", activity: currentActivity.key, idNo: idNo, phone: phone })
+    })
+    .then(data => {
+      if(!data || data.status !== "ok"){
+        walkinSubmitBtn.disabled = false;
+        walkinSubmitBtn.textContent = "Submit Walk-in";
+        renderSigninMessage(true, "Couldn't submit", (data && data.message) || "Please try again or tell the front desk.");
+        return;
+      }
+
+      if(data.submitted){
+        hideWalkinAutofillHint();
+        walkinSubmitBtn.disabled = false;
+        walkinSubmitBtn.textContent = "Submit Walk-in";
+        startWalkinStatusWait(data.idNo, currentActivity);
+        return;
+      }
+
+      // Not enough on file for a one-tap submission — fill in whatever
+      // WAS found, then hand back to them for the rest.
+      const found = !!data.found;
+      if(found && data.name){
+        const parts = data.name.trim().split(/\s+/);
+        walkinSurname.value = parts[0] || '';
+        walkinOtherNames.value = parts.slice(1).join(' ');
+      }
+      if(found && data.idNo && !idNo) walkinId.value = data.idNo;
+      if(found && data.class){
+        walkinClass.value = data.class;
+        if(walkinClass.value !== data.class){
+          // Not one of this activity's categories (e.g. matched from a
+          // different activity's Visits) — leave category for them to
+          // pick rather than silently selecting nothing useful.
+          walkinClass.value = '';
+        }
+      }
+
+      walkinSubmitBtn.disabled = false;
+      walkinSubmitBtn.textContent = "Submit Walk-in";
+      walkinAutofillHint.textContent = found
+        ? "Found some of your info, but not all of it — please fill in what's left below."
+        : "We don't have you on file yet — please fill in your name and category below.";
+      walkinAutofillHint.className = 'autofill-hint show miss';
+      if(!walkinClass.value) markInvalid('field-walkin-class');
+      if(!walkinSurname.value.trim()) markInvalid('field-walkin-surname');
+      if(!walkinOtherNames.value.trim()) markInvalid('field-walkin-otherNames');
+    })
+    .catch(() => {
+      walkinSubmitBtn.disabled = false;
+      walkinSubmitBtn.textContent = "Submit Walk-in";
+      renderSigninMessage(true, "No connection", "Check the network and try again.");
+    });
+  }
+
+  walkinSigninForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    const phoneDigits = walkinPhone.value.replace(/[^0-9+]/g, '');
+    const phoneValid = /^\d{6,}$/.test(phoneDigits);
+    const idNo = walkinId.value.trim();
+    const hasNameAndClass = walkinClass.value && walkinSurname.value.trim() && walkinOtherNames.value.trim();
+
+    // Name and category are already filled in (typed by hand, or left
+    // over from an earlier lookup) — nothing left to look up, submit
+    // with what's on the form.
+    if(hasNameAndClass){ submitWalkinNow(); return; }
+
+    // Nothing to search by either — ask for at least one.
+    if(!idNo && !phoneValid){
+      markInvalid('field-walkin-phone');
+      walkinAutofillHint.textContent = "Enter your phone number or ID number first.";
+      walkinAutofillHint.className = 'autofill-hint show miss';
+      return;
+    }
+    clearFieldError('field-walkin-phone');
+    quickWalkinLookupThenSubmit();
+  });
+
+  // The "date" column is always DATE_FORMAT-shaped ("dd/MM/yyyy") — the
+  // bare Date constructor treats an ambiguous slash-separated string as
+  // M/D/Y and mangles (or fails to parse) any day-of-month above 12, so
+  // this matches that shape explicitly first.
+  // Mirrors Code.gs's parseDateSafe() — DATE_FORMAT used to be month-
+  // first ("M/d/yyyy") before switching to day-first ("dd/MM/yyyy"), so
+  // a row written before that switch is still stored the old way. Tries
+  // day-first first, but only accepts it if the second number is a
+  // valid month (1-12); otherwise falls back to the old month-first
+  // reading. Only genuinely ambiguous dates (both numbers 1-12) can
+  // still come out wrong — no way to tell those apart from the string
+  // alone.
+  function parseRegDate(dateStr){
+    if(!dateStr) return null;
+    const m = String(dateStr).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if(m) {
+      const a = Number(m[1]), b = Number(m[2]), year = Number(m[3]);
+      if(b >= 1 && b <= 12){
+        const d = new Date(year, b - 1, a);
+        if(!isNaN(d.getTime())) return d;
+      }
+      if(a >= 1 && a <= 12){
+        const d = new Date(year, a - 1, b);
+        if(!isNaN(d.getTime())) return d;
+      }
+      return null;
+    }
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // Generalizes "days left" to also cover a session-capped plan (currently
+  // Swimming Lessons' Monthly): expired if the date window has passed OR
+  // the sessions are used up, whichever comes first.
+  function getStatusInfo(member){
+    // A phone lookup can now return members from OTHER activities too
+    // (see renderLookupResults) — resolve the plan against whichever
+    // activity that row actually belongs to, not always currentActivity.
+    const memberActivity = ACTIVITIES[member.activity] || currentActivity;
+    const cfg = memberActivity ? memberActivity.durations[member.duration] : null;
+    if(!cfg) return { left: null, expired: false, sessionCap: null };
+
+    const regDate = parseRegDate(member.date);
+    let left = null, expired = false;
+    if(regDate){
+      const expiry = new Date(regDate);
+      expiry.setHours(0,0,0,0);
+      expiry.setDate(expiry.getDate() + cfg.days);
+      const today = new Date(); today.setHours(0,0,0,0);
+      left = Math.round((expiry - today) / 86400000);
+      if(left < 0) expired = true;
+    }
+
+    let sessionsUsed = null, sessionsLeft = null;
+    if(cfg.sessionCap){
+      sessionsUsed = Number(member.sessionsUsed) || 0;
+      sessionsLeft = Math.max(0, cfg.sessionCap - sessionsUsed);
+      if(sessionsUsed >= cfg.sessionCap) expired = true;
+    }
+    return { left, expired, sessionCap: cfg.sessionCap || null, sessionsUsed, sessionsLeft };
+  }
+
+  function countdownBoxesHtml(info){
+    let html = '';
+    if(info.sessionCap){
+      const usedUp = info.sessionsUsed >= info.sessionCap;
+      html += `<div class="countdown-box${usedUp ? ' expired' : ''}">
+        <div class="countdown-num"${usedUp ? '' : ' style="font-size:36px;"'}>${usedUp ? 'Used up' : `${info.sessionsLeft} / ${info.sessionCap}`}</div>
+        <div class="countdown-label">${usedUp ? 'all sessions used — see front desk to renew' : 'sessions remaining'}</div>
+      </div>`;
+    }
+    if(info.left !== null){
+      if(info.left < 0){
+        html += `<div class="countdown-box expired"><div class="countdown-num">Expired</div><div class="countdown-label">${Math.abs(info.left)} day${Math.abs(info.left)===1?'':'s'} ago — see front desk to renew</div></div>`;
+      } else if(info.left === 0){
+        html += `<div class="countdown-box"><div class="countdown-num">Today</div><div class="countdown-label">Last day of this window</div></div>`;
+      } else {
+        html += `<div class="countdown-box"><div class="countdown-num">${info.left}</div><div class="countdown-label">day${info.left===1?'':'s'} left in this window</div></div>`;
+      }
+    }
+    if(!html){
+      html = `<div class="countdown-box"><div class="countdown-label">Plan info unavailable</div></div>`;
+    }
+    return html;
+  }
+
+  // Lets a registrant copy their own code straight from the phone-
+  // lookup result and paste it into the Sign In tab, instead of having
+  // to read it off the front desk's screen and retype it by hand.
+  function codeChipWithCopyHtml(code){
+    return `<div class="code-chip-row">
+      <div class="code-chip">${escapeHtml(code||'')}</div>
+      <button type="button" class="copy-code-btn" data-copy-code="${escapeHtml(code||'')}">Copy Code</button>
+    </div>`;
+  }
+  function attachCopyButtons(container){
+    container.querySelectorAll('.copy-code-btn').forEach(btn => {
+      btn.addEventListener('click', () => copyCodeToClipboard(btn));
+    });
+  }
+  function copyCodeToClipboard(btn){
+    const code = btn.dataset.copyCode;
+    if(!code) return;
+    const markCopied = () => {
+      btn.textContent = 'Copied ✓';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy Code'; btn.classList.remove('copied'); }, 2000);
+    };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(code).then(markCopied).catch(() => {});
+    }
+  }
+
+  function renderMemberResult(member, opts){
+    opts = opts || {};
+    const info = getStatusInfo(member);
+    const codeChip = opts.showCode ? codeChipWithCopyHtml(member.idNo) : '';
+
+    document.getElementById('resultBody').innerHTML = `
+      <div class="result-icon">${info.expired ? '⚠' : '✓'}</div>
+      <div class="result-name">${escapeHtml(member.name||'')}</div>
+      <div class="result-sub">${escapeHtml(member.class||'')}${opts.subtitle ? ' · ' + opts.subtitle : ''}</div>
+      ${codeChip}
+      ${countdownBoxesHtml(info)}
+      <button class="btn btn-secondary" id="doneBtn">Done</button>
+    `;
+    document.querySelector('#view-result .result').className = 'result' + (info.expired ? ' expired' : '');
+    showView('result');
+    document.getElementById('doneBtn').addEventListener('click', resetSignIn);
+    attachCopyButtons(document.getElementById('resultBody'));
+  }
+
+  function renderMessage(isError, title, message){
+    document.getElementById('resultBody').innerHTML = `
+      <div class="result-icon">${isError ? '✕' : 'ℹ'}</div>
+      <div class="result-name">${escapeHtml(title)}</div>
+      <p class="error-msg">${escapeHtml(message)}</p>
+      <button class="btn btn-secondary" id="doneBtn">Done</button>
+    `;
+    document.querySelector('#view-result .result').className = 'result' + (isError ? ' error' : '');
+    showView('result');
+    document.getElementById('doneBtn').addEventListener('click', resetSignIn);
+  }
+
+  function resetSignIn(){
+    document.getElementById('codeForm').reset();
+    document.getElementById('lookupForm').reset();
+    resetWalkinForm();
+    clearFieldError('field-code');
+    clearFieldError('field-phone-lookup');
+    hideCodeEntry();
+    showView('code');
+  }
+
+  const codeForm = document.getElementById('codeForm');
+  const codeInput = document.getElementById('codeInput');
+  const checkinBtn = document.getElementById('checkinBtn');
+  const revealCodeBtn = document.getElementById('revealCodeBtn');
+
+  // The Member Code field stays hidden behind the "Sign In" button until
+  // tapped — landing on this tab shouldn't dump a bare code box on
+  // someone who hasn't decided to sign in yet. Once revealed, the field
+  // is a normal <form>, so pressing Enter after typing the code submits
+  // it just like tapping the button does.
+  function hideCodeEntry(){
+    codeForm.style.display = 'none';
+    revealCodeBtn.style.display = '';
+  }
+  revealCodeBtn.addEventListener('click', function(){
+    revealCodeBtn.style.display = 'none';
+    codeForm.style.display = '';
+    codeInput.focus();
+  });
+
+  codeForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    if(!requireCurrentActivity()) return;
+    const code = codeInput.value.trim();
+    if(!code){ markInvalid('field-code'); return; }
+    clearFieldError('field-code');
+
+    checkinBtn.disabled = true;
+    checkinBtn.textContent = "Signing in…";
+
+    fetchJSON(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "checkin", activity: currentActivity.key, code: code })
+    })
+    .then(data => {
+      checkinBtn.disabled = false;
+      checkinBtn.textContent = "Sign In";
+      if(data.status === "ok"){
+        renderMemberResult(data.member, { subtitle: "Signed in" });
+      } else if(data.status === "expired" && data.member){
+        // Not signed in (no visit logged, see Code.gs), but still show
+        // the member's own status — name, plan, how long ago it expired
+        // — instead of a dead-end error that tells them nothing.
+        renderMemberResult(data.member, { subtitle: "Not signed in — see front desk to renew" });
+      } else {
+        renderMessage(true, "Couldn't sign in", data.message || "Double check the code, or ask the front desk for help.");
+      }
+    })
+    .catch(() => {
+      checkinBtn.disabled = false;
+      checkinBtn.textContent = "Sign In";
+      renderMessage(true, "No connection", "Check the network and try again.");
+    });
+  });
+
+  const lookupForm = document.getElementById('lookupForm');
+  const phoneInput = document.getElementById('phoneInput');
+  const lookupBtn = document.getElementById('lookupBtn');
+
+  lookupForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    if(!requireCurrentActivity()) return;
+    const phoneDigits = phoneInput.value.replace(/[^0-9+]/g, '');
+    if(!phoneDigits || phoneDigits.replace(/\D/g,'').length < 9){ markInvalid('field-phone-lookup'); return; }
+    clearFieldError('field-phone-lookup');
+
+    lookupBtn.disabled = true;
+    lookupBtn.textContent = "Looking up…";
+
+    fetchJSON(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "lookup", activity: currentActivity.key, phone: `${document.getElementById('phoneInputCode').value} ${phoneInput.value.trim()}` })
+    })
+    .then(data => {
+      lookupBtn.disabled = false;
+      lookupBtn.textContent = "Find My Status";
+      if(data.status !== "ok"){
+        renderMessage(true, "Something went wrong", "Please try again.");
+        return;
+      }
+      renderLookupResults(data);
+    })
+    .catch(() => {
+      lookupBtn.disabled = false;
+      lookupBtn.textContent = "Find My Status";
+      renderMessage(true, "No connection", "Check the network and try again.");
+    });
+  });
+
+  // Every approved row sharing that phone number comes back at once, no
+  // matter which activity it belongs to — for a Family Package that's
+  // every family member's code in one go, and for a number registered
+  // under more than one activity's subscription (e.g. Gym AND Tennis
+  // Lessons), it's every one of those codes together too.
+  function renderLookupResults(data){
+    if(!data.found){
+      renderMessage(true, "Not found", "We couldn't find a registration with that phone number.");
+      return;
+    }
+    const members = data.approvedMembers || [];
+    if(members.length === 0){
+      renderMessage(false, "Still Pending", `${data.pendingCount} registration${data.pendingCount===1?'':'s'} found on this number — still awaiting front-desk approval, check back soon.`);
+      return;
+    }
+    // A number connected to more than one activity's subscription (e.g.
+    // Gym AND Tennis Lessons) gets every code for every one of them back
+    // in this one lookup — label each with its activity/program so it's
+    // clear which subscription a code belongs to, since a code only
+    // works for Sign In on that same activity's page.
+    const rowsHtml = members.map(m => {
+      const info = getStatusInfo(m);
+      const memberActivity = ACTIVITIES[m.activity];
+      const activityLabel = memberActivity ? memberActivity.label : '';
+      const sameActivity = memberActivity && currentActivity && memberActivity.key === currentActivity.key;
+      return `<div class="lookup-result-row">
+        <div>
+          <div class="lookup-result-name">${escapeHtml(m.name||'')}</div>
+          <div class="lookup-result-sub">${activityLabel ? `<strong>${escapeHtml(activityLabel)}</strong> · ` : ''}${escapeHtml(m.class||'')}${info.expired ? ' · <span class="expired-tag">Expired / used up</span>' : ''}${activityLabel && !sameActivity ? ' · switch activity to sign in with this code' : ''}</div>
+        </div>
+        ${codeChipWithCopyHtml(m.idNo)}
+      </div>`;
+    }).join('');
+    document.getElementById('resultBody').innerHTML = `
+      <div class="result-icon">✓</div>
+      <div class="result-name">${members.length > 1 ? 'Codes Found' : 'Found'}</div>
+      <div class="result-sub">${members.length} member${members.length===1?'':'s'} on this number${data.pendingCount ? ` · ${data.pendingCount} more still pending` : ''} — copy a code below and paste it into Sign In</div>
+      <div class="lookup-results-list">${rowsHtml}</div>
+      <button class="btn btn-secondary" id="doneBtn">Done</button>
+    `;
+    document.querySelector('#view-result .result').className = 'result';
+    showView('result');
+    document.getElementById('doneBtn').addEventListener('click', resetSignIn);
+    attachCopyButtons(document.getElementById('resultBody'));
+  }
+
+  /* ===================== SIGN OUT ===================== */
+  // Sign Out now opens on a bare landing page with just "Sign Out" /
+  // "Walk-in Sign Out" buttons — no code field in sight until you tap
+  // one, and tapping it is a full page change (showOutView), not an
+  // inline reveal, so it reads as moving forward rather than a form
+  // just unfolding in place.
+  const outViews = {
+    start: document.getElementById('view-out-start'),
+    code: document.getElementById('view-out-code'),
+    phone: document.getElementById('view-out-phone'),
+    result: document.getElementById('view-out-result')
+  };
+  function showOutView(name){
+    Object.values(outViews).forEach(v => v.classList.remove('active'));
+    outViews[name].classList.add('active');
+  }
+
+  document.getElementById('toOutCodeFromStartBtn').addEventListener('click', () => {
+    showOutView('code');
+    codeOutInput.focus();
+  });
+  document.getElementById('toOutPhoneFromStartBtn').addEventListener('click', () => {
+    showOutView('phone');
+  });
+  document.getElementById('toOutStartBtn').addEventListener('click', () => {
+    document.getElementById('codeOutForm').reset();
+    clearFieldError('field-code-out');
+    showOutView('start');
+  });
+  document.getElementById('toOutCodeBtn').addEventListener('click', () => {
+    document.getElementById('phoneOutForm').reset();
+    clearFieldError('field-phone-out');
+    showOutView('start');
+  });
+
+  function renderOutMemberResult(member){
+    document.getElementById('resultOutBody').innerHTML = `
+      <div class="result-icon">✓</div>
+      <div class="result-name">${escapeHtml(member.name||'')}</div>
+      <div class="result-sub">${escapeHtml(member.class||'')} · Signed out</div>
+      <button class="btn btn-secondary" id="doneOutBtn">Done</button>
+    `;
+    document.querySelector('#view-out-result .result').className = 'result';
+    showOutView('result');
+    document.getElementById('doneOutBtn').addEventListener('click', resetSignOut);
+  }
+
+  function renderOutMessage(isError, title, message){
+    document.getElementById('resultOutBody').innerHTML = `
+      <div class="result-icon">${isError ? '✕' : 'ℹ'}</div>
+      <div class="result-name">${escapeHtml(title)}</div>
+      <p class="error-msg">${escapeHtml(message)}</p>
+      <button class="btn btn-secondary" id="doneOutBtn">Done</button>
+    `;
+    document.querySelector('#view-out-result .result').className = 'result' + (isError ? ' error' : '');
+    showOutView('result');
+    document.getElementById('doneOutBtn').addEventListener('click', resetSignOut);
+  }
+
+  function resetSignOut(){
+    document.getElementById('codeOutForm').reset();
+    clearFieldError('field-code-out');
+    document.getElementById('phoneOutForm').reset();
+    clearFieldError('field-phone-out');
+    showOutView('start');
+  }
+
+  const codeOutForm = document.getElementById('codeOutForm');
+  const codeOutInput = document.getElementById('codeOutInput');
+  const checkoutBtn = document.getElementById('checkoutBtn');
+
+  codeOutForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    if(!requireCurrentActivity()) return;
+    const code = codeOutInput.value.trim();
+    if(!code){ markInvalid('field-code-out'); return; }
+    clearFieldError('field-code-out');
+
+    checkoutBtn.disabled = true;
+    checkoutBtn.textContent = "Signing out…";
+
+    fetchJSON(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "checkout", activity: currentActivity.key, code: code })
+    })
+    .then(data => {
+      checkoutBtn.disabled = false;
+      checkoutBtn.textContent = "Sign Out";
+      if(data.status === "ok"){
+        renderOutMemberResult(data.member);
+      } else {
+        renderOutMessage(true, "Couldn't sign out", data.message || "Double check the code, or ask the front desk for help.");
+      }
+    })
+    .catch(() => {
+      checkoutBtn.disabled = false;
+      checkoutBtn.textContent = "Sign Out";
+      renderOutMessage(true, "No connection", "Check the network and try again.");
+    });
+  });
+
+  const phoneOutForm = document.getElementById('phoneOutForm');
+  const phoneOutInput = document.getElementById('phoneOutInput');
+  const checkoutPhoneBtn = document.getElementById('checkoutPhoneBtn');
+
+  phoneOutForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    if(!requireCurrentActivity()) return;
+    if(!phoneOutInput.value.trim()){ markInvalid('field-phone-out'); return; }
+    clearFieldError('field-phone-out');
+
+    checkoutPhoneBtn.disabled = true;
+    checkoutPhoneBtn.textContent = "Signing out…";
+
+    fetchJSON(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        action: "checkoutByPhone",
+        activity: currentActivity.key,
+        phone: `${document.getElementById('phoneOutCode').value} ${phoneOutInput.value.trim()}`
+      })
+    })
+    .then(data => {
+      checkoutPhoneBtn.disabled = false;
+      checkoutPhoneBtn.textContent = "Sign Out";
+      if(data.status === "ok"){
+        renderOutMemberResult(data.member);
+      } else {
+        renderOutMessage(true, "Couldn't sign out", data.message || "Double check the phone number, or ask the front desk for help.");
+      }
+    })
+    .catch(() => {
+      checkoutPhoneBtn.disabled = false;
+      checkoutPhoneBtn.textContent = "Sign Out";
+      renderOutMessage(true, "No connection", "Check the network and try again.");
+    });
+  });
+
+  /* ===================== RENEW SUBSCRIPTION / UPDATE DETAILS ===================== */
+  const renewViews = {
+    code: document.getElementById('view-renew-code'),
+    menu: document.getElementById('view-renew-menu'),
+    duration: document.getElementById('view-renew-duration'),
+    details: document.getElementById('view-renew-details'),
+    result: document.getElementById('view-renew-result')
+  };
+  function showRenewView(name){
+    Object.values(renewViews).forEach(v => v.classList.remove('active'));
+    renewViews[name].classList.add('active');
+  }
+
+  let verifiedCode = null;
+  let verifiedMember = null;
+  let selectedRenewDuration = null;
+
+  const renewCodeForm = document.getElementById('renewCodeForm');
+  const renewCodeInput = document.getElementById('renewCodeInput');
+  const renewVerifyBtn = document.getElementById('renewVerifyBtn');
+
+  renewCodeForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    const code = renewCodeInput.value.trim();
+    if(!code){ markInvalid('field-renew-code'); return; }
+    clearFieldError('field-renew-code');
+
+    renewVerifyBtn.disabled = true;
+    renewVerifyBtn.textContent = "Checking…";
+
+    fetchJSON(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "verify", activity: currentActivity.key, code: code })
+    })
+    .then(data => {
+      renewVerifyBtn.disabled = false;
+      renewVerifyBtn.textContent = "Continue";
+      if(data.status === "ok"){
+        verifiedCode = code;
+        verifiedMember = data.member;
+        showRenewMenu();
+      } else {
+        renderRenewMessage(true, "Code not recognized", data.message || "Double check the code, or ask the front desk for help.");
+      }
+    })
+    .catch(() => {
+      renewVerifyBtn.disabled = false;
+      renewVerifyBtn.textContent = "Continue";
+      renderRenewMessage(true, "No connection", "Check the network and try again.");
+    });
+  });
+
+  function showRenewMenu(){
+    document.getElementById('renewMemberName').textContent = verifiedMember.name || '';
+    const info = getStatusInfo(verifiedMember);
+    let statusText = verifiedMember.class || '';
+    if(info.sessionCap){
+      statusText += info.sessionsUsed >= info.sessionCap
+        ? ' · All sessions used'
+        : ` · ${info.sessionsLeft}/${info.sessionCap} sessions left`;
+    }
+    if(info.left !== null){
+      if(info.left < 0) statusText += ` · Expired ${Math.abs(info.left)} day${Math.abs(info.left)===1?'':'s'} ago`;
+      else if(info.left === 0) statusText += ' · Expires today';
+      else statusText += ` · ${info.left} day${info.left===1?'':'s'} left`;
+    }
+    document.getElementById('renewMemberSub').textContent = statusText;
+    const renewSubStatusEl = document.getElementById('renewSubStatus');
+    renewSubStatusEl.textContent =
+      info.expired
+        ? "Your plan has expired — request a renewal at the front desk"
+        : "Extend your plan — needs front-desk approval";
+    renewSubStatusEl.classList.toggle('expired', info.expired);
+    showRenewView('menu');
+  }
+
+  document.getElementById('renewChangeCodeBtn').addEventListener('click', resetRenew);
+
+  const renewDurationGrid = document.getElementById('renewDurationGrid');
+
+  function openRenewDuration(){
+    selectedRenewDuration = null;
+    populateDurationGrid(renewDurationGrid, currentActivity, verifiedMember ? verifiedMember.class : '');
+    // Only one plan exists (Swimming Lessons) — select it automatically.
+    const visibleOpts = [...renewDurationGrid.children].filter(el => el.style.display !== 'none');
+    if(visibleOpts.length === 1){
+      visibleOpts[0].classList.add('active');
+      selectedRenewDuration = visibleOpts[0].dataset.value;
+    }
+    clearFieldError('field-renew-duration');
+    showRenewView('duration');
+  }
+  const renewOptionSubscription = document.getElementById('renewOptionSubscription');
+  renewOptionSubscription.addEventListener('click', openRenewDuration);
+  renewOptionSubscription.addEventListener('keydown', (e) => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openRenewDuration(); } });
+  document.getElementById('toRenewMenuFromDurationBtn').addEventListener('click', () => showRenewView('menu'));
+
+  renewDurationGrid.addEventListener('click', (e) => {
+    const opt = e.target.closest('.duration-opt');
+    if(!opt) return;
+    [...renewDurationGrid.children].forEach(c => c.classList.remove('active'));
+    opt.classList.add('active');
+    selectedRenewDuration = opt.dataset.value;
+    clearFieldError('field-renew-duration');
+  });
+
+  const renewConfirmBtn = document.getElementById('renewConfirmBtn');
+  renewConfirmBtn.addEventListener('click', () => {
+    if(!selectedRenewDuration){ markInvalid('field-renew-duration'); return; }
+    clearFieldError('field-renew-duration');
+
+    renewConfirmBtn.disabled = true;
+    renewConfirmBtn.textContent = "Submitting…";
+
+    fetchJSON(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "requestRenewal", activity: currentActivity.key, code: verifiedCode, duration: selectedRenewDuration })
+    })
+    .then(data => {
+      renewConfirmBtn.disabled = false;
+      renewConfirmBtn.textContent = "Submit Renewal Request";
+      if(data.status === "ok"){
+        renderRenewRequestSubmitted(selectedRenewDuration);
+      } else {
+        renderRenewMessage(true, "Couldn't submit request", data.message || "Please try again or ask the front desk.");
+      }
+    })
+    .catch(() => {
+      renewConfirmBtn.disabled = false;
+      renewConfirmBtn.textContent = "Submit Renewal Request";
+      renderRenewMessage(true, "No connection", "Check the network and try again.");
+    });
+  });
+
+  function openRenewDetails(){
+    prefillRenewDetails();
+    showRenewView('details');
+  }
+  const renewOptionDetails = document.getElementById('renewOptionDetails');
+  renewOptionDetails.addEventListener('click', openRenewDetails);
+  renewOptionDetails.addEventListener('keydown', (e) => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openRenewDetails(); } });
+  document.getElementById('toRenewMenuFromDetailsBtn').addEventListener('click', () => showRenewView('menu'));
+
+  const renPhoneCode = document.getElementById('renPhoneCode');
+  const renPhone = document.getElementById('renPhone');
+  const renEmail = document.getElementById('renEmail');
+  const renAddress = document.getElementById('renAddress');
+  const renEmergencySurname = document.getElementById('renEmergencySurname');
+  const renEmergencyOtherNames = document.getElementById('renEmergencyOtherNames');
+  const renEmergencyPhoneCode = document.getElementById('renEmergencyPhoneCode');
+  const renEmergencyPhone = document.getElementById('renEmergencyPhone');
+  const renEmergencyRelationship = document.getElementById('renEmergencyRelationship');
+
+  function splitPhone(full){
+    // Phones are stored as "+233 24 123 4567" — split back into code + number for editing.
+    if(!full) return { code:'+233', number:'' };
+    const match = full.trim().match(/^(\+\d{1,4})\s*(.*)$/);
+    return match ? { code: match[1], number: match[2] } : { code:'+233', number: full };
+  }
+
+  function splitName(full){
+    // Names are stored as "Surname Other Names" — split back apart for editing.
+    if(!full) return { surname:'', otherNames:'' };
+    const parts = full.trim().split(/\s+/);
+    return { surname: parts[0] || '', otherNames: parts.slice(1).join(' ') };
+  }
+
+  function prefillRenewDetails(){
+    const phone = splitPhone(verifiedMember.phone);
+    const emPhone = splitPhone(verifiedMember.emergencyPhone);
+    if([...renPhoneCode.options].some(o => o.value === phone.code)) renPhoneCode.value = phone.code;
+    renPhone.value = phone.number;
+    renEmail.value = verifiedMember.email || '';
+    renAddress.value = verifiedMember.address || '';
+    const emName = splitName(verifiedMember.emergencyName);
+    renEmergencySurname.value = emName.surname;
+    renEmergencyOtherNames.value = emName.otherNames;
+    if([...renEmergencyPhoneCode.options].some(o => o.value === emPhone.code)) renEmergencyPhoneCode.value = emPhone.code;
+    renEmergencyPhone.value = emPhone.number;
+    renEmergencyRelationship.value = verifiedMember.emergencyRelationship || '';
+    ['field-ren-phone','field-ren-email','field-ren-address','field-ren-emergencySurname','field-ren-emergencyOtherNames','field-ren-emergencyPhone','field-ren-emergencyRelationship']
+      .forEach(clearFieldError);
+  }
+
+  const renewDetailsForm = document.getElementById('renewDetailsForm');
+  const renewDetailsSubmitBtn = document.getElementById('renewDetailsSubmitBtn');
+
+  renewDetailsForm.addEventListener('submit', function(e){
+    e.preventDefault();
+    let valid = true;
+    const phoneDigits = renPhone.value.replace(/[^0-9+]/g, '');
+    if(!phoneDigits || phoneDigits.replace(/\D/g,'').length < 9){ markInvalid('field-ren-phone'); valid = false; } else clearFieldError('field-ren-phone');
+    if(!isValidEmail(renEmail.value.trim())){ markInvalid('field-ren-email'); valid = false; } else clearFieldError('field-ren-email');
+    if(!renAddress.value.trim()){ markInvalid('field-ren-address'); valid = false; } else clearFieldError('field-ren-address');
+    if(!renEmergencySurname.value.trim()){ markInvalid('field-ren-emergencySurname'); valid = false; } else clearFieldError('field-ren-emergencySurname');
+    if(!renEmergencyOtherNames.value.trim()){ markInvalid('field-ren-emergencyOtherNames'); valid = false; } else clearFieldError('field-ren-emergencyOtherNames');
+    const emPhoneDigits = renEmergencyPhone.value.replace(/[^0-9+]/g, '');
+    if(!emPhoneDigits || emPhoneDigits.replace(/\D/g,'').length < 9){ markInvalid('field-ren-emergencyPhone'); valid = false; } else clearFieldError('field-ren-emergencyPhone');
+    if(!renEmergencyRelationship.value.trim()){ markInvalid('field-ren-emergencyRelationship'); valid = false; } else clearFieldError('field-ren-emergencyRelationship');
+    if(!valid) return;
+
+    renewDetailsSubmitBtn.disabled = true;
+    renewDetailsSubmitBtn.textContent = "Saving…";
+
+    fetchJSON(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        action: "updateDetails",
+        activity: currentActivity.key,
+        code: verifiedCode,
+        phone: `${renPhoneCode.value} ${renPhone.value.trim()}`,
+        email: renEmail.value.trim(),
+        address: renAddress.value.trim(),
+        emergencyName: `${renEmergencySurname.value.trim()} ${renEmergencyOtherNames.value.trim()}`.trim(),
+        emergencyPhone: `${renEmergencyPhoneCode.value} ${renEmergencyPhone.value.trim()}`,
+        emergencyRelationship: renEmergencyRelationship.value.trim()
+      })
+    })
+    .then(data => {
+      renewDetailsSubmitBtn.disabled = false;
+      renewDetailsSubmitBtn.textContent = "Save Changes";
+      if(data.status === "ok"){
+        renderRenewMessage(false, "Details updated!", "Your information has been saved.");
+      } else {
+        renderRenewMessage(true, "Couldn't save", data.message || "Please try again or ask the front desk.");
+      }
+    })
+    .catch(() => {
+      renewDetailsSubmitBtn.disabled = false;
+      renewDetailsSubmitBtn.textContent = "Save Changes";
+      renderRenewMessage(true, "No connection", "Check the network and try again.");
+    });
+  });
+
+  function renderRenewRequestSubmitted(duration){
+    document.getElementById('resultRenewBody').innerHTML = `
+      <div class="result-icon">✓</div>
+      <div class="result-name">Request submitted</div>
+      <div class="result-sub">${escapeHtml(verifiedMember && verifiedMember.name || '')} · ${escapeHtml(duration||'')}</div>
+      <div class="countdown-box"><div class="countdown-label">Pending front-desk approval. Your current plan still works until then.</div></div>
+      <button class="btn btn-secondary" id="doneRenewBtn">Done</button>
+    `;
+    document.querySelector('#view-renew-result .result').className = 'result';
+    showRenewView('result');
+    document.getElementById('doneRenewBtn').addEventListener('click', resetRenew);
+  }
+
+  function renderRenewMessage(isError, title, message){
+    document.getElementById('resultRenewBody').innerHTML = `
+      <div class="result-icon">${isError ? '✕' : 'ℹ'}</div>
+      <div class="result-name">${escapeHtml(title)}</div>
+      <p class="error-msg">${escapeHtml(message)}</p>
+      <button class="btn btn-secondary" id="doneRenewBtn">Done</button>
+    `;
+    document.querySelector('#view-renew-result .result').className = 'result' + (isError ? ' error' : '');
+    showRenewView('result');
+    document.getElementById('doneRenewBtn').addEventListener('click', resetRenew);
+  }
+
+  function resetRenew(){
+    verifiedCode = null;
+    verifiedMember = null;
+    selectedRenewDuration = null;
+    renewCodeForm.reset();
+    clearFieldError('field-renew-code');
+    renewDetailsForm.reset();
+    [...renewDurationGrid.children].forEach(c => c.classList.remove('active'));
+    showRenewView('code');
+  }
+
+  function resetAllFlows(){
+    resetRegisterForm();
+    resetSignIn();
+    resetSignOut();
+    resetRenew();
+    topTabs.forEach(b => b.classList.remove('active'));
+    Object.values(topPanels).forEach(p => p.classList.remove('active'));
+    // Sign In first — most people opening the app already have a
+    // membership and just want to sign in, not register a new one.
+    document.querySelector('.tab-bar > .tab-btn[data-tab="signin"]').classList.add('active');
+    topPanels.signin.classList.add('active');
+  }
+
+})();
+</script>
+</body>
+</html>
