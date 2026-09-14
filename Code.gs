@@ -2014,6 +2014,7 @@ function doPost(e) {
         const signatureUrl = savePhotoAndGetUrl(`${applicantFileName} (${idNo}) - Signature`, data.signatureBase64, data.signatureMimeType, folder);
         if (signatureUrl) targetSheet.getRange(idx, targetHeaders.indexOf("signatureUrl") + 1).setValue(signatureUrl);
       }
+      touchActivity(activity.key);
       return ok({});
     }
 
@@ -2256,6 +2257,7 @@ function doPost(e) {
         return raw;
       });
       pending.appendRow(pendingRow);
+      touchActivity(activity.key);
       return ok({});
     }
 
@@ -2480,6 +2482,7 @@ function splitSharedRegistrationsAndVisits() {
         }));
         movedVisits++;
       });
+      if (byActivity[key].length) touchActivity(key);
     });
   }
 
@@ -2908,6 +2911,7 @@ function autoSignOutAt10pm() {
       const regByIdNo = {};
       dedupeRegistrationsByIdNo(sheetToObjects(registrations)).forEach(r => { regByIdNo[String(r.idNo).trim()] = r; });
 
+      let closedThisActivity = 0;
       for (let i = 0; i < ids.length; i++) {
         if (timeOuts[i][0]) continue; // already signed out
         const rowNum = i + 2;
@@ -2917,6 +2921,7 @@ function autoSignOutAt10pm() {
         // value.
         visits.getRange(rowNum, timeOutColIndex + 1).setValue(forceLiteralText(CLOSING_TIME_LABEL));
         totalClosed++;
+        closedThisActivity++;
 
         // Same session-cap bookkeeping a normal checkout does (see the
         // "checkout" action above) — they used the facility today even
@@ -2929,10 +2934,10 @@ function autoSignOutAt10pm() {
           if (regIdx !== -1) {
             const newUsed = (Number(match.sessionsUsed) || 0) + 1;
             registrations.getRange(regIdx, REGISTRATIONS_HEADERS.indexOf("sessionsUsed") + 1).setValue(newUsed);
-            touchActivity(activity.key);
           }
         }
       }
+      if (closedThisActivity > 0) touchActivity(activity.key);
     } catch (err) {
       Logger.log(`Auto sign-out failed for ${activity.key}: ${err}`);
     }
