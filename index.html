@@ -772,12 +772,12 @@
         <p id="approvalWaitPendingDetail">Waiting for front desk approval…</p>
       </div>
       <div id="approvalWaitApproved" style="display:none;">
-        <div class="confirm-icon">✓</div>
-        <h2>Approved!</h2>
+        <div class="confirm-icon" id="approvalWaitApprovedIcon">✓</div>
+        <h2 id="approvalWaitApprovedTitle">Approved!</h2>
         <p id="approvalWaitApprovedDetail"></p>
         <div class="approval-wait-codes" id="approvalWaitCodes"></div>
       </div>
-      <button type="button" class="btn btn-secondary" id="approvalWaitDoneBtn">Done</button>
+      <button type="button" class="btn btn-secondary" id="approvalWaitDoneBtn" style="display:none;">Done</button>
     </div>
 
     <div class="photo-sheet-overlay" id="photoSheetOverlay">
@@ -1797,6 +1797,9 @@
   const approvalWaitPendingDetail = document.getElementById('approvalWaitPendingDetail');
   const approvalWaitApprovedDetail = document.getElementById('approvalWaitApprovedDetail');
   const approvalWaitCodes = document.getElementById('approvalWaitCodes');
+  const approvalWaitDoneBtn = document.getElementById('approvalWaitDoneBtn');
+  const approvalWaitApprovedIcon = document.getElementById('approvalWaitApprovedIcon');
+  const approvalWaitApprovedTitle = document.getElementById('approvalWaitApprovedTitle');
   // Bumped from 3000 to 5000 — every registrant sitting on this screen
   // is its own poll against the same Apps Script backend the front
   // desks are also polling; at a busy moment (a rush of new
@@ -1811,7 +1814,7 @@
   function stopApprovalPoll(){
     if(approvalPollTimer){ clearTimeout(approvalPollTimer); approvalPollTimer = null; }
   }
-  document.getElementById('approvalWaitDoneBtn').addEventListener('click', () => {
+  approvalWaitDoneBtn.addEventListener('click', () => {
     stopApprovalPoll();
     approvalWaitOverlay.classList.remove('show');
   });
@@ -1823,9 +1826,21 @@
     let attempts = 0;
     let stillPending = members.slice();
     const approvedSoFar = [];
+    const rejectedSoFar = [];
 
     approvalWaitPending.style.display = 'block';
     approvalWaitApproved.style.display = 'none';
+    // Hidden while genuinely still pending — nothing to do yet but
+    // wait, so a "Done" button here would just be a way to accidentally
+    // walk away thinking it's finished. Revealed the moment there's an
+    // actual outcome: some/all approved, some/all rejected, or (see the
+    // timeout branch in poll() below) the app gives up waiting — that
+    // last one isn't an "outcome" from the front desk, but leaving
+    // someone on this screen with truly no way off it after ~10 minutes
+    // would be worse than showing the button a little early.
+    approvalWaitDoneBtn.style.display = 'none';
+    approvalWaitApprovedIcon.textContent = '✓';
+    approvalWaitApprovedTitle.textContent = 'Approved!';
     approvalWaitPendingDetail.textContent = stillPending.length > 1
       ? `Waiting for the front desk to approve ${stillPending.length} people — this updates automatically.`
       : "Waiting for the front desk to approve your registration — this updates automatically.";
@@ -1855,22 +1870,48 @@
       .then(data => {
         if(data.status !== "ok") return;
         const approvedNow = data.approvedMembers || [];
-        if(approvedNow.length === 0){
+        const rejectedIds = new Set((data.rejectedIdNos || []).map(c => String(c).trim()));
+        const rejectedNow = stillPending.filter(m => rejectedIds.has(String(m.idNo).trim()));
+
+        if(approvedNow.length === 0 && rejectedNow.length === 0){
           if(attempts >= APPROVAL_POLL_MAX_ATTEMPTS){
             stopApprovalPoll();
             approvalWaitPendingDetail.textContent = "Still waiting on approval — use the Sign In tab with your phone number to check back later.";
+            approvalWaitDoneBtn.style.display = ''; // giving up isn't an outcome, but they still need a way off this screen
           }
           return;
         }
         const approvedIds = new Set(approvedNow.map(m => String(m.idNo).trim()));
         approvedNow.forEach(m => approvedSoFar.push(m));
-        stillPending = stillPending.filter(m => !approvedIds.has(String(m.idNo).trim()));
+        rejectedNow.forEach(m => rejectedSoFar.push(m));
+        stillPending = stillPending.filter(m => !approvedIds.has(String(m.idNo).trim()) && !rejectedIds.has(String(m.idNo).trim()));
 
+        approvalWaitDoneBtn.style.display = '';
         approvalWaitPending.style.display = stillPending.length ? 'block' : 'none';
         approvalWaitApproved.style.display = 'block';
-        approvalWaitApprovedDetail.textContent = stillPending.length
-          ? `${approvedSoFar.length} approved so far — still waiting on ${stillPending.length} more.`
-          : (approvedSoFar.length > 1 ? "Everyone's approved — here are your codes:" : "Copy your code below and use it to sign in.");
+        // Only ever downgraded to the "rejected" look, never back —
+        // once any member's been rejected this submission is no longer
+        // a clean success story even if others were approved.
+        if(rejectedSoFar.length > 0){
+          approvalWaitOverlay.classList.add('error');
+          approvalWaitApprovedIcon.textContent = '✕';
+          approvalWaitApprovedTitle.textContent = approvedSoFar.length > 0 ? "Partially approved" : "Not approved";
+        }
+        if(stillPending.length){
+          approvalWaitApprovedDetail.textContent = rejectedSoFar.length
+            ? `${approvedSoFar.length} approved, ${rejectedSoFar.length} not approved so far — still waiting on ${stillPending.length} more.`
+            : `${approvedSoFar.length} approved so far — still waiting on ${stillPending.length} more.`;
+        } else if(rejectedSoFar.length === 0){
+          approvalWaitApprovedDetail.textContent = approvedSoFar.length > 1
+            ? "Everyone's approved — here are your codes:"
+            : "Copy your code below and use it to sign in.";
+        } else if(approvedSoFar.length === 0){
+          approvalWaitApprovedDetail.textContent = rejectedSoFar.length > 1
+            ? "None of these were approved — please see the front desk."
+            : "Your registration wasn't approved — please see the front desk.";
+        } else {
+          approvalWaitApprovedDetail.textContent = `${approvedSoFar.length} approved, ${rejectedSoFar.length} not approved — see the front desk about the rest. Your code(s):`;
+        }
         renderApprovedCodes();
       })
       .catch(() => { /* a network blip shouldn't stop the wait — just try again next tick */ })

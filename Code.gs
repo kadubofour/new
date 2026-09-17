@@ -2144,7 +2144,27 @@ function doPost(e) {
       if (codes.length === 0) return errorMsg("No codes to check.");
       const registrations = getOrCreateSheet(activity.registrationsSheet, REGISTRATIONS_HEADERS);
       const approvedMembers = getRegistrationRowsByIdNos(registrations, REGISTRATIONS_HEADERS, codes);
-      return ok({ approvedMembers: approvedMembers });
+      const approvedIds = new Set(approvedMembers.map(m => String(m.idNo).trim()));
+
+      // A code that's neither approved yet NOR still sitting in Pending
+      // was rejected (doReject() deletes the row outright — see its own
+      // comment) — surfaced separately so the registrant app can show
+      // that plainly instead of silently polling the full ~10 minutes
+      // and just giving up as if nothing had happened. Only bothers
+      // checking Pending at all if something is actually still
+      // unresolved, since this fires on every poll tick.
+      const stillCodes = codes.filter(c => !approvedIds.has(c));
+      let rejectedIdNos = [];
+      if (stillCodes.length) {
+        const pending = getOrCreateSheet(PENDING_SHEET_NAME, PENDING_HEADERS);
+        const stillPendingIds = new Set(
+          sheetToObjects(pending)
+            .filter(r => r.activity === activity.key)
+            .map(r => String(r.idNo).trim())
+        );
+        rejectedIdNos = stillCodes.filter(c => !stillPendingIds.has(c));
+      }
+      return ok({ approvedMembers: approvedMembers, rejectedIdNos: rejectedIdNos });
     }
 
 
