@@ -1413,18 +1413,86 @@ function pushLiveState(activityKey) {
   }
 }
 
+// ------------------------------------------------------------------
+// Deferred live-sync push — see touchActivity()'s own comment for why
+// this exists. UrlFetchApp has NO timeout option in Apps Script: if
+// Firebase is slow, misconfigured, or briefly unreachable, pushLiveState()'s
+// call can hang for a long time with nothing this script can do to
+// bound it. That's fine for an isolated background job, but it is NOT
+// an acceptable risk to run inside the same request a front desk
+// action (checking someone in/out, approving a registration...) is
+// waiting on — an optional, "nice to have" feature must never be able
+// to stall or break a core one. So the actual Firebase call never runs
+// on a write path anymore: touchActivity() below only ever marks an
+// activity dirty (one instant, local CacheService write, no network),
+// and drainDirtyActivitiesToFirebase() — run once a minute by a time-
+// based trigger, its own separate execution — is the only thing that
+// still calls pushLiveState(). Any Firebase slowness can now only ever
+// delay how fresh a listening dashboard's view is (up to about a
+// minute instead of a second or two), never a front desk action's own
+// response time.
+// ------------------------------------------------------------------
+const DIRTY_ACTIVITIES_CACHE_KEY = "dirtyActivitiesForLiveSync";
+const DIRTY_ACTIVITIES_CACHE_TTL_SECONDS = 21600; // safety net only — drainDirtyActivitiesToFirebase() normally clears this every minute
+
+function markActivityDirtyForLiveSync(activityKey) {
+  if (!firebaseConfig()) return; // not configured — nothing to defer, touchActivity() already did everything that matters
+  try {
+    const cache = CacheService.getScriptCache();
+    const raw = cache.get(DIRTY_ACTIVITIES_CACHE_KEY);
+    const dirty = raw ? JSON.parse(raw) : [];
+    if (dirty.indexOf(activityKey) === -1) dirty.push(activityKey);
+    cache.put(DIRTY_ACTIVITIES_CACHE_KEY, JSON.stringify(dirty), DIRTY_ACTIVITIES_CACHE_TTL_SECONDS);
+  } catch (err) { /* cache unavailable — this activity's live update just waits for the next full poll cycle instead */ }
+}
+
+// Run this once, by hand, from the Apps Script editor's function
+// dropdown (Run > installLiveSyncTrigger) to turn live sync on. Without
+// it, markActivityDirtyForLiveSync() above still runs on every write
+// (harmless — one tiny local cache write) but nothing ever drains it,
+// so front desks just fall back to their normal poll, exactly as if
+// FIREBASE_DB_URL were never set at all.
+function installLiveSyncTrigger() {
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === "drainDirtyActivitiesToFirebase") ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger("drainDirtyActivitiesToFirebase")
+    .timeBased()
+    .everyMinutes(1)
+    .create();
+}
+
+// The only remaining caller of pushLiveState() — runs in its own
+// execution, on its own schedule, never inside a request a front desk
+// is waiting on. Claims the dirty list immediately (before doing any
+// slow Firebase work) so anything marked dirty WHILE this run is still
+// pushing starts a fresh batch for the next run instead of being lost.
+function drainDirtyActivitiesToFirebase() {
+  if (!firebaseConfig()) return;
+  const cache = CacheService.getScriptCache();
+  let dirty = [];
+  try {
+    const raw = cache.get(DIRTY_ACTIVITIES_CACHE_KEY);
+    if (!raw) return;
+    dirty = JSON.parse(raw);
+    cache.remove(DIRTY_ACTIVITIES_CACHE_KEY);
+  } catch (err) { return; }
+  dirty.forEach(activityKey => pushLiveState(activityKey));
+}
+
 // The one call every write path below should make: keeps the
 // getVisibleRegistrations cache correct (see
 // invalidateVisibleRegistrationsCache's own comment above) AND, if
-// Firebase is configured, tells any listening front desk to refetch —
-// cheaply (see pushLiveState's own comment for why this isn't a full
-// payload push). Pending-count badges piggyback on the same signal —
-// see front-desk-dashboard.html's attachLiveBadges(), which listens to
+// Firebase is configured, queues a live-sync push for
+// drainDirtyActivitiesToFirebase() to actually send — see that
+// function's own comment for why this never touches the network
+// directly. Pending-count badges piggyback on the same signal — see
+// front-desk-dashboard.html's attachLiveBadges(), which listens to
 // every activity's touch path and just re-fetches the small
 // allPendingCounts view, not this activity's full dashboard view.
 function touchActivity(activityKey) {
   invalidateVisibleRegistrationsCache(activityKey);
-  pushLiveState(activityKey);
+  markActivityDirtyForLiveSync(activityKey);
 }
 
 // One activity's Registrations rows, deduplicated to one (current) row

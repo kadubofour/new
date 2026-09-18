@@ -52,7 +52,9 @@ See the large header comment at the top of `Code.gs` for details on photo/signat
 
 Without this section, the three front-desk dashboards already work exactly as before: each one polls the Apps Script backend every `AUTO_REFRESH_MS` (5 seconds) and only re-renders whatever actually changed. That means a change made at one desk can take up to a few seconds to show up at another.
 
-Setting this up adds a push: the instant any desk writes something (an approval, a sign-in/out, a walk-in, a renewal...), Code.gs pushes a tiny "something changed" timestamp for that activity to a small Firebase Realtime Database tree — deliberately not the dashboard data itself, so the write action a staff member is waiting on doesn't pay for building and shipping it. Every open dashboard with a live listener sees that timestamp change and immediately does the exact same fetch its poll would have done anyway, just without waiting for the next `AUTO_REFRESH_MS` tick. The poll itself is never removed — it keeps running as a fallback for a dropped connection, so a Firebase outage or a typo in the config just silently falls back to "polls every 5 seconds," not "broken."
+Setting this up adds a push: whenever any desk writes something (an approval, a sign-in/out, a walk-in, a renewal...), Code.gs queues a tiny "something changed" timestamp for that activity, and a scheduled job — not the write action itself — sends it to a small Firebase Realtime Database tree once a minute. Every open dashboard with a live listener sees that timestamp change and does the exact same fetch its poll would have done anyway, just without waiting for the next `AUTO_REFRESH_MS` tick.
+
+The Firebase push is deliberately kept OFF the write path entirely, not just made small: `UrlFetchApp` (what Apps Script uses to call Firebase) has no timeout option, so if Firebase were ever slow, misconfigured, or briefly unreachable, that call could hang for a long time with nothing bounding it — and that must never be able to stall or break a core action like signing someone in or out. So `touchActivity()` (called by every write) only ever does an instant local cache write; `drainDirtyActivitiesToFirebase()`, run once a minute by its own trigger, is the only thing that actually talks to Firebase. The practical effect: cross-desk updates land within about a minute instead of near-instantly, in exchange for the core app never being able to slow down because of Firebase, no matter what shape Firebase is in. The `AUTO_REFRESH_MS` poll is never removed either way — it keeps running as the fallback for everything (a dropped connection, the trigger not installed, Firebase misconfigured), so any of that just silently falls back to "polls every 5 seconds," not "broken."
 
 **It's entirely optional.** Skip this section and nothing else in this repo changes behavior.
 
@@ -76,7 +78,7 @@ In the Apps Script editor: Project Settings (gear icon) → Script Properties �
 | `FIREBASE_DB_URL` | The `databaseURL` from step 1.5, e.g. `https://your-project-default-rtdb.firebaseio.com` |
 | `FIREBASE_DB_SECRET` | The legacy database secret from step 1.4 (leave unset if your rules don't need one) |
 
-Nothing else changes — `touchActivity()` in `Code.gs` (called from every action that writes to Pending/Registrations/Visits) already calls `pushLiveState()`, which no-ops silently until `FIREBASE_DB_URL` is set.
+Then, in the Apps Script editor's function dropdown, select `installLiveSyncTrigger` and click Run once (authorize if asked). That's what actually turns live sync on — it sets up the once-a-minute job that drains queued changes to Firebase. Skip this step and the app still queues changes locally (harmless — a tiny local cache write) but nothing ever sends them, so every front desk just falls back to its normal poll, exactly as if `FIREBASE_DB_URL` were never set.
 
 ### 3. Configure each dashboard
 
@@ -89,4 +91,4 @@ const FIREBASE_CONFIG = {
 };
 ```
 
-Reload the dashboard — a change at any desk (or the registration app) should now appear at every other open dashboard within a second or so, instead of on the next poll.
+Reload the dashboard — a change at any desk (or the registration app) should now appear at every other open dashboard within about a minute, instead of on the next 5-second poll.

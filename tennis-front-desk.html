@@ -620,14 +620,16 @@
 
   // ---- Live sync (optional) ----
   // If FIREBASE_CONFIG.databaseURL is set (see the top of this script),
-  // this desk finds out the instant ANY desk writes something for this
-  // activity — see Code.gs's touchActivity()/pushLiveState(). What
-  // Firebase carries is deliberately just a tiny "something changed"
-  // timestamp, not the dashboard data itself — pushing the whole
-  // payload from inside every write action used to add real latency to
-  // every check-in/out/approval (extra sheet reads plus a bigger
-  // network call before the person doing it saw a response), which is
-  // the opposite of what this app needs. So a "touch" here just
+  // this desk finds out within about a minute whenever ANY desk writes
+  // something for this activity — see Code.gs's touchActivity()/
+  // drainDirtyActivitiesToFirebase(). Not instant on purpose: Code.gs
+  // queues the change locally and a once-a-minute scheduled job is the
+  // only thing that actually talks to Firebase, specifically so a slow
+  // or misconfigured Firebase can never add latency to (or break) the
+  // write action itself — UrlFetchApp has no timeout in Apps Script, so
+  // a synchronous push here risked stalling every check-in/out/approval
+  // on Firebase's own responsiveness, which is the opposite of what
+  // this app needs. So a "touch" here just
   // triggers the exact same fetch loadAll() already does — this only
   // removes the up-to-AUTO_REFRESH_MS wait for THAT fetch to happen.
   // The poll itself keeps running regardless, as a fallback for a
