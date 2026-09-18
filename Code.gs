@@ -1156,8 +1156,9 @@ function approvePendingRow(activity, pending, registrations, idx) {
   // Insert straight into today's date block (creating it if this is the
   // first approval of the day) instead of a plain append, so the sheet
   // stays grouped by date immediately — not just after the nightly
-  // regroupAllRegistrations() backstop. Cheap: touches only the one block.
-  insertRegistrationIntoDateGroup(registrations, REGISTRATIONS_HEADERS, regRowValues, formatDateDMY(approvedNow));
+  // regroupAllRegistrations() backstop. See insertRegistrationIntoDateGroup()
+  // itself for how it stays cheap regardless of how big Registrations gets.
+  insertRegistrationIntoDateGroup(registrations, REGISTRATIONS_HEADERS, regRowValues, formatDateDMY(approvedNow), activity.key);
   pending.deleteRow(idx);
   return idNo;
 }
@@ -2455,7 +2456,10 @@ function splitSharedRegistrationsAndVisits() {
         }));
         movedRegistrations++;
       });
-      if (byActivity[key].length) touchActivity(key);
+      // Plain appendRow() above bypasses insertRegistrationIntoDateGroup()
+      // entirely, so any cached "today's block ends at row N" pointer for
+      // this activity is now wrong regardless of what it said before.
+      if (byActivity[key].length) { touchActivity(key); invalidateTodayDateBlockCache(key); }
     });
   }
 
@@ -2581,6 +2585,11 @@ function deleteUnusedAlertSheets() {
 // regroupAllRegistrations() by hand any time you don't want to wait
 // for the nightly run.
 function regroupRegistrationsByDate(activity) {
+  // A full rebuild moves every row, so any cached "today's block ends
+  // at row N" pointer (see insertRegistrationIntoDateGroup()) is
+  // meaningless afterward — the very next approval must rediscover it
+  // for real rather than trusting a number this rebuild just made up.
+  invalidateTodayDateBlockCache(activity.key);
   const sheet = getOrCreateSheet(activity.registrationsSheet, REGISTRATIONS_HEADERS);
   const lastCol = REGISTRATIONS_HEADERS.length;
   const lastRow = sheet.getLastRow();
@@ -2679,11 +2688,17 @@ function regroupAllRegistrations() {
 // first approval of the day — instead of just appending it to the
 // bottom, so date grouping is live the moment a registration is
 // approved rather than waiting for the nightly regroupAllRegistrations().
-// Cheap by construction: it only reads the idNo column's notes (to
-// find/verify blocks) and rewrites the one block being touched, never
-// the whole sheet — unlike a full regroupRegistrationsByDate() rebuild,
-// this is safe to run on every single approval, including several back
-// to back for a Family Package.
+// An earlier version of this read the idNo column's Notes for the
+// WHOLE sheet on every single call to find/verify today's block — a
+// single Notes API call, but one whose cost scales with total rows,
+// same "only ever grows" shape as everything else in this file that's
+// had to be fixed for it. It's now a single-cell read plus (see
+// findTodayDateBlockEnd()) a cached, self-verifying pointer to where
+// that block currently ends, so the cost stays flat regardless of how
+// many registrations the season has piled up — unlike a full
+// regroupRegistrationsByDate() rebuild, this is safe to run on every
+// single approval, including several back to back for a Family
+// Package.
 //
 // Called for EVERY approval, renewal included — a renewal is stamped
 // with "now" and appended as its own brand-new row exactly like a
@@ -2692,7 +2707,22 @@ function regroupAllRegistrations() {
 // date here, which is why this never needs to search for a sorted
 // insertion point among older blocks: a brand new block is always the
 // newest one, so it always goes at the very top.
-function insertRegistrationIntoDateGroup(sheet, headers, regRowValues, dateKey) {
+// Where insertRegistrationIntoDateGroup() below last found today's date
+// block to end, per activity — {dateKey, blockEndRow} as JSON in
+// CacheService (same pattern as VISIBLE_REGISTRATIONS_CACHE_TTL_SECONDS
+// above: a performance cache only, never trusted blindly — see its one
+// call site's own comment for why). Six hours comfortably covers a
+// single day's front-desk hours; dateKey rolling over is what actually
+// retires yesterday's entry, this TTL is only a backstop.
+const TODAY_DATE_BLOCK_CACHE_TTL_SECONDS = 21600;
+
+function todayDateBlockCacheKey(activityKey) { return "todayRegBlockEnd_" + activityKey; }
+
+function invalidateTodayDateBlockCache(activityKey) {
+  try { CacheService.getScriptCache().remove(todayDateBlockCacheKey(activityKey)); } catch (err) { /* nothing to invalidate */ }
+}
+
+function insertRegistrationIntoDateGroup(sheet, headers, regRowValues, dateKey, activityKey) {
   const lastCol = headers.length;
   const idColIndex = headers.indexOf("idNo");
   const lastRow = sheet.getLastRow();
@@ -2703,29 +2733,25 @@ function insertRegistrationIntoDateGroup(sheet, headers, regRowValues, dateKey) 
     return;
   }
 
-  // Single-column note read (cheap) to find today's banner, if any,
-  // and — by scanning forward until the next banner or the end of the
-  // sheet — the last row currently in that block.
-  const idNotes = sheet.getRange(2, idColIndex + 1, lastRow - 1, 1).getNotes();
-  let bannerRow = -1;
-  let blockEndRow = -1;
-  for (let i = 0; i < idNotes.length; i++) {
-    if (idNotes[i][0] !== bannerNote) continue;
-    bannerRow = i + 2;
-    blockEndRow = bannerRow;
-    for (let j = i + 1; j < idNotes.length; j++) {
-      if (String(idNotes[j][0] || "").indexOf(DATE_HEADER_MARKER) === 0) break; // next block starts here
-      blockEndRow = j + 2;
-    }
-    break;
-  }
-
-  if (bannerRow === -1) {
+  // Today's block, if one already exists, is ALWAYS the very first one
+  // — every brand-new block goes in at row 2 (see the "no block for
+  // today yet" branch below and insertNewDateBlock()), and today can
+  // never be older than any block already in the sheet, so it can never
+  // need to be inserted anywhere else. That makes checking for it a
+  // single-cell read, not the full idNo-column Notes read this used to
+  // do on every approval — which, like everything else in this file
+  // that "only ever grows", got slower every month as a season's worth
+  // of registrations piled up underneath today's block.
+  const bannerRow = 2;
+  if (sheet.getRange(bannerRow, idColIndex + 1).getNote() !== bannerNote) {
     // No block for today yet — today is always the newest date this
     // can be, so the new block goes right after the column header.
     insertNewDateBlock(sheet, lastCol, idColIndex, regRowValues, dateKey, 2);
+    invalidateTodayDateBlockCache(activityKey); // stale from a moment ago either way — a new block starts a new count
     return;
   }
+
+  const blockEndRow = findTodayDateBlockEnd(sheet, idColIndex, lastRow, bannerRow, dateKey, activityKey);
 
   // Today's block already exists — add this member at the end of it
   // (inheriting that row's plain formatting, not the banner's bold
@@ -2737,6 +2763,68 @@ function insertRegistrationIntoDateGroup(sheet, headers, regRowValues, dateKey) 
   sheet.getRange(bannerRow, idColIndex + 1).setValue(
     `${dateLabelFor(dateKey)}  —  ${newCount} registration${newCount === 1 ? "" : "s"}`
   );
+
+  // Remembered for the NEXT approval today (the common case — approvals
+  // cluster), so it can skip straight to the cheap path below instead
+  // of a scan. Always exactly right immediately after our own insert,
+  // whatever it started from.
+  try {
+    CacheService.getScriptCache().put(
+      todayDateBlockCacheKey(activityKey),
+      JSON.stringify({ dateKey: dateKey, blockEndRow: newRow }),
+      TODAY_DATE_BLOCK_CACHE_TTL_SECONDS
+    );
+  } catch (err) { /* cache unavailable — next call just falls back to scanning, same as before this cache existed */ }
+}
+
+// Finds the last row of today's already-confirmed (bannerRow's note
+// verified by the caller) date block. Tries the cached answer from the
+// last insert first, extending the read only if that turns out not to
+// be enough — so this is never wrong, the cache only decides how much
+// gets read on the common, fast path.
+function findTodayDateBlockEnd(sheet, idColIndex, lastRow, bannerRow, dateKey, activityKey) {
+  let hintEnd = null;
+  try {
+    const cachedRaw = CacheService.getScriptCache().get(todayDateBlockCacheKey(activityKey));
+    if (cachedRaw) {
+      const cached = JSON.parse(cachedRaw);
+      if (cached.dateKey === dateKey && Number(cached.blockEndRow) >= bannerRow) {
+        hintEnd = Math.min(Number(cached.blockEndRow), lastRow);
+      }
+    }
+  } catch (err) { /* corrupt/unavailable cache value — ignore, scan for real below */ }
+
+  // Reads from just after the banner up to `through`, looking for
+  // either the next block's banner (today's block ends the row before)
+  // or the end of the read (today's block runs at least that far,
+  // possibly further — caller decides whether to extend).
+  function scanTo(through) {
+    if (through < bannerRow + 1) return { endRow: bannerRow, hitNextBanner: false };
+    const notes = sheet.getRange(bannerRow + 1, idColIndex + 1, through - bannerRow, 1).getNotes();
+    let endRow = bannerRow;
+    for (let i = 0; i < notes.length; i++) {
+      if (String(notes[i][0] || "").indexOf(DATE_HEADER_MARKER) === 0) return { endRow: endRow, hitNextBanner: true };
+      endRow = bannerRow + 1 + i;
+    }
+    return { endRow: endRow, hitNextBanner: false };
+  }
+
+  if (hintEnd !== null) {
+    const first = scanTo(hintEnd);
+    if (first.hitNextBanner || hintEnd >= lastRow) return first.endRow;
+    // Block runs past what was cached (more approvals landed since, or
+    // this is a fresh cache miss padded low) — extend to the rest of
+    // the sheet from exactly where the first pass left off.
+    const notes = sheet.getRange(first.endRow + 1, idColIndex + 1, lastRow - first.endRow, 1).getNotes();
+    let endRow = first.endRow;
+    for (let i = 0; i < notes.length; i++) {
+      if (String(notes[i][0] || "").indexOf(DATE_HEADER_MARKER) === 0) break;
+      endRow = first.endRow + 1 + i;
+    }
+    return endRow;
+  }
+
+  return scanTo(lastRow).endRow;
 }
 
 // Inserts a brand-new two-row (banner + one member) date block at
