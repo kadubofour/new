@@ -1061,12 +1061,21 @@ function dateLabelFor(dateStr) {
 // for how a Family Package's several rows are grouped and each run
 // through this one at a time. "registrations" is that activity's own
 // Registrations sheet, already resolved by the caller.
-function approvePendingRow(activity, pending, registrations, idx) {
+// timing (optional): an array doApprove() passes in so each step below
+// can push [label, ms] onto it — TEMPORARY debug instrumentation for
+// tracking down where a slow approval's time is actually going (see
+// the "_timing" field on doApprove()'s response). Safe to strip out
+// once that's diagnosed; the Date.now() calls cost nothing meaningful.
+function approvePendingRow(activity, pending, registrations, idx, timing) {
+  let _t = Date.now();
   const rowValues = pending.getRange(idx, 1, 1, PENDING_HEADERS.length).getValues()[0];
+  if (timing) timing.push(["readPendingRow", Date.now() - _t]);
   const idNo = String(rowValues[PENDING_HEADERS.indexOf("idNo")]).replace(/^'/, "").trim();
 
   if (String(rowValues[PENDING_HEADERS.indexOf("duration")]).trim() === "Walk-in") {
+    _t = Date.now();
     const visits = getOrCreateSheet(activity.visitsSheet, VISIT_HEADERS);
+    if (timing) timing.push(["walkin.getVisitsSheet", Date.now() - _t]);
     const now = new Date();
     // The idNo on this row is either a real ID card number (a category
     // that requires one, e.g. UG Student/UG Staff) or, for everyone
@@ -1079,6 +1088,7 @@ function approvePendingRow(activity, pending, registrations, idx) {
     // after being approved. The front desk UI hides this value from
     // view (it's not a usable code to anyone) rather than the data layer
     // dropping it.
+    _t = Date.now();
     visits.appendRow(VISIT_HEADERS.map(h => {
       if (h === "visitId") return Utilities.getUuid();
       if (h === "idNo") return sheetSafeText(rowValues[PENDING_HEADERS.indexOf("idNo")]);
@@ -1094,13 +1104,20 @@ function approvePendingRow(activity, pending, registrations, idx) {
       if (h === "phone") return sheetSafeText(rowValues[PENDING_HEADERS.indexOf("phone")]);
       return ""; // timeOut
     }));
+    if (timing) timing.push(["walkin.appendVisit", Date.now() - _t]);
     // A Walk-in visit has no photo column — the photo/signature
     // captured at submission (in the Pending folder) would just sit
     // there unreferenced forever, so trash them now rather than moving
     // them anywhere.
+    _t = Date.now();
     deleteDriveFileIfAny(rowValues[PENDING_HEADERS.indexOf("photoUrl")]);
+    if (timing) timing.push(["walkin.deletePhoto", Date.now() - _t]);
+    _t = Date.now();
     deleteDriveFileIfAny(rowValues[PENDING_HEADERS.indexOf("signatureUrl")]);
+    if (timing) timing.push(["walkin.deleteSignature", Date.now() - _t]);
+    _t = Date.now();
     pending.deleteRow(idx);
+    if (timing) timing.push(["walkin.deletePendingRow", Date.now() - _t]);
     return idNo;
   }
 
@@ -1158,8 +1175,12 @@ function approvePendingRow(activity, pending, registrations, idx) {
   // stays grouped by date immediately — not just after the nightly
   // regroupAllRegistrations() backstop. See insertRegistrationIntoDateGroup()
   // itself for how it stays cheap regardless of how big Registrations gets.
+  _t = Date.now();
   insertRegistrationIntoDateGroup(registrations, REGISTRATIONS_HEADERS, regRowValues, formatDateDMY(approvedNow), activity.key);
+  if (timing) timing.push(["insertRegistrationIntoDateGroup", Date.now() - _t]);
+  _t = Date.now();
   pending.deleteRow(idx);
+  if (timing) timing.push(["deletePendingRow", Date.now() - _t]);
   return idNo;
 }
 
@@ -1173,19 +1194,42 @@ function approvePendingRow(activity, pending, registrations, idx) {
 // would be wrong. Rows are processed highest-row-number first so an
 // earlier deleteRow() never shifts a not-yet-processed index.
 function doApprove(activity, idNo) {
+  // TEMPORARY debug instrumentation — see approvePendingRow()'s own
+  // comment. Safe to strip out (along with the "timing"/"_timing"
+  // plumbing here and in approvePendingRow()) once a slow approval's
+  // been diagnosed from this.
+  const timing = [];
+  const t0 = Date.now();
+  let _t = t0;
+
   const pending = getOrCreateSheet(PENDING_SHEET_NAME, PENDING_HEADERS);
+  timing.push(["getPendingSheet", Date.now() - _t]);
+
+  _t = Date.now();
   const idx = findRowIndexByIdNo(pending, idNo, PENDING_HEADERS, activity.key);
+  timing.push(["findPendingRow", Date.now() - _t]);
   if (idx === -1) return ok({ message: "Already handled" });
 
+  _t = Date.now();
   const isRenewal = String(pending.getRange(idx, PENDING_HEADERS.indexOf("isRenewal") + 1).getValue()).trim().toUpperCase() === "TRUE";
   const groupId = isRenewal ? "" : String(pending.getRange(idx, PENDING_HEADERS.indexOf("familyGroupId") + 1).getValue()).trim();
   const rowIndices = groupId ? findRowIndicesByFamilyGroup(pending, groupId, activity.key) : [idx];
+  timing.push(["resolveFamilyGroup", Date.now() - _t]);
 
+  _t = Date.now();
   const registrations = getOrCreateSheet(activity.registrationsSheet, REGISTRATIONS_HEADERS);
-  const approvedIdNos = rowIndices.map(rowIdx => approvePendingRow(activity, pending, registrations, rowIdx));
-  touchActivity(activity.key);
+  timing.push(["getRegistrationsSheet", Date.now() - _t]);
 
-  return ok({ idNo: idNo, approvedIdNos: approvedIdNos });
+  const approvedIdNos = rowIndices.map(rowIdx => approvePendingRow(activity, pending, registrations, rowIdx, timing));
+
+  _t = Date.now();
+  touchActivity(activity.key);
+  timing.push(["touchActivity", Date.now() - _t]);
+
+  timing.push(["TOTAL", Date.now() - t0]);
+  Logger.log("doApprove timing for " + idNo + ": " + JSON.stringify(timing));
+
+  return ok({ idNo: idNo, approvedIdNos: approvedIdNos, _timing: timing });
 }
 
 // Rejecting a pending registration leaves nothing behind — the photo

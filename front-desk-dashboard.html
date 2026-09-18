@@ -1635,6 +1635,13 @@
     const activity = currentActivity;
     busyIds.add(idNo);
     renderApprovals();
+    // TEMPORARY debug instrumentation (see Code.gs's matching comment on
+    // doApprove()) — logs the client-observed round trip alongside the
+    // server's own step-by-step breakdown, so a slow approval can be
+    // diagnosed straight from this browser's console (F12) without
+    // needing to dig through the Apps Script editor's Executions log.
+    // Safe to remove, here and in Code.gs, once that's done.
+    const _reqStart = Date.now();
     fetchJSON(SCRIPT_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -1642,6 +1649,9 @@
     })
     .then(data => {
       busyIds.delete(idNo);
+      if(data._timing){
+        console.log(`[${action} timing] idNo=${idNo} isWalkin=${isWalkin} clientRoundTripMs=${Date.now() - _reqStart}`, data._timing);
+      }
       if(data.status === "ok"){
         if(action === "approve"){
           if(isWalkin){
