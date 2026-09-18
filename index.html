@@ -2217,20 +2217,22 @@
     stopWalkinPoll();
     let attempts = 0;
 
+    // No Done button here on purpose — this is the genuinely-still-
+    // waiting state, nothing has actually happened yet, so a Done
+    // button here would just be a way to accidentally walk away
+    // thinking it's finished (see renderSignedIn()/renderSigninMessage()
+    // below, which DO show one — only once there's an actual outcome:
+    // signed in, not approved, or — as a safety net, not a real outcome
+    // — the poll giving up after WALKIN_POLL_MAX_ATTEMPTS, since leaving
+    // someone stuck here with truly no way off would be worse).
     function renderPending(){
       document.getElementById('resultBody').innerHTML = `
         <div class="result-icon">⏳</div>
         <div class="result-name">Pending Approval</div>
         <p class="error-msg">Wait for the front desk to approve your walk-in — this updates automatically.</p>
-        <button class="btn btn-secondary" id="doneSigninBtn">Done</button>
       `;
       document.querySelector('#view-result .result').className = 'result';
       showView('result');
-      document.getElementById('doneSigninBtn').addEventListener('click', () => {
-        stopWalkinPoll();
-        resetWalkinForm();
-        showView('code');
-      });
     }
     function renderSignedIn(){
       document.getElementById('resultBody').innerHTML = `
