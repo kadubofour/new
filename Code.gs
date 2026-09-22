@@ -1557,6 +1557,42 @@ function getRecentVisits(activity) {
     });
 }
 
+// Finds the sheet row of this activity's Visits history holding the
+// most recent STILL-OPEN visit (no timeOut yet) whose matchColIndex
+// cell equals targetValue — shared by "checkout" (idNo) and
+// "checkoutByPhone" (phone) below. Both used to read the ENTIRE idNo/
+// phone + timeOut columns on every single sign-out — one Sheets API
+// call, but one whose cost scales with how many visits the season has
+// ever recorded, same "only ever grows" shape as everything else in
+// this file that's had to be fixed for it, and unlike Registrations
+// (fixed by caching a read) this is a write path a member is standing
+// at the front desk waiting on. Visits is always appended in
+// chronological order (see getRecentVisits()'s own comment), so the
+// row being looked for is almost always within the last few dozen rows
+// — reading backward from the bottom in small chunks, stopping the
+// instant a match turns up, means an ordinary checkout costs a small,
+// constant-size read regardless of the season's total, instead of the
+// whole sheet every time. Only degrades toward the old cost (worst
+// case: the same total, just chunked) for the rare case where the open
+// visit is unusually old, or doesn't exist at all.
+function findLastOpenVisitRow(visits, matchColIndex, timeOutColIndex, lastRow, targetValue) {
+  const CHUNK = 200;
+  let windowEnd = lastRow;
+  while (windowEnd >= 2) {
+    const windowStart = Math.max(2, windowEnd - CHUNK + 1);
+    const count = windowEnd - windowStart + 1;
+    const matchVals = visits.getRange(windowStart, matchColIndex + 1, count, 1).getValues();
+    const timeOuts = visits.getRange(windowStart, timeOutColIndex + 1, count, 1).getValues();
+    for (let i = matchVals.length - 1; i >= 0; i--) {
+      if (String(matchVals[i][0]).trim() === targetValue && !timeOuts[i][0]) {
+        return windowStart + i;
+      }
+    }
+    windowEnd = windowStart - 1;
+  }
+  return -1;
+}
+
 function doGet(e) {
   try {
     // No specific activity needed — one sheet read total, instead of
@@ -1957,53 +1993,56 @@ function doPost(e) {
 
 
     if (action === "checkout") {
+      // TEMPORARY debug instrumentation — see doApprove()'s matching
+      // comment. Safe to strip out (along with the "_timing" field on
+      // the response) once a slow sign-out's been diagnosed from this.
+      const timing = [];
+      const t0 = Date.now();
+      let _t = t0;
+
       const registrations = getOrCreateSheet(activity.registrationsSheet, REGISTRATIONS_HEADERS);
       const code = String(data.code || "").trim();
       const match = getRegistrationRowByIdNo(registrations, REGISTRATIONS_HEADERS, code);
       if (!match) return errorMsg("Code not recognized");
+      timing.push(["findRegistration", Date.now() - _t]);
 
+      _t = Date.now();
       const visits = getOrCreateSheet(activity.visitsSheet, VISIT_HEADERS);
       const lastRow = visits.getLastRow();
       if (lastRow < 2) return errorMsg("No sign-in found for this code. Please sign in first.");
+      timing.push(["getVisitsSheet", Date.now() - _t]);
 
       const idColIndex = VISIT_HEADERS.indexOf("idNo");
       const timeOutColIndex = VISIT_HEADERS.indexOf("timeOut");
-      // Two narrow single-column reads instead of the whole row width —
-      // this sheet only ever grows (visits are never deleted), so
-      // reading all 9 columns of the entire history on every checkout
-      // gets slower every month; idNo + timeOut is all this needs.
-      const ids = visits.getRange(2, idColIndex + 1, lastRow - 1, 1).getValues();
-      const timeOuts = visits.getRange(2, timeOutColIndex + 1, lastRow - 1, 1).getValues();
-
       // Finds this member's most recent STILL-OPEN visit (no timeOut
       // yet), whatever day it was signed in on — not just one recorded
       // as "today". Requiring an exact same-day match here used to mean
       // a sign-in made late at night, or any drift between the sheet's
       // time zone and the venue's, could leave a member unable to sign
       // out at all even though their visit was genuinely still open;
-      // scanning from the last row down already finds the newest one
-      // first, and the nightly auto sign-out (see autoSignOutAt10pm)
-      // closes anything left open at day's end anyway, so there's
-      // nothing an exact-date check was actually protecting against.
-      let targetRow = -1;
-      for (let i = ids.length - 1; i >= 0; i--) {
-        if (String(ids[i][0]).trim() === match.idNo && !timeOuts[i][0]) {
-          targetRow = i + 2; // sheet row number
-          break;
-        }
-      }
+      // the nightly auto sign-out (see autoSignOutAt10pm) closes
+      // anything left open at day's end anyway, so there's nothing an
+      // exact-date check was actually protecting against. See
+      // findLastOpenVisitRow()'s own comment for why this no longer
+      // reads the whole sheet to find it.
+      _t = Date.now();
+      const targetRow = findLastOpenVisitRow(visits, idColIndex, timeOutColIndex, lastRow, match.idNo);
+      timing.push(["findOpenVisit", Date.now() - _t]);
       if (targetRow === -1) return errorMsg("No open sign-in found for this code. Please sign in first.");
 
       // forceLiteralText — same reason as every other time write: a
       // plain "3:45 PM"-shaped string set via setValue() can otherwise
       // get silently reinterpreted by Sheets as a real time value.
+      _t = Date.now();
       visits.getRange(targetRow, timeOutColIndex + 1).setValue(forceLiteralText(formatTime(new Date())));
+      timing.push(["setTimeOut", Date.now() - _t]);
 
       // Duration has a session cap (Swimming Lessons' package) — a
       // session only counts as "used" once the member actually signs
       // out, not when they sign in (so a session in progress doesn't
       // get counted early, and a forgotten sign-in with no sign-out
       // doesn't burn a session at all).
+      _t = Date.now();
       const cfg = getDurationConfig(activity, match.duration);
       if (cfg && cfg.sessionCap) {
         const regIdx = findRowIndexByIdNo(registrations, match.idNo, REGISTRATIONS_HEADERS);
@@ -2013,8 +2052,15 @@ function doPost(e) {
           match.sessionsUsed = String(newUsed);
         }
       }
+      timing.push(["sessionCap", Date.now() - _t]);
+
+      _t = Date.now();
       touchActivity(activity.key);
-      return ok({ member: match });
+      timing.push(["touchActivity", Date.now() - _t]);
+
+      timing.push(["TOTAL", Date.now() - t0]);
+      Logger.log("checkout timing for " + code + ": " + JSON.stringify(timing));
+      return ok({ member: match, _timing: timing });
     }
 
 
@@ -2032,22 +2078,12 @@ function doPost(e) {
 
       const phoneColIndex = VISIT_HEADERS.indexOf("phone");
       const timeOutColIndex = VISIT_HEADERS.indexOf("timeOut");
-      // Two narrow single-column reads instead of the whole row width —
-      // same reasoning as "checkout" above: this sheet only ever grows,
-      // so phone + timeOut is all this scan actually needs.
-      const phones = visits.getRange(2, phoneColIndex + 1, lastRow - 1, 1).getValues();
-      const timeOuts = visits.getRange(2, timeOutColIndex + 1, lastRow - 1, 1).getValues();
-
       // Most recent STILL-OPEN visit for this phone number, whatever day
       // it was signed in on — see the matching comment in "checkout"
-      // above for why an exact same-day match isn't required.
-      let targetRow = -1;
-      for (let i = phones.length - 1; i >= 0; i--) {
-        if (String(phones[i][0]).trim() === phone && !timeOuts[i][0]) {
-          targetRow = i + 2; // sheet row number
-          break;
-        }
-      }
+      // above for why an exact same-day match isn't required, and
+      // findLastOpenVisitRow()'s own comment for why this no longer
+      // reads the whole sheet to find it.
+      const targetRow = findLastOpenVisitRow(visits, phoneColIndex, timeOutColIndex, lastRow, phone);
       if (targetRow === -1) {
         return errorMsg("No open sign-in found for this phone number. Please sign in first, or ask the front desk.");
       }
@@ -2072,6 +2108,13 @@ function doPost(e) {
       // same idNo, to actually upload whichever of photoBase64/
       // signatureBase64 it has — that's why either one alone is
       // accepted here, not just a photo.
+      // TEMPORARY debug instrumentation — see doApprove()'s matching
+      // comment. Safe to strip out (along with the "_timing" field on
+      // the response) once a slow upload's been diagnosed from this.
+      const timing = [];
+      const t0 = Date.now();
+      let _t = t0;
+
       const idNo = String(data.idNo || "").trim();
       if (!idNo) return errorMsg("Enter your code or ID number.");
       if (!data.photoBase64 && !data.signatureBase64) return errorMsg("No photo received.");
@@ -2088,28 +2131,40 @@ function doPost(e) {
         if (idx !== -1) { targetSheet = registrations; targetHeaders = REGISTRATIONS_HEADERS; }
       }
       if (!targetSheet) return errorMsg("Code not recognized");
+      timing.push(["findTargetRow", Date.now() - _t]);
 
+      _t = Date.now();
       const nameColIndex = targetHeaders.indexOf("name") + 1;
       const applicantName = targetSheet.getRange(idx, nameColIndex).getValue();
       const applicantFileName = sanitizeForFilename(applicantName);
       // Pending vs. already-approved decides which folder — same split
       // as the "submit" handler.
       const folder = targetSheet === pending ? getPendingPhotosFolder() : getPhotosFolder();
+      timing.push(["getFolder", Date.now() - _t]);
 
       // Never hard-fails if one upload doesn't come back with a URL —
       // same "never blocks on a photo problem" philosophy as
       // savePhotoAndGetUrl() itself never throwing. Whichever of the
       // two wasn't sent (or failed) is simply left as-is.
       if (data.photoBase64) {
+        _t = Date.now();
         const photoUrl = savePhotoAndGetUrl(`${applicantFileName} (${idNo})`, data.photoBase64, data.photoMimeType, folder);
         if (photoUrl) targetSheet.getRange(idx, targetHeaders.indexOf("photoUrl") + 1).setValue(photoUrl);
+        timing.push(["savePhoto", Date.now() - _t]);
       }
       if (data.signatureBase64) {
+        _t = Date.now();
         const signatureUrl = savePhotoAndGetUrl(`${applicantFileName} (${idNo}) - Signature`, data.signatureBase64, data.signatureMimeType, folder);
         if (signatureUrl) targetSheet.getRange(idx, targetHeaders.indexOf("signatureUrl") + 1).setValue(signatureUrl);
+        timing.push(["saveSignature", Date.now() - _t]);
       }
+      _t = Date.now();
       touchActivity(activity.key);
-      return ok({});
+      timing.push(["touchActivity", Date.now() - _t]);
+
+      timing.push(["TOTAL", Date.now() - t0]);
+      Logger.log("addPhoto timing for " + idNo + ": " + JSON.stringify(timing));
+      return ok({ _timing: timing });
     }
 
 

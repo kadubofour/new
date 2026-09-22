@@ -1066,6 +1066,17 @@
       });
   }
 
+  // TEMPORARY debug instrumentation (see Code.gs's matching comment on
+  // doApprove()) — logs the server's own step-by-step timing breakdown,
+  // alongside the client-observed round trip, straight to this
+  // browser's console (F12) so a slow action can be diagnosed without
+  // digging through the Apps Script editor's Executions log. Safe to
+  // remove, here and in Code.gs, once that's done.
+  function logTiming(action, data, reqStart){
+    if(!data || !data._timing) return;
+    console.log(`[${action} timing] clientRoundTripMs=${Date.now() - reqStart}`, data._timing);
+  }
+
   // A page left open a long time — a front-desk kiosk tab, or a
   // registrant's phone locked and reopened later — can lose its
   // activity selection out from under it: Android Chrome in particular
@@ -2136,6 +2147,7 @@
         // screen immediately while the photo/signature land a moment
         // later. Never shown to the user — same "a photo problem never
         // blocks a registration" philosophy the server follows.
+        const _addPhotoReqStart = Date.now();
         fetch(SCRIPT_URL, {
           method: "POST",
           headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -2148,7 +2160,7 @@
             signatureBase64: signatureForUpload,
             signatureMimeType: "image/png"
           })
-        }).catch(() => {});
+        }).then(r => r.json()).then(d => logTiming("addPhoto", d, _addPhotoReqStart)).catch(() => {});
 
         const members = (data.familyMembers && data.familyMembers.length)
           ? data.familyMembers
@@ -2838,12 +2850,14 @@
     checkoutBtn.disabled = true;
     checkoutBtn.textContent = "Signing out…";
 
+    const _reqStart = Date.now();
     fetchJSON(SCRIPT_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({ action: "checkout", activity: currentActivity.key, code: code })
     })
     .then(data => {
+      logTiming("checkout", data, _reqStart);
       checkoutBtn.disabled = false;
       checkoutBtn.textContent = "Sign Out";
       if(data.status === "ok"){
