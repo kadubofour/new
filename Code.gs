@@ -784,29 +784,35 @@ function getRegistrationRowsByPhone(sheet, headers, phone) {
 // Used by "walkinQuickSubmit" to autofill a returning walk-in visitor's
 // name/phone/category from their most recent visit — a walk-in never
 // becomes a Registrations row, so this is usually the only place their
-// details are on file at all. Visits is append-only (see the comment on
-// getRecentVisits), so newest-first here just means scanning from the
-// bottom up and stopping at the first match, instead of reading the
-// whole sheet and picking the last match out of it. Narrow two-column
-// read (idNo + phone) to find the row, then only that one row is read
-// in full.
+// details are on file at all. Newest visits are always at the TOP now
+// (see insertVisitRow()'s own comment), so the most recent match is
+// found by reading forward from row 2 in bounded chunks and stopping
+// at the first match, instead of reading the whole idNo/phone columns
+// every time — same reasoning as findLastOpenVisitRow()'s own comment.
 function findRecentVisitMatch(activity, idNo, phone) {
   const sheet = getOrCreateSheet(activity.visitsSheet, VISIT_HEADERS);
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return null;
   const idColIndex = VISIT_HEADERS.indexOf("idNo") + 1;
   const phoneColIndex = VISIT_HEADERS.indexOf("phone") + 1;
-  const ids = sheet.getRange(2, idColIndex, lastRow - 1, 1).getValues();
-  const phones = sheet.getRange(2, phoneColIndex, lastRow - 1, 1).getValues();
-  for (let i = ids.length - 1; i >= 0; i--) {
-    const rowIdNo = String(ids[i][0]).trim();
-    const rowPhone = String(phones[i][0]).trim();
-    if ((idNo && rowIdNo === idNo) || (phone && rowPhone === phone)) {
-      const row = sheet.getRange(i + 2, 1, 1, VISIT_HEADERS.length).getValues()[0];
-      const obj = {};
-      VISIT_HEADERS.forEach((h, j) => obj[h] = cellToDisplayValue(row[j], h));
-      return obj;
+  const CHUNK = 200;
+  let windowStart = 2;
+  while (windowStart <= lastRow) {
+    const windowEnd = Math.min(lastRow, windowStart + CHUNK - 1);
+    const count = windowEnd - windowStart + 1;
+    const ids = sheet.getRange(windowStart, idColIndex, count, 1).getValues();
+    const phones = sheet.getRange(windowStart, phoneColIndex, count, 1).getValues();
+    for (let i = 0; i < ids.length; i++) {
+      const rowIdNo = String(ids[i][0]).trim();
+      const rowPhone = String(phones[i][0]).trim();
+      if ((idNo && rowIdNo === idNo) || (phone && rowPhone === phone)) {
+        const row = sheet.getRange(windowStart + i, 1, 1, VISIT_HEADERS.length).getValues()[0];
+        const obj = {};
+        VISIT_HEADERS.forEach((h, j) => obj[h] = cellToDisplayValue(row[j], h));
+        return obj;
+      }
     }
+    windowStart = windowEnd + 1;
   }
   return null;
 }
@@ -1089,7 +1095,7 @@ function approvePendingRow(activity, pending, registrations, idx, timing) {
     // view (it's not a usable code to anyone) rather than the data layer
     // dropping it.
     _t = Date.now();
-    visits.appendRow(VISIT_HEADERS.map(h => {
+    insertVisitRow(visits, VISIT_HEADERS.map(h => {
       if (h === "visitId") return Utilities.getUuid();
       if (h === "idNo") return sheetSafeText(rowValues[PENDING_HEADERS.indexOf("idNo")]);
       if (h === "name") return rowValues[PENDING_HEADERS.indexOf("name")];
@@ -1104,7 +1110,7 @@ function approvePendingRow(activity, pending, registrations, idx, timing) {
       if (h === "phone") return sheetSafeText(rowValues[PENDING_HEADERS.indexOf("phone")]);
       return ""; // timeOut
     }));
-    if (timing) timing.push(["walkin.appendVisit", Date.now() - _t]);
+    if (timing) timing.push(["walkin.insertVisit", Date.now() - _t]);
     // A Walk-in visit has no photo column — the photo/signature
     // captured at submission (in the Pending folder) would just sit
     // there unreferenced forever, so trash them now rather than moving
@@ -1521,33 +1527,60 @@ function getVisibleRegistrations(activity) {
   return result;
 }
 
-// Visits is append-only — every check-in, walk-in, and approved
-// walk-in appends a row (see checkin/addWalkinVisit/approvePendingRow),
-// nothing is ever inserted anywhere else — so it's always in
-// chronological order, which means today's rows are always exactly the
-// LAST however-many rows in the sheet, never scattered through it.
-// This reads just the date column (one narrow single-column read) and
-// walks backward from the bottom until it hits a row that isn't today,
-// then reads only that trailing slice at full width — instead of the
-// sheet's entire history, which only ever grows and was being re-read
-// and re-sent in full on every 3-second front-desk dashboard refresh.
-// Used by the "dashboard" view; the full history is still available in
-// full via the standalone "visits" view below, which the front desk
-// now fetches once (and merges the live trailing slice into) instead
-// of on every cycle — see front-desk-dashboard.html's loadAll() and
-// loadFullVisitHistory().
+// Every new Visits row goes in at row 2 (right after the header),
+// pushing everything else down — newest visit always at the top,
+// oldest at the bottom (opening the sheet directly no longer means
+// scrolling to the very end to see what just happened). Shared by
+// checkin/addWalkinVisit/approvePendingRow's Walk-in branch below so
+// they all agree on how a row lands. The explicit format reset is the
+// same insurance insertNewDateBlock() uses on Registrations — never
+// left to whatever Sheets defaults a freshly-inserted row next to the
+// header to.
+function insertVisitRow(visits, rowValues) {
+  visits.insertRowBefore(2);
+  const range = visits.getRange(2, 1, 1, VISIT_HEADERS.length);
+  range.setValues([rowValues]);
+  range.setFontWeight("normal").setBackground(null).setFontColor(null).setHorizontalAlignment(null);
+}
+
+// Visits is append-only in the sense that nothing is ever edited or
+// moved once written (only its timeOut cell gets filled in later by a
+// checkout) — but every new row lands at the TOP (row 2, right after
+// the header — see insertVisitRow() above), not the bottom, so it's
+// always in reverse-chronological order: newest first, oldest last.
+// That means today's rows are always exactly the FIRST however-many
+// rows in the sheet, never scattered through it. This reads the date
+// column in bounded chunks from the top, stopping the moment a
+// non-today date turns up, then reads only that leading slice at full
+// width — instead of the sheet's entire history, which only ever
+// grows and was being re-read and re-sent in full on every 3-second
+// front-desk dashboard refresh. Used by the "dashboard" view; the full
+// history is still available in full via the standalone "visits" view
+// below, which the front desk now fetches once (and merges the live
+// leading slice into) instead of on every cycle — see
+// front-desk-dashboard.html's loadAll() and loadFullVisitHistory().
 function getRecentVisits(activity) {
   const sheet = getOrCreateSheet(activity.visitsSheet, VISIT_HEADERS);
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
   const dateColIndex = VISIT_HEADERS.indexOf("date") + 1;
-  const dates = sheet.getRange(2, dateColIndex, lastRow - 1, 1).getValues();
   const todayLabel = formatDateDMY(new Date());
-  let start = dates.length; // 0-based index into `dates` where today's trailing run begins
-  while (start > 0 && String(dates[start - 1][0]).trim() === todayLabel) start--;
-  const count = dates.length - start;
+  const CHUNK = 200;
+  let count = 0; // how many rows from row 2 onward are today's, so far
+  let scanStart = 2;
+  while (scanStart <= lastRow) {
+    const scanEnd = Math.min(lastRow, scanStart + CHUNK - 1);
+    const dates = sheet.getRange(scanStart, dateColIndex, scanEnd - scanStart + 1, 1).getValues();
+    let hitOlderDate = false;
+    for (let i = 0; i < dates.length; i++) {
+      if (String(dates[i][0]).trim() !== todayLabel) { hitOlderDate = true; break; }
+      count++;
+    }
+    if (hitOlderDate) break;
+    scanStart = scanEnd + 1;
+  }
   if (count === 0) return [];
-  const values = sheet.getRange(2 + start, 1, count, VISIT_HEADERS.length).getValues();
+  const values = sheet.getRange(2, 1, count, VISIT_HEADERS.length).getValues();
   return values
     .filter(row => row.join("") !== "")
     .map(row => {
@@ -1566,29 +1599,29 @@ function getRecentVisits(activity) {
 // ever recorded, same "only ever grows" shape as everything else in
 // this file that's had to be fixed for it, and unlike Registrations
 // (fixed by caching a read) this is a write path a member is standing
-// at the front desk waiting on. Visits is always appended in
-// chronological order (see getRecentVisits()'s own comment), so the
-// row being looked for is almost always within the last few dozen rows
-// — reading backward from the bottom in small chunks, stopping the
-// instant a match turns up, means an ordinary checkout costs a small,
-// constant-size read regardless of the season's total, instead of the
-// whole sheet every time. Only degrades toward the old cost (worst
-// case: the same total, just chunked) for the rare case where the open
-// visit is unusually old, or doesn't exist at all.
+// at the front desk waiting on. Newest visits are always at the TOP
+// now (see insertVisitRow()'s own comment), so the most recent match —
+// exactly what's wanted here — is almost always within the first few
+// dozen rows: reading forward from row 2 in small chunks, stopping at
+// the first match, means an ordinary checkout costs a small, constant-
+// size read regardless of the season's total, instead of the whole
+// sheet every time. Only degrades toward the old cost (worst case: the
+// same total, just chunked) for the rare case where the open visit is
+// unusually old, or doesn't exist at all.
 function findLastOpenVisitRow(visits, matchColIndex, timeOutColIndex, lastRow, targetValue) {
   const CHUNK = 200;
-  let windowEnd = lastRow;
-  while (windowEnd >= 2) {
-    const windowStart = Math.max(2, windowEnd - CHUNK + 1);
+  let windowStart = 2;
+  while (windowStart <= lastRow) {
+    const windowEnd = Math.min(lastRow, windowStart + CHUNK - 1);
     const count = windowEnd - windowStart + 1;
     const matchVals = visits.getRange(windowStart, matchColIndex + 1, count, 1).getValues();
     const timeOuts = visits.getRange(windowStart, timeOutColIndex + 1, count, 1).getValues();
-    for (let i = matchVals.length - 1; i >= 0; i--) {
+    for (let i = 0; i < matchVals.length; i++) {
       if (String(matchVals[i][0]).trim() === targetValue && !timeOuts[i][0]) {
         return windowStart + i;
       }
     }
-    windowEnd = windowStart - 1;
+    windowStart = windowEnd + 1;
   }
   return -1;
 }
@@ -1906,7 +1939,7 @@ function doPost(e) {
       }
       const now = new Date();
       const visits = getOrCreateSheet(activity.visitsSheet, VISIT_HEADERS);
-      visits.appendRow(VISIT_HEADERS.map(h => {
+      insertVisitRow(visits, VISIT_HEADERS.map(h => {
         if (h === "visitId") return Utilities.getUuid();
         if (h === "idNo") return idNo ? sheetSafeText(idNo) : "";
         if (h === "name") return String(data.name || "").trim();
@@ -1973,7 +2006,7 @@ function doPost(e) {
       }
 
       const visits = getOrCreateSheet(activity.visitsSheet, VISIT_HEADERS);
-      visits.appendRow(VISIT_HEADERS.map(h => {
+      insertVisitRow(visits, VISIT_HEADERS.map(h => {
         if (h === "visitId") return Utilities.getUuid();
         if (h === "idNo") return sheetSafeText(match.idNo);
         if (h === "name") return match.name;
@@ -2647,6 +2680,15 @@ function splitSharedRegistrationsAndVisits() {
         const visitId = String(row.visitId || "").trim();
         if (!visitId || existingVisitIds.has(visitId)) return;
         existingVisitIds.add(visitId);
+        // Plain appendRow() here, not insertVisitRow() — this is a
+        // one-time migration of OLD data, so landing at the bottom (the
+        // "oldest" end, now that new visits go in at the top — see
+        // insertVisitRow()'s own comment) is the right place for it
+        // regardless. Never a correctness issue for anything that reads
+        // Visits either way — findLastOpenVisitRow()/getRecentVisits()
+        // both still find the right answer if a stray old row ends up
+        // out of strict order, just without their usual speed benefit
+        // for that one row.
         sheet.appendRow(VISIT_HEADERS.map(h => {
           if (h === "idNo" || h === "phone") return sheetSafeText(row[h] || "");
           if (h === "date" || h === "timeIn" || h === "timeOut") return forceLiteralText(row[h] || "");
@@ -2925,7 +2967,14 @@ function insertRegistrationIntoDateGroup(sheet, headers, regRowValues, dateKey, 
   // one), then bump the banner's count label.
   sheet.insertRowAfter(blockEndRow);
   const newRow = blockEndRow + 1;
-  sheet.getRange(newRow, 1, 1, lastCol).setValues([regRowValues]);
+  // Explicitly plain — see insertNewDateBlock()'s matching comment for
+  // why this isn't left to whatever Sheets defaults a freshly-inserted
+  // row to, especially one landing right after (blockEndRow === bannerRow,
+  // an existing block's very first member) a merged, bold, colored
+  // banner row.
+  const newRowRange = sheet.getRange(newRow, 1, 1, lastCol);
+  newRowRange.setValues([regRowValues]);
+  newRowRange.setFontWeight("normal").setBackground(null).setFontColor(null).setHorizontalAlignment(null);
   const newCount = (blockEndRow - bannerRow) + 1; // members already in the block, plus this one
   sheet.getRange(bannerRow, idColIndex + 1).setValue(
     `${dateLabelFor(dateKey)}  —  ${newCount} registration${newCount === 1 ? "" : "s"}`
@@ -3009,7 +3058,13 @@ function insertNewDateBlock(sheet, lastCol, idColIndex, regRowValues, dateKey, a
   sheet.getRange(atRow, idColIndex + 1).setValue(`${dateLabelFor(dateKey)}  —  1 registration`);
   sheet.getRange(atRow, idColIndex + 1).setNote(DATE_HEADER_MARKER + dateKey);
 
-  sheet.getRange(atRow + 1, 1, 1, lastCol).setValues([regRowValues]);
+  // Explicitly plain, never left to inherit whatever Sheets defaults a
+  // freshly-inserted row to — a row inserted right next to a merged,
+  // bold, colored banner (like this one, right above it) can otherwise
+  // pick up that banner's look instead of coming in blank.
+  const memberRange = sheet.getRange(atRow + 1, 1, 1, lastCol);
+  memberRange.setValues([regRowValues]);
+  memberRange.setFontWeight("normal").setBackground(null).setFontColor(null).setHorizontalAlignment(null);
 }
 
 
@@ -3117,6 +3172,34 @@ function addDurationColumnToVisitSheets() {
     }
   });
   Logger.log("Visit Log sheets now have a duration column.");
+}
+
+// Run once from the function dropdown (Run > reverseAllVisitSheets)
+// RIGHT AFTER deploying the version of Code.gs that added
+// insertVisitRow() — and before anyone signs in or out again. Every
+// Visits row written before that deploy was appended at the bottom
+// (oldest-first); every row written after lands at the top instead
+// (newest-first — see insertVisitRow()'s own comment). This does a
+// straight reversal of everything currently in each Visits sheet, which
+// is only correct while the sheet is STILL entirely in that old,
+// oldest-first order start to finish — running it after even one new-
+// style (newest-first) row has already been inserted would scramble
+// the two into a wrong order (the genuinely newest rows would end up
+// at the bottom instead of the top). If that's already happened, don't
+// run this — ask for help sorting it out instead of guessing.
+function reverseAllVisitSheets() {
+  Object.keys(ACTIVITIES).forEach(key => {
+    const activity = ACTIVITIES[key];
+    const sheet = getOrCreateSheet(activity.visitsSheet, VISIT_HEADERS);
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 3) return; // 0 or 1 data row — nothing to reorder
+    const lastCol = VISIT_HEADERS.length;
+    const range = sheet.getRange(2, 1, lastRow - 1, lastCol);
+    const values = range.getValues();
+    values.reverse();
+    range.setValues(values);
+  });
+  Logger.log("Visits sheets reversed — existing history is now newest-first too.");
 }
 
 
