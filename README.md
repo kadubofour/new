@@ -35,14 +35,15 @@ A Swimming Lessons session is only counted as "used" when the member **signs out
 1. Create a new Google Sheet (sheets.new).
 2. Extensions → Apps Script. Delete any starter code, paste in `Code.gs`, save.
 3. From the function dropdown, select `setup`, click Run. Authorize when asked. This creates 20 tabs (Pending / Registrations / Visits / Alerts × 5 activities), each with the right headers.
-4. Deploy → New deployment → gear icon → Web app.
+4. Before running the next step, check Project Settings (gear icon) → Time zone is actually set to the venue's local time zone — the nightly job fires at 10pm *in this setting*, so if it's off, "10pm" quietly means some other hour. Then, from the function dropdown, select `installNightlyMaintenanceTrigger`, click Run. **This is easy to skip and the app looks completely normal without it** — but it's the only thing that makes anyone actually get signed out automatically at closing time, dated Registrations blocks stay tidy, and approved photos get moved out of the Pending folder. Skip it and every open visit just stays "still signed in" forever, silently, with nothing in the UI to suggest anything's wrong. Confirm it worked any time by selecting `checkLastNightlyRun` and running that instead — it logs when the job last ran and what happened.
+5. Deploy → New deployment → gear icon → Web app.
    - Execute as: **Me**
    - Who has access: **Anyone**
    
    Deploy, authorize (Drive access is needed for photos/exports), copy the URL ending in `/exec`.
-5. Paste that URL into `SCRIPT_URL` near the top of **each** of the four HTML files (`index.html`, `front-desk-dashboard.html`, `tennis-front-desk.html`, `swimming-front-desk.html`) — they all share the same backend.
-6. Host the four HTML files wherever you like (a static host, or just open them locally) and distribute the links: `index.html` to members, `front-desk-dashboard.html` to the main desk, `tennis-front-desk.html` to the tennis court desk, `swimming-front-desk.html` to the pool desk.
-7. Any time `Code.gs` is edited again: Deploy → Manage deployments → pencil icon → Version: New version → Deploy, or the live URL won't see the change.
+6. Paste that URL into `SCRIPT_URL` near the top of **each** of the four HTML files (`index.html`, `front-desk-dashboard.html`, `tennis-front-desk.html`, `swimming-front-desk.html`) — they all share the same backend.
+7. Host the four HTML files wherever you like (a static host, or just open them locally) and distribute the links: `index.html` to members, `front-desk-dashboard.html` to the main desk, `tennis-front-desk.html` to the tennis court desk, `swimming-front-desk.html` to the pool desk.
+8. Any time `Code.gs` is edited again: Deploy → Manage deployments → pencil icon → Version: New version → Deploy, or the live URL won't see the change.
 
 Default staff PIN on every front-desk app is `1234` — change the `STAFF_PIN` constant near the top of each file's `<script>` before going live.
 

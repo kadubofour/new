@@ -738,21 +738,57 @@ function getRegistrationRowByIdNo(sheet, headers, idNo) {
 
 // Fetches every Registrations row whose idNo is in `codes` — used by
 // "checkApproved" to resolve a handful of freshly-submitted codes (at
-// most 5, a Family Package's cap) without reading the whole sheet.
-// Reads just the idNo column once (cheap) to find which rows match,
-// then reads only those matched rows in full.
+// most 5, a Family Package's cap). A code checked here was just
+// approved (that's the whole point of this poll), and approving always
+// stamps a row "now" and inserts it into TODAY's date block, which is
+// always the very first one in the sheet (see
+// insertRegistrationIntoDateGroup()'s own comment) — so the common
+// case never needs to look past today's block. This is polled every
+// APPROVAL_POLL_INTERVAL_MS by every registrant currently waiting to
+// hear back (see index.html's startApprovalWait), so that used to mean
+// reading the ENTIRE idNo column on every single tick, getting slower
+// every month as the season's registrations piled up. Falls back to a
+// full scan below for anything still unresolved after the bounded
+// attempt (nothing approved today yet, or — an edge case, not the
+// normal path — a wanted code that isn't in today's block for some
+// other reason), so this is never wrong, only sometimes not as cheap.
 function getRegistrationRowsByIdNos(sheet, headers, codes) {
   if (codes.length === 0) return [];
   const idColIndex = headers.indexOf("idNo") + 1;
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
-  const ids = sheet.getRange(2, idColIndex, lastRow - 1, 1).getValues();
+
   const wanted = new Set(codes);
-  const matchedRows = [];
-  for (let i = 0; i < ids.length; i++) {
-    if (wanted.has(String(ids[i][0]).trim())) matchedRows.push(i + 2);
+  const foundRowByCode = {}; // idNo -> sheet row number
+
+  const bannerNote = DATE_HEADER_MARKER + formatDateDMY(new Date());
+  if (sheet.getRange(2, idColIndex).getNote() === bannerNote) {
+    const CHUNK = 200;
+    let scanStart = 3; // row 2 is the banner itself
+    let hitNextBanner = false;
+    while (scanStart <= lastRow && Object.keys(foundRowByCode).length < wanted.size && !hitNextBanner) {
+      const scanEnd = Math.min(lastRow, scanStart + CHUNK - 1);
+      const count = scanEnd - scanStart + 1;
+      const ids = sheet.getRange(scanStart, idColIndex, count, 1).getValues();
+      const notes = sheet.getRange(scanStart, idColIndex, count, 1).getNotes();
+      for (let i = 0; i < ids.length; i++) {
+        if (String(notes[i][0] || "").indexOf(DATE_HEADER_MARKER) === 0) { hitNextBanner = true; break; }
+        const rowIdNo = String(ids[i][0]).trim();
+        if (wanted.has(rowIdNo) && !(rowIdNo in foundRowByCode)) foundRowByCode[rowIdNo] = scanStart + i;
+      }
+      scanStart = scanEnd + 1;
+    }
   }
-  return matchedRows.map(rowNum => {
+
+  if (Object.keys(foundRowByCode).length < wanted.size) {
+    const ids = sheet.getRange(2, idColIndex, lastRow - 1, 1).getValues();
+    for (let i = 0; i < ids.length; i++) {
+      const rowIdNo = String(ids[i][0]).trim();
+      if (wanted.has(rowIdNo) && !(rowIdNo in foundRowByCode)) foundRowByCode[rowIdNo] = i + 2;
+    }
+  }
+
+  return Object.values(foundRowByCode).map(rowNum => {
     const row = sheet.getRange(rowNum, 1, 1, headers.length).getValues()[0];
     const obj = {};
     headers.forEach((h, i) => obj[h] = cellToDisplayValue(row[i], h));
@@ -2440,16 +2476,33 @@ function doPost(e) {
       if (lastRow >= 2) {
         const idColIndex = VISIT_HEADERS.indexOf("idNo") + 1;
         const dateColIndex = VISIT_HEADERS.indexOf("date") + 1;
-        const ids = visits.getRange(2, idColIndex, lastRow - 1, 1).getValues();
-        const dates = visits.getRange(2, dateColIndex, lastRow - 1, 1).getValues();
         // Restricted to today so a long-since-reused generated code
         // from an earlier visit can never look like a fresh match.
         const todayLabel = formatDateDMY(new Date());
-        for (let i = 0; i < ids.length; i++) {
-          if (String(ids[i][0]).trim() === idNo && String(dates[i][0]).trim() === todayLabel) {
-            signedIn = true;
-            break;
+        // This used to read the ENTIRE idNo/date columns on every single
+        // call — one Sheets API call, but one whose cost scales with how
+        // many visits the season has ever recorded, and this is polled
+        // every WALKIN_POLL_INTERVAL_MS by every registrant currently
+        // waiting to be approved (see index.html's startWalkinStatusWait),
+        // so that cost was paid over and over, getting worse every month.
+        // Newest visits are always at the top now (see insertVisitRow()'s
+        // own comment), so today's rows are always the FIRST however-many
+        // rows — read in bounded chunks from the top, stopping the moment
+        // a match turns up OR an older date does (nothing past that point
+        // can be today's either), instead of reading the whole sheet.
+        const CHUNK = 200;
+        let scanStart = 2;
+        let hitOlderDate = false;
+        while (scanStart <= lastRow && !signedIn && !hitOlderDate) {
+          const scanEnd = Math.min(lastRow, scanStart + CHUNK - 1);
+          const count = scanEnd - scanStart + 1;
+          const ids = visits.getRange(scanStart, idColIndex, count, 1).getValues();
+          const dates = visits.getRange(scanStart, dateColIndex, count, 1).getValues();
+          for (let i = 0; i < ids.length; i++) {
+            if (String(dates[i][0]).trim() !== todayLabel) { hitOlderDate = true; break; }
+            if (String(ids[i][0]).trim() === idNo) { signedIn = true; break; }
           }
+          scanStart = scanEnd + 1;
         }
       }
       return ok({ state: signedIn ? "signedIn" : "notFound" });
