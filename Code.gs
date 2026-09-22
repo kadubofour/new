@@ -1784,6 +1784,13 @@ function doPost(e) {
 
 
     if (action === "submit") {
+      // TEMPORARY debug instrumentation — see doApprove()'s matching
+      // comment. Safe to strip out (along with the "_timing" field on
+      // the response) once a slow submission's been diagnosed from this.
+      const timing = [];
+      const t0 = Date.now();
+      let _t = t0;
+
       if (activity.categories.indexOf(data.class) === -1) {
         return errorMsg("Invalid category for this activity.");
       }
@@ -1811,10 +1818,29 @@ function doPost(e) {
       // One read of every idNo already used in this activity (Pending +
       // Registrations), instead of re-reading both sheets for every
       // idNo checked/generated below — a Family Package checks/
-      // generates up to 5 of these in one submission. usedIdNos is
-      // updated in place as each one is accepted, so two family
+      // generates up to 5 of these in one submission. The set returned
+      // is updated in place as each one is accepted, so two family
       // members can never end up handed the same generated code.
-      const usedIdNos = loadUsedIdNoSet(activity);
+      //
+      // Loaded lazily (only the first time it's actually needed) rather
+      // than up front: loadUsedIdNoSet() reads the whole Registrations
+      // idNo column, which — same "only ever grows" shape as everything
+      // else in this file — got slower every month, and a Walk-in
+      // submission (the large majority of "submit" calls, and the one
+      // this app most needs to feel instant at) never actually needs
+      // this set at all, since it's handed a fresh UUID instead of a
+      // real member code (see below). Computing it unconditionally used
+      // to mean every single Walk-in paid for a scan of the whole
+      // season's Registrations for a value it was about to throw away.
+      let usedIdNosCache = null;
+      function getUsedIdNos() {
+        if (usedIdNosCache === null) {
+          const _idNoSetStart = Date.now();
+          usedIdNosCache = loadUsedIdNoSet(activity);
+          timing.push(["loadUsedIdNoSet", Date.now() - _idNoSetStart]);
+        }
+        return usedIdNosCache;
+      }
 
       // ID number is optional for categories NOT in idRequiredCategories
       // — an auto-generated "<prefix><7 digits>" code is used if they
@@ -1836,19 +1862,26 @@ function doPost(e) {
       } else if (!idRequired) {
         idNo = String(data.idNo || "").trim();
         if (!idNo) {
-          idNo = generateUniqueIdNoFromSet(activity, usedIdNos);
+          idNo = generateUniqueIdNoFromSet(activity, getUsedIdNos());
           if (!idNo) {
             return errorMsg("Couldn't generate a member code right now — the code pool may be full. Please ask the front desk to register you with a manual ID number instead.");
           }
-        } else if (usedIdNos.has(idNo)) {
+        } else if (getUsedIdNos().has(idNo)) {
           return errorMsg("This ID number is already registered or pending approval.");
         }
       } else {
         idNo = String(data.idNo || "").trim();
         if (!idNo) return errorMsg("An ID number is required for this category.");
-        if (usedIdNos.has(idNo)) return errorMsg("This ID number is already registered or pending approval.");
+        if (getUsedIdNos().has(idNo)) return errorMsg("This ID number is already registered or pending approval.");
       }
-      usedIdNos.add(idNo);
+      // Only bothers adding if the set was actually loaded above — for
+      // the common Walk-in + no-ID-required path (isWalkin && !idRequired,
+      // the branch above that never touches getUsedIdNos() at all) there
+      // is nothing downstream in this same request that would ever
+      // consult it again, so there's no reason to force-load a whole
+      // Registrations column scan just to add one entry to a set nothing
+      // reads.
+      if (usedIdNosCache !== null) usedIdNosCache.add(idNo);
 
       // Photo/signature are NOT uploaded to Drive here — createFile() +
       // setSharing() for each (Drive's slowest operations in this whole
@@ -1896,11 +1929,11 @@ function doPost(e) {
           return errorMsg("A family package covers at most 5 people, including you — please list at most 4 additional family members.");
         }
         for (const m of members) {
-          const extraIdNo = generateUniqueIdNoFromSet(activity, usedIdNos);
+          const extraIdNo = generateUniqueIdNoFromSet(activity, getUsedIdNos());
           if (!extraIdNo) {
             return errorMsg("Couldn't generate member codes for the whole family right now — the code pool may be full. Please ask the front desk to register the family manually instead.");
           }
-          usedIdNos.add(extraIdNo);
+          getUsedIdNos().add(extraIdNo);
           extraFamilyMembers.push({
             name: m.name,
             idNo: extraIdNo,
@@ -1969,10 +2002,16 @@ function doPost(e) {
       // service, and a Family Package could mean up to 5 of them back
       // to back.
       const allNewRows = [primaryRow].concat(familyMemberRows);
+      _t = Date.now();
       sheet.getRange(sheet.getLastRow() + 1, 1, allNewRows.length, PENDING_HEADERS.length).setValues(allNewRows);
+      timing.push(["writePending", Date.now() - _t]);
+      _t = Date.now();
       touchActivity(activity.key);
+      timing.push(["touchActivity", Date.now() - _t]);
+      timing.push(["TOTAL", Date.now() - t0]);
+      Logger.log("submit timing (isWalkin=" + (String(data.duration || "").trim() === "Walk-in") + "): " + JSON.stringify(timing));
 
-      const response = { idNo: idNo };
+      const response = { idNo: idNo, _timing: timing };
       if (data.class === FAMILY_CATEGORY) {
         response.familyMembers = [{ name: data.name, idNo: idNo }].concat(extraFamilyMembers);
       }

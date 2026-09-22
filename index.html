@@ -2338,6 +2338,7 @@
     walkinSubmitBtn.textContent = "Submitting…";
 
     const now = new Date();
+    const _reqStart = Date.now();
     fetchJSON(SCRIPT_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -2354,6 +2355,7 @@
       })
     })
     .then(data => {
+      logTiming("submitWalkin", data, _reqStart);
       walkinSubmitBtn.disabled = false;
       walkinSubmitBtn.textContent = "Submit Walk-in";
       if(data.status === "ok"){
