@@ -1795,7 +1795,48 @@ function doGet(e) {
 }
 
 
+// Every write action below reads a sheet's current state — getLastRow(),
+// or which row a given idNo currently lives at — and then writes based
+// on that: appendRow, an insertRowBefore-based insert (insertVisitRow,
+// insertRegistrationIntoDateGroup), or a getRange(lastRow+1,...)
+// .setValues(). None of that is atomic on its own, and Apps Script does
+// NOT serialize concurrent doPost executions for you — two requests
+// landing close together (a genuine double-submit, or this app's own
+// fetchJSON silently retrying a request whose response got lost on the
+// way back even though the write itself already went through) can both
+// read the same "current state" and then overwrite each other's write,
+// silently losing one of them. That's exactly what made walk-in
+// submissions feel inconsistent: sometimes a submission the front desk
+// already has never finishes on the submitter's own screen (the
+// response got lost, and a retry raced the still-finishing original),
+// sometimes it looks submitted but nothing ever shows up at all (two
+// writes collided over the same row and only one survived). Wrapping
+// the whole action in a single script-wide lock closes that gap — a
+// second request just waits its turn instead of racing the first.
+// A 30-second wait is generous — this only ever queues behind another
+// write actually in progress (typically well under a second; even
+// addPhoto's Drive upload is a bounded few seconds, nothing like the
+// unbounded Firebase call decoupled from this same write path
+// elsewhere in this file) — and failing that open with a plain "busy,
+// try again" message is far better than a second request silently
+// corrupting the first one's write.
 function doPost(e) {
+  const lock = LockService.getScriptLock();
+  try {
+    if (!lock.tryLock(30000)) {
+      return errorMsg("The system is busy right now — please try again in a moment.");
+    }
+    try {
+      return handleDoPost(e);
+    } finally {
+      lock.releaseLock();
+    }
+  } catch (err) {
+    return errorOut(err);
+  }
+}
+
+function handleDoPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
     const action = data.action || "submit";
@@ -3538,9 +3579,25 @@ function runNightlyMaintenance() {
   let signOutResult = "ok";
   let regroupResult = "ok";
   let photoMoveResult = "ok";
-  try { autoSignOutAt10pm(); } catch (err) { signOutResult = `failed: ${err}`; Logger.log(`autoSignOutAt10pm failed: ${err}`); }
-  try { regroupAllRegistrations(); } catch (err) { regroupResult = `failed: ${err}`; Logger.log(`regroupAllRegistrations failed: ${err}`); }
-  try { moveApprovedPhotosOutOfPending(); } catch (err) { photoMoveResult = `failed: ${err}`; Logger.log(`moveApprovedPhotosOutOfPending failed: ${err}`); }
+  // Same script-wide lock doPost() takes for every write (see its own
+  // comment) — 10pm isn't necessarily quiet, a front desk could still
+  // be mid checkout/approval right as this fires, and this job rewrites
+  // the same Visits/Registrations rows a live request might be reading
+  // or writing at that exact moment. A generous wait here (up to 2
+  // minutes) is fine — this runs once a night, not on anything a person
+  // is standing at the counter waiting on.
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(120000)) {
+    Logger.log("runNightlyMaintenance: couldn't get the script lock — skipping this run, will try again tomorrow.");
+    return;
+  }
+  try {
+    try { autoSignOutAt10pm(); } catch (err) { signOutResult = `failed: ${err}`; Logger.log(`autoSignOutAt10pm failed: ${err}`); }
+    try { regroupAllRegistrations(); } catch (err) { regroupResult = `failed: ${err}`; Logger.log(`regroupAllRegistrations failed: ${err}`); }
+    try { moveApprovedPhotosOutOfPending(); } catch (err) { photoMoveResult = `failed: ${err}`; Logger.log(`moveApprovedPhotosOutOfPending failed: ${err}`); }
+  } finally {
+    lock.releaseLock();
+  }
   PropertiesService.getScriptProperties().setProperty(LAST_NIGHTLY_RUN_PROPERTY, JSON.stringify({
     ranAtIso: ranAt.toISOString(),
     ranAtLocal: Utilities.formatDate(ranAt, TIMEZONE, "EEEE, MMM d, yyyy 'at' h:mm:ss a") + " (" + TIMEZONE + ")",
