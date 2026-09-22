@@ -1668,13 +1668,41 @@ function doGet(e) {
       // loadFullVisitHistory()) instead of replacing it wholesale, so
       // yesterday-and-older visits and the Visit Log's search still
       // cover everything — they just aren't re-fetched every cycle.
+      //
+      // TEMPORARY debug instrumentation — see doApprove()'s matching
+      // comment. This is a READ, polled every AUTO_REFRESH_MS, so its
+      // "_timing" will show up on every single poll while this is in —
+      // that's deliberate (a pending walk-in's info arrives via THIS
+      // response, so if it feels slow to show up, this is where to
+      // look), not something to be alarmed by. Safe to strip out once
+      // diagnosed.
+      const timing = [];
+      const t0 = Date.now();
+      let _t = t0;
+
       const pendingSheet = getOrCreateSheet(PENDING_SHEET_NAME, PENDING_HEADERS);
+      const pendingRows = sheetToObjects(pendingSheet).filter(r => r.activity === activity.key);
+      timing.push(["readPending", Date.now() - _t]);
+
+      _t = Date.now();
       const registrations = getVisibleRegistrations(activity);
+      timing.push(["getVisibleRegistrations", Date.now() - _t]);
+
+      _t = Date.now();
+      const recentVisits = getRecentVisits(activity);
+      timing.push(["getRecentVisits", Date.now() - _t]);
+
+      _t = Date.now();
+      const alerts = getAlerts(activity);
+      timing.push(["getAlerts", Date.now() - _t]);
+
+      timing.push(["TOTAL", Date.now() - t0]);
+
       return ok({
-        pending: sheetToObjects(pendingSheet).filter(r => r.activity === activity.key),
+        pending: pendingRows,
         registrations: registrations.rows,
         clearedAt: registrations.clearedAt,
-        visits: getRecentVisits(activity),
+        visits: recentVisits,
         // The date label "visits" rows were just filtered by — the
         // front end merges them in by matching this exact string (see
         // mergeTodayVisits()), and a device's own clock/timezone isn't
@@ -1686,7 +1714,8 @@ function doGet(e) {
         // — which would leave stale duplicates piling up in the Visit
         // Log every single refresh cycle instead of being replaced.
         visitsDateLabel: formatDateDMY(new Date()),
-        alerts: getAlerts(activity)
+        alerts: alerts,
+        _timing: timing
       });
     }
     if (view === 'registrantsDashboard') {
@@ -2252,6 +2281,14 @@ function doPost(e) {
       // row), and if that resolves to a full, usable match, writes the
       // Pending row immediately instead of handing it back to the
       // client to ask for in a second request.
+      // TEMPORARY debug instrumentation — see doApprove()'s matching
+      // comment. Safe to strip out (along with the "_timing" field on
+      // the response) once a slow walk-in submission's been diagnosed
+      // from this.
+      const timing = [];
+      const t0 = Date.now();
+      let _t = t0;
+
       const idNo = String(data.idNo || "").trim();
       const phone = String(data.phone || "").trim();
       if (!idNo && !phone) return ok({ submitted: false, found: false });
@@ -2262,7 +2299,10 @@ function doPost(e) {
         const matches = dedupeRegistrationsByIdNo(getRegistrationRowsByPhone(registrations, REGISTRATIONS_HEADERS, phone));
         if (matches.length) match = matches[0];
       }
+      timing.push(["registrationsLookup", Date.now() - _t]);
+      _t = Date.now();
       if (!match) match = findRecentVisitMatch(activity, idNo, phone);
+      timing.push(["findRecentVisitMatch", Date.now() - _t]);
 
       // A Family Package or UG Staff Relation category needs
       // information (other family members; the related staff member's
@@ -2282,13 +2322,15 @@ function doPost(e) {
         durCfg && durationAllowedForCategory(durCfg, match.class));
 
       if (!usable) {
+        timing.push(["TOTAL", Date.now() - t0]);
         return ok({
           submitted: false,
           found: !!match,
           name: match ? (match.name || "") : "",
           phone: match ? (match.phone || "") : "",
           idNo: match ? (match.idNo || "") : "",
-          class: (match && activity.categories.indexOf(match.class) !== -1) ? match.class : ""
+          class: (match && activity.categories.indexOf(match.class) !== -1) ? match.class : "",
+          _timing: timing
         });
       }
 
@@ -2314,6 +2356,7 @@ function doPost(e) {
 
       const finalPhone = phone || match.phone || "";
       const now = new Date();
+      _t = Date.now();
       const pending = getOrCreateSheet(PENDING_SHEET_NAME, PENDING_HEADERS);
       pending.appendRow(PENDING_HEADERS.map(h => {
         if (h === "activity") return activity.key;
@@ -2326,8 +2369,13 @@ function doPost(e) {
         if (h === "time") return forceLiteralText(formatTime(now));
         return "";
       }));
+      timing.push(["writePending", Date.now() - _t]);
+      _t = Date.now();
       touchActivity(activity.key);
-      return ok({ submitted: true, idNo: finalIdNo });
+      timing.push(["touchActivity", Date.now() - _t]);
+      timing.push(["TOTAL", Date.now() - t0]);
+      Logger.log("walkinQuickSubmit timing: " + JSON.stringify(timing));
+      return ok({ submitted: true, idNo: finalIdNo, _timing: timing });
     }
 
 

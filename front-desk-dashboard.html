@@ -1045,9 +1045,18 @@
   }
   function loadAll(){
     const activity = currentActivity;
+    // TEMPORARY debug instrumentation (see Code.gs's matching comment
+    // on the "dashboard" view) — logs the server's own step-by-step
+    // breakdown for THIS poll, alongside the client-observed round
+    // trip, straight to this browser's console (F12). This is what
+    // carries a newly-submitted walk-in's info to this screen, so if
+    // that feels slow to show up, this is where to look. Safe to
+    // remove, here and in Code.gs, once that's done.
+    const _reqStart = Date.now();
     return fetchJSON(SCRIPT_URL + "?activity=" + activity.key + "&view=dashboard&t=" + Date.now())
       .then(res => {
         consecutiveLoadFailures = 0;
+        if(res._timing) console.log(`[dashboard poll timing] activity=${activity.key} clientRoundTripMs=${Date.now() - _reqStart}`, res._timing);
         if(activity.key !== currentActivity.key) return; // switched while in flight
         if(res.status !== "ok"){ showToast(res.message || "Couldn't reach the sheet — check connection", true); return; }
         applyDashboardPayload(res, activity);

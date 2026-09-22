@@ -2398,12 +2398,14 @@
     const idNo = walkinId.value.trim();
     const phone = `${walkinPhoneCode.value} ${walkinPhone.value.trim()}`;
 
+    const _reqStart = Date.now();
     fetchJSON(SCRIPT_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({ action: "walkinQuickSubmit", activity: currentActivity.key, idNo: idNo, phone: phone })
     })
     .then(data => {
+      logTiming("walkinQuickSubmit", data, _reqStart);
       if(!data || data.status !== "ok"){
         walkinSubmitBtn.disabled = false;
         walkinSubmitBtn.textContent = "Submit Walk-in";
