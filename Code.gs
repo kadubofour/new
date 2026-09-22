@@ -1088,6 +1088,61 @@ function dateLabelFor(dateStr) {
 
 
 // ------------------------------------------------------------------
+// Walk-in live-status tracking
+// ------------------------------------------------------------------
+
+// A Walk-in's live poll (checkWalkinStatus below) needs to tell "the
+// Visits row THIS specific submission turns into once approved" apart
+// from "any other visit this same person happens to have today". For
+// a category that requires a real ID card number (UG Student/UG
+// Staff), that number is the SAME across every visit they've ever
+// made — not unique to this one submission, unlike the auto-generated
+// UUID used as idNo for every other category (see "submit"'s own
+// comment on that). Without this, someone who already has an
+// unrelated, already-resolved visit on file for today could see a
+// walk-in the front desk just REJECTED show up as "signed in" on
+// their own screen — the poll had nothing more specific than "idNo +
+// today" to go on, so it found that other visit and assumed it was
+// this one.
+// A short-lived CacheService entry bridges that gap. It's safe to key
+// purely on activity + idNo because submit/walkinQuickSubmit already
+// refuse a second pending submission for an idNo that's already
+// pending — so at most one tracking id can be "live" for a given
+// idNo at a time. startWalkinTracking() (called right after a Walk-in
+// submission writes its Pending row) hands back an id the registrant
+// app polls with instead of relying on idNo alone; approvePendingRow()
+// consumes it and stamps that exact value onto the new Visits row
+// (instead of a fresh one) so checkWalkinStatus can match precisely.
+const WALKIN_TRACK_CACHE_TTL_SECONDS = 21600; // well past the ~10-minute poll window — just a safety net
+
+function walkinTrackCacheKey(activityKey, idNo) {
+  return "walkinTrack_" + activityKey + "_" + idNo;
+}
+
+function startWalkinTracking(activityKey, idNo) {
+  const trackId = Utilities.getUuid();
+  try {
+    CacheService.getScriptCache().put(walkinTrackCacheKey(activityKey, idNo), trackId, WALKIN_TRACK_CACHE_TTL_SECONDS);
+  } catch (err) { /* cache unavailable — approvePendingRow() falls back to a fresh id below, same as before this existed */ }
+  return trackId;
+}
+
+// Reads and clears this idNo's pending tracking id, if any — a plain
+// Walk-in added directly at the front desk (addWalkinVisit) or one
+// approved after the cache entry expired never had/kept one, so a
+// null here just means approvePendingRow() falls back to a fresh id,
+// exactly as it always did.
+function consumeWalkinTrackId(activityKey, idNo) {
+  try {
+    const cache = CacheService.getScriptCache();
+    const key = walkinTrackCacheKey(activityKey, idNo);
+    const trackId = cache.get(key);
+    if (trackId) cache.remove(key);
+    return trackId || null;
+  } catch (err) { return null; }
+}
+
+// ------------------------------------------------------------------
 // Shared approve/reject logic
 // ------------------------------------------------------------------
 
@@ -1123,16 +1178,23 @@ function approvePendingRow(activity, pending, registrations, idx, timing) {
     // that requires one, e.g. UG Student/UG Staff) or, for everyone
     // else, the UUID "submit" generated purely to track this row through
     // Pending — never a real member code, but it still has to be carried
-    // into Visits as-is: the registrant app's checkWalkinStatus poll
-    // (see doPost's "checkWalkinStatus" action) finds this exact Visits
-    // row by matching that same idNo, and blanking it here would make
-    // every self-service walk-in poll forever as "not approved" even
-    // after being approved. The front desk UI hides this value from
-    // view (it's not a usable code to anyone) rather than the data layer
+    // into Visits as-is; the front desk UI hides this value from view
+    // (it's not a usable code to anyone) rather than the data layer
     // dropping it.
+    //
+    // visitId is the tracking id startWalkinTracking() handed back when
+    // this row was submitted, if there is one — see this file's "Walk-in
+    // live-status tracking" section above for why idNo alone isn't
+    // precise enough to poll on for a real-ID-card category (it's the
+    // same number on every visit that person's ever made, not unique to
+    // this submission). A fresh Utilities.getUuid() is only a fallback
+    // for a row that predates this tracking existing, or whose cache
+    // entry has already expired — checkWalkinStatus quietly falls back
+    // to the old idNo-based match for those, exactly as it always did.
     _t = Date.now();
+    const walkinVisitId = consumeWalkinTrackId(activity.key, idNo) || Utilities.getUuid();
     insertVisitRow(visits, VISIT_HEADERS.map(h => {
-      if (h === "visitId") return Utilities.getUuid();
+      if (h === "visitId") return walkinVisitId;
       if (h === "idNo") return sheetSafeText(rowValues[PENDING_HEADERS.indexOf("idNo")]);
       if (h === "name") return rowValues[PENDING_HEADERS.indexOf("name")];
       if (h === "class") return rowValues[PENDING_HEADERS.indexOf("class")];
@@ -2076,6 +2138,10 @@ function handleDoPost(e) {
       Logger.log("submit timing (isWalkin=" + (String(data.duration || "").trim() === "Walk-in") + "): " + JSON.stringify(timing));
 
       const response = { idNo: idNo, _timing: timing };
+      // See this file's "Walk-in live-status tracking" section — only a
+      // Walk-in ever needs this (checkWalkinStatus is the only poll that
+      // uses it); a normal registration polls checkApproved instead.
+      if (isWalkin) response.trackId = startWalkinTracking(activity.key, idNo);
       if (data.class === FAMILY_CATEGORY) {
         response.familyMembers = [{ name: data.name, idNo: idNo }].concat(extraFamilyMembers);
       }
@@ -2542,7 +2608,9 @@ function handleDoPost(e) {
       timing.push(["touchActivity", Date.now() - _t]);
       timing.push(["TOTAL", Date.now() - t0]);
       Logger.log("walkinQuickSubmit timing: " + JSON.stringify(timing));
-      return ok({ submitted: true, idNo: finalIdNo, _timing: timing });
+      // See this file's "Walk-in live-status tracking" section.
+      const trackId = startWalkinTracking(activity.key, finalIdNo);
+      return ok({ submitted: true, idNo: finalIdNo, trackId: trackId, _timing: timing });
     }
 
 
@@ -2595,6 +2663,12 @@ function handleDoPost(e) {
       // Visits -> "notFound" (rejected, or something else removed it).
       const idNo = String(data.idNo || "").trim();
       if (!idNo) return errorMsg("Missing code.");
+      // See this file's "Walk-in live-status tracking" section — when
+      // present, this is what actually gets matched below (against the
+      // new Visits row's own visitId, stamped by approvePendingRow() from
+      // the same value); idNo alone is only used as a fallback for a
+      // request from before that tracking id existed.
+      const trackId = String(data.trackId || "").trim();
 
       const pending = getOrCreateSheet(PENDING_SHEET_NAME, PENDING_HEADERS);
       if (findRowIndexByIdNo(pending, idNo, PENDING_HEADERS, activity.key) !== -1) {
@@ -2606,9 +2680,11 @@ function handleDoPost(e) {
       let signedIn = false;
       if (lastRow >= 2) {
         const idColIndex = VISIT_HEADERS.indexOf("idNo") + 1;
+        const visitIdColIndex = VISIT_HEADERS.indexOf("visitId") + 1;
         const dateColIndex = VISIT_HEADERS.indexOf("date") + 1;
-        // Restricted to today so a long-since-reused generated code
-        // from an earlier visit can never look like a fresh match.
+        // Restricted to today so a long-since-reused generated code (or,
+        // for the idNo-only fallback, a long-since-reused real ID card
+        // number) from an earlier visit can never look like a fresh match.
         const todayLabel = formatDateDMY(new Date());
         // This used to read the ENTIRE idNo/date columns on every single
         // call — one Sheets API call, but one whose cost scales with how
@@ -2628,10 +2704,14 @@ function handleDoPost(e) {
           const scanEnd = Math.min(lastRow, scanStart + CHUNK - 1);
           const count = scanEnd - scanStart + 1;
           const ids = visits.getRange(scanStart, idColIndex, count, 1).getValues();
+          const visitIds = visits.getRange(scanStart, visitIdColIndex, count, 1).getValues();
           const dates = visits.getRange(scanStart, dateColIndex, count, 1).getValues();
           for (let i = 0; i < ids.length; i++) {
             if (String(dates[i][0]).trim() !== todayLabel) { hitOlderDate = true; break; }
-            if (String(ids[i][0]).trim() === idNo) { signedIn = true; break; }
+            const isMatch = trackId
+              ? String(visitIds[i][0]).trim() === trackId
+              : String(ids[i][0]).trim() === idNo;
+            if (isMatch) { signedIn = true; break; }
           }
           scanStart = scanEnd + 1;
         }

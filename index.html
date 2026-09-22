@@ -2226,7 +2226,7 @@
   function stopWalkinPoll(){
     if(walkinPollTimer){ clearTimeout(walkinPollTimer); walkinPollTimer = null; }
   }
-  function startWalkinStatusWait(idNo, activityForPoll){
+  function startWalkinStatusWait(idNo, activityForPoll, trackId){
     stopWalkinPoll();
     let attempts = 0;
 
@@ -2272,7 +2272,7 @@
       fetchJSON(SCRIPT_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({ action: "checkWalkinStatus", activity: activityForPoll.key, idNo: idNo })
+        body: JSON.stringify({ action: "checkWalkinStatus", activity: activityForPoll.key, idNo: idNo, trackId: trackId || "" })
       })
       .then(data => {
         if(data.status === "ok" && data.state === "signedIn"){
@@ -2360,7 +2360,7 @@
       walkinSubmitBtn.textContent = "Submit Walk-in";
       if(data.status === "ok"){
         const activityForPoll = currentActivity;
-        startWalkinStatusWait(data.idNo, activityForPoll);
+        startWalkinStatusWait(data.idNo, activityForPoll, data.trackId);
       } else {
         renderSigninMessage(true, "Couldn't submit", data.message || "Please try again or tell the front desk.");
       }
@@ -2420,7 +2420,7 @@
         hideWalkinAutofillHint();
         walkinSubmitBtn.disabled = false;
         walkinSubmitBtn.textContent = "Submit Walk-in";
-        startWalkinStatusWait(data.idNo, currentActivity);
+        startWalkinStatusWait(data.idNo, currentActivity, data.trackId);
         return;
       }
 
