@@ -1297,7 +1297,10 @@ function doReject(activity, idNo) {
     pending.deleteRow(rowIdx);
     return rejectedIdNo;
   });
-  touchActivity(activity.key);
+  // Rejecting only ever removes Pending rows — never touches
+  // Registrations — so there's nothing for the visibleRegs cache to
+  // get stale about here; see markActivityLive()'s own comment.
+  markActivityLive(activity.key);
 
   return ok({ rejectedIdNos: rejectedIdNos });
 }
@@ -1534,6 +1537,23 @@ function drainDirtyActivitiesToFirebase() {
 // allPendingCounts view, not this activity's full dashboard view.
 function touchActivity(activityKey) {
   invalidateVisibleRegistrationsCache(activityKey);
+  markActivityDirtyForLiveSync(activityKey);
+}
+
+// For a write that never changes what getVisibleRegistrations()
+// returns — a walk-in's Pending row, a plain sign-in/out, an alert —
+// use this instead of touchActivity() above. Calling touchActivity()
+// unconditionally from every write used to mean even a walk-in
+// submission (which only ever touches Pending, never Registrations)
+// threw away that activity's 20-second Registrations cache, so the
+// very next front-desk dashboard poll — for ANY desk watching this
+// activity, not just the one that just wrote something — paid for a
+// full Registrations re-read it didn't actually need, right when a
+// walk-in's own submission was waiting to show up. This still marks
+// the activity dirty for live sync (cheap, and every dashboard poll
+// should still pick up the change), it just leaves a cache alone that
+// this write couldn't possibly have made stale.
+function markActivityLive(activityKey) {
   markActivityDirtyForLiveSync(activityKey);
 }
 
@@ -2006,7 +2026,10 @@ function doPost(e) {
       sheet.getRange(sheet.getLastRow() + 1, 1, allNewRows.length, PENDING_HEADERS.length).setValues(allNewRows);
       timing.push(["writePending", Date.now() - _t]);
       _t = Date.now();
-      touchActivity(activity.key);
+      // A brand-new submission only ever writes Pending — it isn't
+      // approved yet, so Registrations (and its cache) is untouched;
+      // see markActivityLive()'s own comment.
+      markActivityLive(activity.key);
       timing.push(["touchActivity", Date.now() - _t]);
       timing.push(["TOTAL", Date.now() - t0]);
       Logger.log("submit timing (isWalkin=" + (String(data.duration || "").trim() === "Walk-in") + "): " + JSON.stringify(timing));
@@ -2054,7 +2077,9 @@ function doPost(e) {
         if (h === "phone") return sheetSafeText(data.phone || "");
         return ""; // timeOut
       }));
-      touchActivity(activity.key);
+      // A staff-entered walk-in only ever writes Visits — no
+      // Registrations row involved; see markActivityLive()'s comment.
+      markActivityLive(activity.key);
       return ok({ name: data.name, idNo: idNo });
     }
 
@@ -2097,7 +2122,9 @@ function doPost(e) {
           date: formatDateDMY(now),
           time: formatTime(now)
         });
-        touchActivity(activity.key);
+        // An expired-membership alert only ever writes Alerts — no
+        // Registrations row involved; see markActivityLive()'s comment.
+        markActivityLive(activity.key);
         const cfg = getDurationConfig(activity, match.duration);
         const usedUp = cfg && cfg.sessionCap && (Number(match.sessionsUsed) || 0) >= cfg.sessionCap;
         return ok({
@@ -2124,7 +2151,9 @@ function doPost(e) {
         if (h === "timeIn") return forceLiteralText(formatTime(now));
         return ""; // timeOut, phone stay blank at check-in
       }));
-      touchActivity(activity.key);
+      // A plain sign-in only ever writes Visits — no Registrations row
+      // involved; see markActivityLive()'s comment.
+      markActivityLive(activity.key);
       return ok({ member: match });
     }
 
@@ -2232,7 +2261,10 @@ function doPost(e) {
       const rowValues = visits.getRange(targetRow, 1, 1, VISIT_HEADERS.length).getValues()[0];
       const visit = {};
       VISIT_HEADERS.forEach((h, i) => visit[h] = rowValues[i]);
-      touchActivity(activity.key);
+      // Unlike "checkout" above, this path never writes sessionsUsed to
+      // Registrations (no session-cap bookkeeping here) — only Visits
+      // changes; see markActivityLive()'s comment.
+      markActivityLive(activity.key);
       return ok({ member: visit });
     }
 
@@ -2296,7 +2328,17 @@ function doPost(e) {
         timing.push(["saveSignature", Date.now() - _t]);
       }
       _t = Date.now();
-      touchActivity(activity.key);
+      // Only actually stale the Registrations cache when the row that
+      // was just written to IS a Registrations row (photo/signature
+      // added to an already-approved member) — the common case, a
+      // fresh submission's photo follow-up, only ever touches Pending
+      // and never needs that cache invalidated; see markActivityLive()'s
+      // comment.
+      if (targetSheet === pending) {
+        markActivityLive(activity.key);
+      } else {
+        touchActivity(activity.key);
+      }
       timing.push(["touchActivity", Date.now() - _t]);
 
       timing.push(["TOTAL", Date.now() - t0]);
@@ -2446,7 +2488,16 @@ function doPost(e) {
       }));
       timing.push(["writePending", Date.now() - _t]);
       _t = Date.now();
-      touchActivity(activity.key);
+      // A walk-in's quick submit only ever writes a Pending row — never
+      // Registrations — so there's nothing here for the visibleRegs
+      // cache to get stale about. Calling the full touchActivity() here
+      // used to mean every walk-in submission threw away that cache for
+      // the whole activity, forcing the very next front-desk dashboard
+      // poll (for every desk watching it, not just this one) to pay for
+      // a full Registrations re-read it didn't need — right when this
+      // walk-in's own pending entry was waiting to show up on that same
+      // poll. See markActivityLive()'s own comment.
+      markActivityLive(activity.key);
       timing.push(["touchActivity", Date.now() - _t]);
       timing.push(["TOTAL", Date.now() - t0]);
       Logger.log("walkinQuickSubmit timing: " + JSON.stringify(timing));
@@ -2599,7 +2650,11 @@ function doPost(e) {
         return raw;
       });
       pending.appendRow(pendingRow);
-      touchActivity(activity.key);
+      // A renewal request only writes Pending — the Registrations row
+      // it's renewing isn't touched until it's actually approved (see
+      // doApprove(), which already invalidates the cache); see
+      // markActivityLive()'s own comment.
+      markActivityLive(activity.key);
       return ok({});
     }
 
@@ -2633,7 +2688,9 @@ function doPost(e) {
       const alertId = String(data.alertId || "").trim();
       if (!alertId) return errorMsg("Missing alert id.");
       dismissAlert(activity, alertId);
-      touchActivity(activity.key);
+      // Dismissing an alert only writes Alerts — no Registrations row
+      // involved; see markActivityLive()'s own comment.
+      markActivityLive(activity.key);
       return ok({});
     }
 
