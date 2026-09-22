@@ -3314,19 +3314,17 @@ function addDurationColumnToVisitSheets() {
   Logger.log("Visit Log sheets now have a duration column.");
 }
 
-// Run once from the function dropdown (Run > reverseAllVisitSheets)
-// RIGHT AFTER deploying the version of Code.gs that added
-// insertVisitRow() — and before anyone signs in or out again. Every
-// Visits row written before that deploy was appended at the bottom
-// (oldest-first); every row written after lands at the top instead
-// (newest-first — see insertVisitRow()'s own comment). This does a
-// straight reversal of everything currently in each Visits sheet, which
-// is only correct while the sheet is STILL entirely in that old,
-// oldest-first order start to finish — running it after even one new-
-// style (newest-first) row has already been inserted would scramble
-// the two into a wrong order (the genuinely newest rows would end up
-// at the bottom instead of the top). If that's already happened, don't
-// run this — ask for help sorting it out instead of guessing.
+// Superseded by sortAllVisitSheetsNewestFirst() below — this straight
+// positional reversal is only correct while a Visits sheet is STILL
+// entirely in its old, oldest-first order start to finish. If any
+// activity has had real sign-ins/outs/walk-ins/approvals since the
+// insertVisitRow() deploy, its sheet is now a MIX of newest-first rows
+// (from insertVisitRow) sitting above still-oldest-first legacy rows,
+// and reversing that blindly would scramble the two (the genuinely
+// newest rows would end up at the bottom). Left here for reference
+// only — don't run this on a sheet that's had any activity since
+// deploy; run sortAllVisitSheetsNewestFirst() instead, which is safe
+// either way.
 function reverseAllVisitSheets() {
   Object.keys(ACTIVITIES).forEach(key => {
     const activity = ACTIVITIES[key];
@@ -3340,6 +3338,45 @@ function reverseAllVisitSheets() {
     range.setValues(values);
   });
   Logger.log("Visits sheets reversed — existing history is now newest-first too.");
+}
+
+// Run once from the function dropdown (Run > sortAllVisitSheetsNewestFirst),
+// any time — unlike reverseAllVisitSheets() above, this doesn't assume
+// anything about the sheet's current row order, so it's safe to run
+// even after real front-desk activity has mixed newest-first rows
+// (from insertVisitRow()) with still-oldest-first legacy rows. Instead
+// of guessing where old data ends and new data begins, it reads each
+// row's own recorded date/timeIn, computes its real timestamp via
+// registrationTimestampMs() (the same date/time parser used elsewhere
+// in this file), and sorts every row in a Visits sheet newest-first by
+// that actual value. This is what fixes "autofill lookup is slow for a
+// walk-in who hasn't visited in a while" — that lookup scans from the
+// top expecting recent visits there, which is only true once every
+// row, old and new alike, has been sorted by real time rather than by
+// wherever it happened to land on the sheet.
+function sortAllVisitSheetsNewestFirst() {
+  const dateColIndex = VISIT_HEADERS.indexOf("date");
+  const timeInColIndex = VISIT_HEADERS.indexOf("timeIn");
+  Object.keys(ACTIVITIES).forEach(key => {
+    const activity = ACTIVITIES[key];
+    const sheet = getOrCreateSheet(activity.visitsSheet, VISIT_HEADERS);
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 3) return; // 0 or 1 data row — nothing to reorder
+    const lastCol = VISIT_HEADERS.length;
+    const range = sheet.getRange(2, 1, lastRow - 1, lastCol);
+    const values = range.getValues();
+    const indexed = values.map((row, i) => ({
+      row: row,
+      order: i,
+      ts: registrationTimestampMs({ date: row[dateColIndex], time: row[timeInColIndex] })
+    }));
+    // Stable descending sort: newest timestamp first; ties (same
+    // date+timeIn, or two unparseable rows) keep their original
+    // relative order rather than shuffling arbitrarily.
+    indexed.sort((a, b) => (b.ts - a.ts) || (a.order - b.order));
+    range.setValues(indexed.map(item => item.row));
+  });
+  Logger.log("Visits sheets sorted newest-first by actual recorded date/time — safe to run regardless of the sheet's current row order.");
 }
 
 
