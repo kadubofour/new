@@ -1058,22 +1058,35 @@ function parseDriveFileId(input) {
 // dd/MM/yyyy first, but only accept it if the second number is
 // actually a valid month (1-12); when it isn't, that's a strong signal
 // this is an old month-first row, so re-read it the old way instead.
-// Only genuinely ambiguous rows (both numbers 1-12, so either reading
-// is "valid") can still come out wrong — there's no way to tell those
-// apart from the stored string alone.
+// When BOTH readings come out as valid dates (a genuinely ambiguous
+// row, e.g. "8/3/2026" — could be March 8th or August 3rd), a
+// registration/visit date is never in the future: if one reading lands
+// after today and the other doesn't, the one that doesn't is almost
+// certainly the real one. Without this, an old ambiguous row could get
+// misread into a LATER month than it actually happened in — which is
+// exactly what was pushing old rows above today's genuinely current
+// ones wherever this drives a sort (see front-desk-dashboard.html's own
+// mirror of this function). Only a row that's ambiguous AND both
+// readings land on the same side of today can still come out wrong —
+// there's no way to tell those apart from the stored string alone.
 function parseDateSafe(v) {
   if (!v) return null;
   const m = String(v).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (m) {
     const a = Number(m[1]), b = Number(m[2]), year = Number(m[3]);
-    if (b >= 1 && b <= 12) {
-      const d = new Date(year, b - 1, a);
-      if (!isNaN(d.getTime())) return d;
+    const dayFirst = (b >= 1 && b <= 12) ? new Date(year, b - 1, a) : null;
+    const monthFirst = (a >= 1 && a <= 12) ? new Date(year, a - 1, b) : null;
+    const dayFirstOk = dayFirst && !isNaN(dayFirst.getTime());
+    const monthFirstOk = monthFirst && !isNaN(monthFirst.getTime());
+    if (dayFirstOk && monthFirstOk && dayFirst.getTime() !== monthFirst.getTime()) {
+      const now = new Date();
+      const dayFirstFuture = dayFirst.getTime() > now.getTime();
+      const monthFirstFuture = monthFirst.getTime() > now.getTime();
+      if (dayFirstFuture && !monthFirstFuture) return monthFirst;
+      if (monthFirstFuture && !dayFirstFuture) return dayFirst;
     }
-    if (a >= 1 && a <= 12) {
-      const d = new Date(year, a - 1, b);
-      if (!isNaN(d.getTime())) return d;
-    }
+    if (dayFirstOk) return dayFirst;
+    if (monthFirstOk) return monthFirst;
     return null;
   }
   const d = new Date(v);

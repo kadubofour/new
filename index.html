@@ -2534,22 +2534,31 @@
   // a row written before that switch is still stored the old way. Tries
   // day-first first, but only accepts it if the second number is a
   // valid month (1-12); otherwise falls back to the old month-first
-  // reading. Only genuinely ambiguous dates (both numbers 1-12) can
-  // still come out wrong — no way to tell those apart from the string
-  // alone.
+  // reading. When BOTH readings are valid dates (genuinely ambiguous,
+  // e.g. "8/3/2026"), a registration/visit date is never in the
+  // future — so if one reading lands after today and the other
+  // doesn't, the one that doesn't is almost certainly the real one.
+  // Only a row that's ambiguous AND both readings land on the same
+  // side of today can still come out wrong — no way to tell those
+  // apart from the string alone.
   function parseRegDate(dateStr){
     if(!dateStr) return null;
     const m = String(dateStr).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
     if(m) {
       const a = Number(m[1]), b = Number(m[2]), year = Number(m[3]);
-      if(b >= 1 && b <= 12){
-        const d = new Date(year, b - 1, a);
-        if(!isNaN(d.getTime())) return d;
+      const dayFirst = (b >= 1 && b <= 12) ? new Date(year, b - 1, a) : null;
+      const monthFirst = (a >= 1 && a <= 12) ? new Date(year, a - 1, b) : null;
+      const dayFirstOk = dayFirst && !isNaN(dayFirst.getTime());
+      const monthFirstOk = monthFirst && !isNaN(monthFirst.getTime());
+      if(dayFirstOk && monthFirstOk && dayFirst.getTime() !== monthFirst.getTime()){
+        const now = new Date();
+        const dayFirstFuture = dayFirst.getTime() > now.getTime();
+        const monthFirstFuture = monthFirst.getTime() > now.getTime();
+        if(dayFirstFuture && !monthFirstFuture) return monthFirst;
+        if(monthFirstFuture && !dayFirstFuture) return dayFirst;
       }
-      if(a >= 1 && a <= 12){
-        const d = new Date(year, a - 1, b);
-        if(!isNaN(d.getTime())) return d;
-      }
+      if(dayFirstOk) return dayFirst;
+      if(monthFirstOk) return monthFirst;
       return null;
     }
     const d = new Date(dateStr);
