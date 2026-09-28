@@ -412,10 +412,17 @@
   // below is self-rescheduling, not a plain setInterval — the next
   // cycle is only queued once the current one fully settles, so a slow
   // patch can never pile up overlapping requests the way a fixed
-  // interval would. Bumped from 3000 to 5000 for a bit more headroom
-  // against the shared backend, alongside the main front desk's own
-  // refresh-cost fix.
-  const AUTO_REFRESH_MS = 5000;
+  // interval would.
+  // Cut back from 5000 to 3000 — a walk-in taking "5-10 seconds" to
+  // show up turned out to be this interval itself, not something
+  // broken: Firebase live sync (see attachLiveActivity() below) can
+  // only ever notify a listening dashboard once a minute at best —
+  // Apps Script's time-based triggers don't run more often than that,
+  // full stop, config or no config — so it can never actually beat
+  // this plain poll to the punch. Whatever this number is set to IS
+  // the real ceiling on "how long before a walk-in shows up here",
+  // Firebase or not.
+  const AUTO_REFRESH_MS = 3000;
 
   if(!SCRIPT_URL || SCRIPT_URL.indexOf("PASTE_") === 0){
     document.getElementById('setupWarning').style.display = 'block';
