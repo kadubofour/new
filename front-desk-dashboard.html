@@ -665,6 +665,19 @@
     return d.innerHTML;
   }
 
+  // A plain unicode "✓" dropped into toast/button text is one of the
+  // most recognizable "an AI chatbot built this" UI tells there is —
+  // this draws it as a small inline SVG instead. Only ever used with
+  // trusted, code-authored icon names (never user-controlled data), so
+  // building it via a template string is safe here.
+  const ICON_PATHS = {
+    check: '<polyline points="4 12 9 17 20 6"/>'
+  };
+  function svgIcon(name, sizePx, inline){
+    const style = inline ? ' style="display:inline-block;vertical-align:-2px"' : '';
+    return `<svg viewBox="0 0 24 24" width="${sizePx}" height="${sizePx}" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"${style}>${ICON_PATHS[name]}</svg>`;
+  }
+
   // photoUrl/signatureUrl store Drive's "view" link (file.getUrl(), e.g.
   // .../file/d/<ID>/view) — that's the right link for "View photo →"
   // (opens Drive's own viewer in a new tab), but a browser can't render
@@ -936,8 +949,21 @@
   });
 
   const toast = document.getElementById('toast');
-  function showToast(msg, isError, duration){
-    toast.textContent = msg;
+  // icon (optional): a name from ICON_PATHS above — e.g. "check" for a
+  // success toast. Built via DOM methods (an icon span, then msg as a
+  // plain text node) rather than one innerHTML string, since msg isn't
+  // always pre-escaped at every call site — this keeps that safe no
+  // matter what msg contains, while still allowing a trusted, code-
+  // authored icon alongside it.
+  function showToast(msg, isError, duration, icon){
+    toast.textContent = '';
+    if(icon){
+      const iconWrap = document.createElement('span');
+      iconWrap.innerHTML = svgIcon(icon, 13, true);
+      iconWrap.style.marginRight = '6px';
+      toast.appendChild(iconWrap);
+    }
+    toast.appendChild(document.createTextNode(msg));
     toast.classList.toggle('error', !!isError);
     toast.classList.add('show');
     setTimeout(()=> toast.classList.remove('show'), duration || 2200);
@@ -963,7 +989,7 @@
   codeModalCopyBtn.addEventListener('click', () => {
     const code = document.getElementById('codeModalCode').textContent;
     if(!code) return;
-    const markCopied = () => { codeModalCopyBtn.textContent = "Copied ✓"; codeModalCopyBtn.classList.add('copied'); };
+    const markCopied = () => { codeModalCopyBtn.innerHTML = 'Copied ' + svgIcon('check', 13, true); codeModalCopyBtn.classList.add('copied'); };
     if(navigator.clipboard && navigator.clipboard.writeText){
       navigator.clipboard.writeText(code).then(markCopied).catch(() => {});
     }
@@ -1338,7 +1364,7 @@
       walkinSubmitBtn.disabled = false;
       walkinSubmitBtn.textContent = "Sign In";
       if(data.status === "ok"){
-        showToast("Walk-in signed in ✓");
+        showToast("Walk-in signed in", false, 2200, "check");
         closeWalkinCard();
         loadAll();
       } else {
@@ -1672,9 +1698,9 @@
       if(data.status === "ok"){
         if(action === "approve"){
           if(isWalkin){
-            showToast("Walk-in checked in ✓", false, 5000);
+            showToast("Walk-in checked in", false, 5000, "check");
           } else if(isRenewal){
-            showToast("Renewal approved ✓", false, 5000);
+            showToast("Renewal approved", false, 5000, "check");
           } else {
             showApprovedCodeModal(entry || { idNo: idNo }, familySize);
           }
@@ -1838,7 +1864,7 @@
     })
     .then(res => {
       if(res.status !== "ok"){ showToast(res.message || "Couldn't restore the list", true); return; }
-      showToast("Full list restored ✓");
+      showToast("Full list restored", false, 2200, "check");
       loadAll();
     })
     .catch(() => showToast("Couldn't reach the sheet — check connection", true));
@@ -1858,7 +1884,7 @@
     })
     .then(res => {
       if(res.status !== "ok"){ showToast(res.message || "Couldn't clear the list", true); return; }
-      showToast("Registration table cleared ✓ (still in the Google Sheet)");
+      showToast("Registration table cleared (still in the Google Sheet)", false, 2200, "check");
       loadAll();
     })
     .catch(() => showToast("Couldn't reach the sheet — check connection", true));
@@ -1986,7 +2012,7 @@
 
     const fileName = activity.label.toLowerCase().replace(/[^a-z0-9]+/g, '-') + "-registrations.xlsx";
     XLSX.writeFile(wb, fileName);
-    showToast("Excel file downloaded ✓ (countdown updates live)");
+    showToast("Excel file downloaded (countdown updates live)", false, 2200, "check");
   });
 })();
 </script>

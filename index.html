@@ -218,8 +218,22 @@
     display:flex; align-items:center; justify-content:center; flex-shrink:0;
   }
   .tick-box.active{ border-color:var(--blue); background:var(--blue-dim); color:var(--blue); }
-  .tick-box.active .box{ background:var(--blue); border-color:var(--blue); color:#fff; font-size:11px; font-weight:900; }
-  .tick-box.active .box::after{ content:"✓"; }
+  .tick-box.active .box{ background:var(--blue); border-color:var(--blue); color:#fff; }
+  /* A plain checkmark glyph here (either "✓" as text, or a font-based
+     icon set) is one of the most recognizable "an AI chatbot built
+     this UI" tells there is — this draws the same checkmark shape as a
+     tiny masked SVG instead, colored via background-color so it still
+     tracks currentColor (here, .box's own white) with no hardcoded hex. */
+  .tick-box.active .box::after{
+    content:"";
+    display:block; width:9px; height:9px;
+    background-color:currentColor;
+    -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='4 12 9 17 20 6'/%3E%3C/svg%3E");
+    mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='4 12 9 17 20 6'/%3E%3C/svg%3E");
+    -webkit-mask-size:contain; mask-size:contain;
+    -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+    -webkit-mask-position:center; mask-position:center;
+  }
 
   /* Emergency contact — pulled out of the plain form flow into its own
      box so it doesn't blend in with every other section. */
@@ -269,8 +283,18 @@
     font-size:11px; font-weight:700; color:var(--text-faint); transition:all .15s ease;
   }
   .wizard-progress-step.active .wizard-progress-dot{ border-color:var(--blue); background:var(--blue); color:#fff; }
-  .wizard-progress-step.done .wizard-progress-dot{ border-color:var(--blue); background:var(--blue-dim); color:transparent; font-size:0; }
-  .wizard-progress-step.done .wizard-progress-dot::after{ content:"✓"; font-size:11px; color:var(--blue); }
+  .wizard-progress-step.done .wizard-progress-dot{ border-color:var(--blue); background:var(--blue-dim); color:transparent; }
+  /* Same masked-SVG checkmark as .tick-box above, not a text glyph. */
+  .wizard-progress-step.done .wizard-progress-dot::after{
+    content:"";
+    display:block; width:11px; height:11px;
+    background-color:var(--blue);
+    -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='4 12 9 17 20 6'/%3E%3C/svg%3E");
+    mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='4 12 9 17 20 6'/%3E%3C/svg%3E");
+    -webkit-mask-size:contain; mask-size:contain;
+    -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+    -webkit-mask-position:center; mask-position:center;
+  }
   .wizard-progress-label{
     font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.03em; text-transform:uppercase;
     color:var(--text-faint); text-align:center; line-height:1.2;
@@ -757,7 +781,7 @@
     </form>
 
     <div class="confirm-overlay" id="confirmOverlay">
-      <div class="confirm-icon" id="confirmIcon">✓</div>
+      <div class="confirm-icon" id="confirmIcon"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12 9 17 20 6"/></svg></div>
       <h2 id="confirmTitle">Submitted!</h2>
       <p id="confirmDetail"></p>
     </div>
@@ -773,7 +797,7 @@
         <p id="approvalWaitPendingDetail">Waiting for front desk approval…</p>
       </div>
       <div id="approvalWaitApproved" style="display:none;">
-        <div class="confirm-icon" id="approvalWaitApprovedIcon">✓</div>
+        <div class="confirm-icon" id="approvalWaitApprovedIcon"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12 9 17 20 6"/></svg></div>
         <h2 id="approvalWaitApprovedTitle">Approved!</h2>
         <p id="approvalWaitApprovedDetail"></p>
         <div class="approval-wait-codes" id="approvalWaitCodes"></div>
@@ -1105,6 +1129,24 @@
     const d = document.createElement('div');
     d.textContent = str == null ? '' : String(str);
     return d.innerHTML;
+  }
+
+  // A plain unicode "✓"/"✕" dropped into a colored circle is one of
+  // the most recognizable "an AI chatbot built this" UI tells there
+  // is — this draws the same shapes as small inline SVGs instead, so
+  // every status icon in this app (confirm-icon/result-icon) looks
+  // like an actual designed icon, not a text glyph. Always used with
+  // trusted, code-authored strings only (never user-controlled data),
+  // so building it via a template string is safe here.
+  const ICON_PATHS = {
+    check: '<polyline points="4 12 9 17 20 6"/>',
+    x: '<line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/>',
+    warning: '<path d="M12 3.7 L21.3 20 H2.7 Z"/><line x1="12" y1="9.6" x2="12" y2="14.2"/><circle cx="12" cy="17.3" r="0.65" fill="currentColor" stroke="none"/>',
+    info: '<circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="7.4" r="0.65" fill="currentColor" stroke="none"/>'
+  };
+  function svgIcon(name, sizePx, inline){
+    const style = inline ? ' style="display:inline-block;vertical-align:-2px"' : '';
+    return `<svg viewBox="0 0 24 24" width="${sizePx}" height="${sizePx}" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"${style}>${ICON_PATHS[name]}</svg>`;
   }
 
   // Date sent to the backend must always be month-first (M/d/yyyy) to
@@ -1791,7 +1833,7 @@
 
   function showConfirm(isError, title, detail){
     confirmOverlay.classList.toggle('error', isError);
-    confirmIcon.textContent = isError ? '✕' : '✓';
+    confirmIcon.innerHTML = isError ? svgIcon('x', 30) : svgIcon('check', 30);
     confirmTitle.textContent = title;
     confirmDetail.textContent = detail;
     confirmOverlay.classList.add('show');
@@ -1851,7 +1893,7 @@
     // someone on this screen with truly no way off it after ~10 minutes
     // would be worse than showing the button a little early.
     approvalWaitDoneBtn.style.display = 'none';
-    approvalWaitApprovedIcon.textContent = '✓';
+    approvalWaitApprovedIcon.innerHTML = svgIcon('check', 30);
     approvalWaitApprovedTitle.textContent = 'Approved!';
     approvalWaitPendingDetail.textContent = stillPending.length > 1
       ? `Waiting for the front desk to approve ${stillPending.length} people — this updates automatically.`
@@ -1906,7 +1948,7 @@
         // a clean success story even if others were approved.
         if(rejectedSoFar.length > 0){
           approvalWaitOverlay.classList.add('error');
-          approvalWaitApprovedIcon.textContent = '✕';
+          approvalWaitApprovedIcon.innerHTML = svgIcon('x', 30);
           approvalWaitApprovedTitle.textContent = approvedSoFar.length > 0 ? "Partially approved" : "Not approved";
         }
         if(stillPending.length){
@@ -2198,7 +2240,7 @@
 
   function renderSigninMessage(isError, title, message){
     document.getElementById('resultBody').innerHTML = `
-      <div class="result-icon">${isError ? '✕' : '✓'}</div>
+      <div class="result-icon">${isError ? svgIcon('x', 34) : svgIcon('check', 34)}</div>
       <div class="result-name">${escapeHtml(title)}</div>
       <p class="error-msg">${escapeHtml(message)}</p>
       <button class="btn btn-secondary" id="doneSigninBtn">Done</button>
@@ -2249,7 +2291,7 @@
     }
     function renderSignedIn(){
       document.getElementById('resultBody').innerHTML = `
-        <div class="result-icon">✓</div>
+        <div class="result-icon">${svgIcon('check', 34)}</div>
         <div class="result-name">Signed In</div>
         <p class="error-msg">You're all set.</p>
         <button class="btn btn-secondary" id="doneSigninBtn">Done</button>
@@ -2587,7 +2629,7 @@
     const code = btn.dataset.copyCode;
     if(!code) return;
     const markCopied = () => {
-      btn.textContent = 'Copied ✓';
+      btn.innerHTML = 'Copied ' + svgIcon('check', 13, true);
       btn.classList.add('copied');
       setTimeout(() => { btn.textContent = 'Copy Code'; btn.classList.remove('copied'); }, 2000);
     };
@@ -2602,7 +2644,7 @@
     const codeChip = opts.showCode ? codeChipWithCopyHtml(member.idNo) : '';
 
     document.getElementById('resultBody').innerHTML = `
-      <div class="result-icon">${info.expired ? '⚠' : '✓'}</div>
+      <div class="result-icon">${info.expired ? svgIcon('warning', 32) : svgIcon('check', 34)}</div>
       <div class="result-name">${escapeHtml(member.name||'')}</div>
       <div class="result-sub">${escapeHtml(member.class||'')}${opts.subtitle ? ' · ' + opts.subtitle : ''}</div>
       ${codeChip}
@@ -2617,7 +2659,7 @@
 
   function renderMessage(isError, title, message){
     document.getElementById('resultBody').innerHTML = `
-      <div class="result-icon">${isError ? '✕' : 'ℹ'}</div>
+      <div class="result-icon">${isError ? svgIcon('x', 34) : svgIcon('info', 34)}</div>
       <div class="result-name">${escapeHtml(title)}</div>
       <p class="error-msg">${escapeHtml(message)}</p>
       <button class="btn btn-secondary" id="doneBtn">Done</button>
@@ -2762,7 +2804,7 @@
       </div>`;
     }).join('');
     document.getElementById('resultBody').innerHTML = `
-      <div class="result-icon">✓</div>
+      <div class="result-icon">${svgIcon('check', 34)}</div>
       <div class="result-name">${members.length > 1 ? 'Codes Found' : 'Found'}</div>
       <div class="result-sub">${members.length} member${members.length===1?'':'s'} on this number${data.pendingCount ? ` · ${data.pendingCount} more still pending` : ''} — copy a code below and paste it into Sign In</div>
       <div class="lookup-results-list">${rowsHtml}</div>
@@ -2811,7 +2853,7 @@
 
   function renderOutMemberResult(member){
     document.getElementById('resultOutBody').innerHTML = `
-      <div class="result-icon">✓</div>
+      <div class="result-icon">${svgIcon('check', 34)}</div>
       <div class="result-name">${escapeHtml(member.name||'')}</div>
       <div class="result-sub">${escapeHtml(member.class||'')} · Signed out</div>
       <button class="btn btn-secondary" id="doneOutBtn">Done</button>
@@ -2823,7 +2865,7 @@
 
   function renderOutMessage(isError, title, message){
     document.getElementById('resultOutBody').innerHTML = `
-      <div class="result-icon">${isError ? '✕' : 'ℹ'}</div>
+      <div class="result-icon">${isError ? svgIcon('x', 34) : svgIcon('info', 34)}</div>
       <div class="result-name">${escapeHtml(title)}</div>
       <p class="error-msg">${escapeHtml(message)}</p>
       <button class="btn btn-secondary" id="doneOutBtn">Done</button>
@@ -3155,7 +3197,7 @@
 
   function renderRenewRequestSubmitted(duration){
     document.getElementById('resultRenewBody').innerHTML = `
-      <div class="result-icon">✓</div>
+      <div class="result-icon">${svgIcon('check', 34)}</div>
       <div class="result-name">Request submitted</div>
       <div class="result-sub">${escapeHtml(verifiedMember && verifiedMember.name || '')} · ${escapeHtml(duration||'')}</div>
       <div class="countdown-box"><div class="countdown-label">Pending front-desk approval. Your current plan still works until then.</div></div>
@@ -3168,7 +3210,7 @@
 
   function renderRenewMessage(isError, title, message){
     document.getElementById('resultRenewBody').innerHTML = `
-      <div class="result-icon">${isError ? '✕' : 'ℹ'}</div>
+      <div class="result-icon">${isError ? svgIcon('x', 34) : svgIcon('info', 34)}</div>
       <div class="result-name">${escapeHtml(title)}</div>
       <p class="error-msg">${escapeHtml(message)}</p>
       <button class="btn btn-secondary" id="doneRenewBtn">Done</button>
