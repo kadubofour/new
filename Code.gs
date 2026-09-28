@@ -1316,6 +1316,14 @@ function doApprove(activity, idNo) {
 
   _t = Date.now();
   const isRenewal = String(pending.getRange(idx, PENDING_HEADERS.indexOf("isRenewal") + 1).getValue()).trim().toUpperCase() === "TRUE";
+  // Read here, from the exact row this call just found, rather than
+  // left for the front desk to guess from its own last-polled copy of
+  // Pending — a Walk-in is never grouped (see the comment above this
+  // function), so this one row's value is always the whole answer, and
+  // handing it back in the response means the UI never has to rely on
+  // a local cache that could be a poll cycle stale by the time someone
+  // actually clicks Approve.
+  const isWalkin = String(pending.getRange(idx, PENDING_HEADERS.indexOf("duration") + 1).getValue()).trim() === "Walk-in";
   const groupId = isRenewal ? "" : String(pending.getRange(idx, PENDING_HEADERS.indexOf("familyGroupId") + 1).getValue()).trim();
   const rowIndices = groupId ? findRowIndicesByFamilyGroup(pending, groupId, activity.key) : [idx];
   timing.push(["resolveFamilyGroup", Date.now() - _t]);
@@ -1333,7 +1341,7 @@ function doApprove(activity, idNo) {
   timing.push(["TOTAL", Date.now() - t0]);
   Logger.log("doApprove timing for " + idNo + ": " + JSON.stringify(timing));
 
-  return ok({ idNo: idNo, approvedIdNos: approvedIdNos, _timing: timing });
+  return ok({ idNo: idNo, approvedIdNos: approvedIdNos, isWalkin: isWalkin, isRenewal: isRenewal, _timing: timing });
 }
 
 // Rejecting a pending registration leaves nothing behind — the photo

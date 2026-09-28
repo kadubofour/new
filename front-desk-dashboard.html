@@ -1697,9 +1697,25 @@
       }
       if(data.status === "ok"){
         if(action === "approve"){
-          if(isWalkin){
+          // Trust the server's own read of the row it just processed
+          // (data.isWalkin/data.isRenewal) over this desk's own local
+          // guess (isWalkin/isRenewal above, from its last-polled copy
+          // of pendingEntries) whenever the server actually sent one —
+          // that local copy can be a poll cycle stale by the time
+          // someone clicks Approve, and a stale guess here is exactly
+          // what could pop the "here's your code" modal up for a
+          // Walk-in, which never has a real code to show. "Already
+          // handled" (someone else approved/rejected it first) sends
+          // no approvedIdNos at all — nothing was actually approved by
+          // THIS click, so neither the toast nor the code modal apply.
+          const approvedSomething = Array.isArray(data.approvedIdNos) && data.approvedIdNos.length > 0;
+          const confirmedWalkin = data.isWalkin !== undefined ? data.isWalkin : isWalkin;
+          const confirmedRenewal = data.isRenewal !== undefined ? data.isRenewal : isRenewal;
+          if(!approvedSomething){
+            showToast(data.message || "Already handled by another desk", true);
+          } else if(confirmedWalkin){
             showToast("Walk-in checked in", false, 5000, "check");
-          } else if(isRenewal){
+          } else if(confirmedRenewal){
             showToast("Renewal approved", false, 5000, "check");
           } else {
             showApprovedCodeModal(entry || { idNo: idNo }, familySize);
