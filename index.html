@@ -485,6 +485,27 @@
   @media (max-width:360px){
     .activity-grid{ grid-template-columns:1fr; }
   }
+
+  /* Front-desk staff need a way back to their own dashboards from the
+     same link everyone else uses to sign in/register — but this page
+     is the one link shared with every member and walk-in, so anything
+     that reads as "click here for the staff area" doesn't belong on
+     it. Fixed to the corner, tiny, and the same faint grey as the rest
+     of the page's quiet print — a registrant has no reason to ever
+     notice it's there, let alone tap it, but staff who already know to
+     look for it can find it on any screen. z-index kept low (1) so it
+     sits under every overlay (confirm/approval-wait/photo sheet, all
+     z-index 5+) instead of poking through one that's open.
+     PIN-protected either way (see STAFF_PIN in each front-desk file),
+     so this is about not advertising the door, not locking it. */
+  .staff-links{
+    position:fixed; right:10px; bottom:8px; z-index:1;
+    display:flex; gap:10px;
+    font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.03em;
+    opacity:0.3; transition:opacity .15s ease;
+  }
+  .staff-links:hover{ opacity:0.85; }
+  .staff-links a{ color:var(--text-faint); text-decoration:none; }
 </style>
 </head>
 <body>
@@ -1049,6 +1070,12 @@
     </div>
   </div>
   </div>
+</div>
+
+<div class="staff-links" aria-hidden="true">
+  <a href="front-desk-dashboard.html" tabindex="-1">fd</a>
+  <a href="swimming-front-desk.html" tabindex="-1">sw</a>
+  <a href="tennis-front-desk.html" tabindex="-1">tn</a>
 </div>
 
 <script>
