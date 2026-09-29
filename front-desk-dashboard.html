@@ -1411,9 +1411,21 @@
   function sortedFilteredVisits(){
     let list = visitEntries.filter(v => {
       if(!visitSearchTerm) return true;
-      return (v.name||'').toLowerCase().includes(visitSearchTerm)
-        || (v.idNo||'').toLowerCase().includes(visitSearchTerm)
-        || (v.class||'').toLowerCase().includes(visitSearchTerm);
+      // String(...), not just "|| ''" — an idNo that's a plain numeric
+      // string (most of them are) can come back from the sheet as an
+      // actual Number instead of text if it was ever entered/edited
+      // without the usual text-protecting apostrophe. "|| ''" only
+      // catches falsy values (null, "", 0) — a real number like
+      // 64255342 is truthy, sails past it, and .toLowerCase() doesn't
+      // exist on a Number, so this filter used to throw the instant
+      // anyone typed a search term. The very first, unfiltered render
+      // never hit this line at all (it returns true before reaching
+      // it), so the table looked fine right up until someone actually
+      // tried to search — at which point it silently broke with
+      // nothing on screen to explain why.
+      return String(v.name||'').toLowerCase().includes(visitSearchTerm)
+        || String(v.idNo||'').toLowerCase().includes(visitSearchTerm)
+        || String(v.class||'').toLowerCase().includes(visitSearchTerm);
     });
     list.sort((a,b) => parseTimeToMinutes(b.timeIn) - parseTimeToMinutes(a.timeIn));
     return list;
@@ -1832,19 +1844,26 @@
   function sortedFiltered(){
     let list = approvedEntries.filter(e => {
       if(!searchTerm) return true;
-      return (e.name||'').toLowerCase().includes(searchTerm)
-        || (e.phone||'').toLowerCase().includes(searchTerm)
-        || (e.idNo||'').toLowerCase().includes(searchTerm)
-        || (e.email||'').toLowerCase().includes(searchTerm);
+      // String(...), not just "|| ''" — see sortedFilteredVisits()'s
+      // matching comment: a numeric-looking idNo/phone that ever got
+      // written or edited without the usual text-protecting apostrophe
+      // comes back as an actual Number, and a plain "|| ''" doesn't
+      // catch that (only falsy values), so .toLowerCase() on a Number
+      // used to throw and silently break the whole search the moment
+      // anyone typed anything.
+      return String(e.name||'').toLowerCase().includes(searchTerm)
+        || String(e.phone||'').toLowerCase().includes(searchTerm)
+        || String(e.idNo||'').toLowerCase().includes(searchTerm)
+        || String(e.email||'').toLowerCase().includes(searchTerm);
     });
     list.sort((a,b) => {
       let av, bv;
       if(sortKey === 'class'){ av = currentActivity.categories.indexOf(a.class); bv = currentActivity.categories.indexOf(b.class); }
       else if(sortKey === 'duration'){ av = durationOrderIndex(currentActivity, a.duration); bv = durationOrderIndex(currentActivity, b.duration); }
-      else if(sortKey === 'name'){ av = (a.name||'').toLowerCase(); bv = (b.name||'').toLowerCase(); }
-      else if(sortKey === 'phone'){ av = (a.phone||'').toLowerCase(); bv = (b.phone||'').toLowerCase(); }
-      else if(sortKey === 'idNo'){ av = (a.idNo||'').toLowerCase(); bv = (b.idNo||'').toLowerCase(); }
-      else if(sortKey === 'department'){ av = (a.department||'').toLowerCase(); bv = (b.department||'').toLowerCase(); }
+      else if(sortKey === 'name'){ av = String(a.name||'').toLowerCase(); bv = String(b.name||'').toLowerCase(); }
+      else if(sortKey === 'phone'){ av = String(a.phone||'').toLowerCase(); bv = String(b.phone||'').toLowerCase(); }
+      else if(sortKey === 'idNo'){ av = String(a.idNo||'').toLowerCase(); bv = String(b.idNo||'').toLowerCase(); }
+      else if(sortKey === 'department'){ av = String(a.department||'').toLowerCase(); bv = String(b.department||'').toLowerCase(); }
       else { av = a.idNo; bv = b.idNo; }
       if(av < bv) return -1*sortDir;
       if(av > bv) return 1*sortDir;

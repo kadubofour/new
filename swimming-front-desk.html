@@ -808,10 +808,16 @@
   function filteredRegistrants(){
     return approvedEntries.filter(e => {
       if(!searchTerm) return true;
-      return (e.name||'').toLowerCase().includes(searchTerm)
-        || (e.phone||'').toLowerCase().includes(searchTerm)
-        || (e.idNo||'').toLowerCase().includes(searchTerm)
-        || (e.email||'').toLowerCase().includes(searchTerm);
+      // String(...), not just "|| ''" — a numeric-looking idNo/phone
+      // that was ever written or edited without the usual text-
+      // protecting apostrophe comes back as an actual Number, which
+      // "|| ''" (only catches falsy values) doesn't guard against —
+      // .toLowerCase() on a Number throws, silently breaking search
+      // the instant anyone types anything.
+      return String(e.name||'').toLowerCase().includes(searchTerm)
+        || String(e.phone||'').toLowerCase().includes(searchTerm)
+        || String(e.idNo||'').toLowerCase().includes(searchTerm)
+        || String(e.email||'').toLowerCase().includes(searchTerm);
     });
   }
 
