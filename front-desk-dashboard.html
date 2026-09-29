@@ -178,7 +178,7 @@
   }
   .btn-ghost:hover{border-color:var(--blue); color:var(--blue);}
 
-  .table-scroll{ overflow-x:auto; }
+  .table-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
   table{width:100%; border-collapse:collapse; font-size:13.5px; min-width:900px;}
   thead th{
     text-align:left; font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.06em;
@@ -399,6 +399,17 @@
     .approval-actions{ width:100%; }
     .approval-actions .approve-btn, .approval-actions .reject-btn{ flex:1; padding:11px 10px; }
     .table-toolbar .search-box{ width:100%; }
+  }
+  /* Phone-width specifically (640px above already covers a small
+     tablet/large-phone-landscape range) — the tally row and kiosk PIN
+     card are the two things sized for a much wider starting point than
+     an actual phone screen. */
+  @media (max-width:480px){
+    .kiosk-card{ padding:26px 20px 24px; }
+    .tally-cell{ padding:9px 12px; min-width:72px; }
+    .tally-num{ font-size:24px; }
+    .approval-card{ padding:14px 14px; }
+    .detail-grid{ grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); }
   }
 </style>
 </head>

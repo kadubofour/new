@@ -153,7 +153,7 @@
   }
   .btn-ghost:hover{border-color:var(--blue); color:var(--blue);}
 
-  .table-scroll{ overflow-x:auto; }
+  .table-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
   table{width:100%; border-collapse:collapse; font-size:13.5px; min-width:820px;}
   thead th{
     text-align:left; font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.06em;
@@ -195,12 +195,25 @@
   }
   .approval-card:hover{ border-color:var(--line-strong); box-shadow:0 2px 10px rgba(15,29,59,0.06); }
   .approval-head{
-    display:flex; justify-content:space-between; align-items:flex-start; gap:14px; margin-bottom:14px;
+    display:flex; justify-content:space-between; align-items:flex-start; gap:14px;
     flex-wrap:wrap;
   }
   .approval-name{ font-family:'Bebas Neue',sans-serif; font-size:24px; letter-spacing:0.02em; color:var(--text); }
   .approval-sub{ font-size:12px; color:var(--text-dim); margin-top:2px; }
   .approval-actions{ display:flex; gap:8px; flex-shrink:0; align-items:center; }
+  /* Collapsed by default (see renderRegistrants()) — .approval-more
+     below carries its own margin-top once expanded, so this doesn't
+     need its own margin-bottom the way it used to when the detail
+     grid always followed directly underneath it. */
+  #registrantsHost .approval-head{ cursor:pointer; margin-bottom:0; }
+  #registrantsHost .approval-head:focus-visible{ outline:2px solid var(--blue); outline-offset:2px; border-radius:6px; }
+  .expand-chevron{
+    display:inline-block; color:var(--text-faint); font-size:13px; line-height:1;
+    transition:transform .15s ease;
+  }
+  .approval-more{ display:none; margin-top:14px; }
+  .approval-card.expanded .approval-more{ display:block; }
+  .approval-card.expanded .expand-chevron{ transform:rotate(180deg); }
   .approve-btn, .reject-btn{
     border:none; border-radius:8px; padding:9px 16px; font-weight:800; font-size:12.5px;
     text-transform:uppercase; letter-spacing:0.03em; cursor:pointer; font-family:'Inter',sans-serif;
@@ -282,6 +295,17 @@
     .approval-actions{ width:100%; }
     .approval-actions .approve-btn, .approval-actions .reject-btn{ flex:1; padding:11px 10px; }
     .table-toolbar .search-box{ width:100%; }
+  }
+  /* Phone-width specifically (640px above already covers a small
+     tablet/large-phone-landscape range) — the tally row and kiosk PIN
+     card are the two things sized for a much wider starting point than
+     an actual phone screen. */
+  @media (max-width:480px){
+    .kiosk-card{ padding:26px 20px 24px; }
+    .tally-cell{ padding:9px 12px; min-width:72px; }
+    .tally-num{ font-size:24px; }
+    .approval-card{ padding:14px 14px; }
+    .detail-grid{ grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); }
   }
 </style>
 </head>
@@ -836,6 +860,15 @@
       footNote.textContent = ""; return;
     }
 
+    // Collapsed by default, same idea as the main front desk's
+    // Registration Table row: just enough to place someone at a glance
+    // (photo, name, category, plan, expiry status) — the full detail
+    // grid (DOB, address, emergency contact, medical notes, photo/
+    // signature links...) only shows once a card is actually tapped.
+    // A screen full of fully-expanded cards was both a lot to scroll
+    // through and a lot of text to cram onto a phone; this way a
+    // narrow screen shows far more people at once, and still gets you
+    // to any one person's full record in a single tap.
     host.innerHTML = list.map(e => {
       const expired = isExpired(e);
       const cfg = currentActivity.durations[e.duration];
@@ -844,37 +877,52 @@
         : (e.duration||'').replace('/', ' / ');
       return `
       <div class="approval-card">
-        <div class="approval-head">
+        <div class="approval-head" role="button" tabindex="0" aria-expanded="false">
           <div style="display:flex; align-items:center; gap:12px;">
             ${e.photoUrl ? `<img src="${escapeHtml(driveThumbUrl(e.photoUrl, 100))}" class="photo-thumb-cell" style="width:44px;height:44px;" loading="lazy" decoding="async" alt="">` : `<span class="photo-thumb-placeholder" style="width:44px;height:44px;">—</span>`}
             <div>
-              <div class="approval-name">${escapeHtml(e.name)}</div>
-              <div class="approval-sub">Registered ${escapeHtml(e.date||'')} · ${escapeHtml(e.time||'')}</div>
+              <div class="approval-name">${escapeHtml(e.name)} <span class="badge ${badgeClassFor(currentActivity, e.class)}">${escapeHtml(e.class||'')}</span></div>
+              <div class="approval-sub">${escapeHtml(planText)} · Registered ${escapeHtml(e.date||'')}</div>
             </div>
           </div>
-          <div class="approval-actions">${expired ? '<span class="status-tag status-expired">Expired / Used Up</span>' : ''}</div>
+          <div class="approval-actions">
+            ${expired ? '<span class="status-tag status-expired">Expired / Used Up</span>' : ''}
+            <span class="expand-chevron">▾</span>
+          </div>
         </div>
-        ${emergencyCalloutHtml(e)}
-        ${medicalCalloutHtml(e)}
-        <div class="detail-grid">
-          <div class="detail-item"><div class="dlabel">Category</div><div class="dvalue"><span class="badge ${badgeClassFor(currentActivity, e.class)}">${escapeHtml(e.class||'')}</span></div></div>
-          <div class="detail-item"><div class="dlabel">Department</div><div class="dvalue">${e.department ? escapeHtml(e.department) : '—'}</div></div>
-          ${e.class === FAMILY_CATEGORY ? `<div class="detail-item"><div class="dlabel">Family Package</div><div class="dvalue">${e.dob ? 'Primary registrant' : 'Additional family member'} — other codes retrievable by phone on Sign In</div></div>` : ''}
-          ${UG_STAFF_RELATION_CATEGORIES.indexOf(e.class) !== -1 ? `<div class="detail-item"><div class="dlabel">Related UG Staff</div><div class="dvalue">${e.relatedStaffName ? escapeHtml(e.relatedStaffName) : '—'} (${e.relatedStaffIdNo ? escapeHtml(e.relatedStaffIdNo) : '—'})</div></div><div class="detail-item"><div class="dlabel">Relationship to Staff</div><div class="dvalue">${e.staffRelationship ? escapeHtml(e.staffRelationship) : '—'}</div></div>` : ''}
-          <div class="detail-item"><div class="dlabel">Date of Birth</div><div class="dvalue">${escapeHtml(e.dob||'—')}</div></div>
-          <div class="detail-item"><div class="dlabel">Gender</div><div class="dvalue">${escapeHtml(e.gender||'—')}</div></div>
-          <div class="detail-item"><div class="dlabel">Nationality</div><div class="dvalue">${escapeHtml(e.nationality||'—')}</div></div>
-          <div class="detail-item"><div class="dlabel">Phone</div><div class="dvalue">${escapeHtml(e.phone||'—')}</div></div>
-          <div class="detail-item"><div class="dlabel">Email</div><div class="dvalue">${escapeHtml(e.email||'—')}</div></div>
-          <div class="detail-item"><div class="dlabel">ID No. / Code</div><div class="dvalue">${escapeHtml(e.idNo||'—')}</div></div>
-          <div class="detail-item"><div class="dlabel">Address</div><div class="dvalue">${escapeHtml(e.address||'—')}</div></div>
-          <div class="detail-item"><div class="dlabel">Plan</div><div class="dvalue">${escapeHtml(planText)}</div></div>
-          <div class="detail-item"><div class="dlabel">Expires</div><div class="dvalue">${escapeHtml(formatExpiry(e))}</div></div>
-          <div class="detail-item"><div class="dlabel">Photo</div><div class="dvalue">${e.photoUrl ? `<a href="${escapeHtml(e.photoUrl)}" target="_blank" rel="noopener" style="color:var(--blue);">View photo →</a>` : '—'}</div></div>
-          <div class="detail-item"><div class="dlabel">Signature</div><div class="dvalue">${e.signatureUrl ? `<a href="${escapeHtml(e.signatureUrl)}" target="_blank" rel="noopener" style="color:var(--blue);">View signature →</a>` : '—'}</div></div>
+        <div class="approval-more">
+          ${emergencyCalloutHtml(e)}
+          ${medicalCalloutHtml(e)}
+          <div class="detail-grid">
+            <div class="detail-item"><div class="dlabel">Department</div><div class="dvalue">${e.department ? escapeHtml(e.department) : '—'}</div></div>
+            ${e.class === FAMILY_CATEGORY ? `<div class="detail-item"><div class="dlabel">Family Package</div><div class="dvalue">${e.dob ? 'Primary registrant' : 'Additional family member'} — other codes retrievable by phone on Sign In</div></div>` : ''}
+            ${UG_STAFF_RELATION_CATEGORIES.indexOf(e.class) !== -1 ? `<div class="detail-item"><div class="dlabel">Related UG Staff</div><div class="dvalue">${e.relatedStaffName ? escapeHtml(e.relatedStaffName) : '—'} (${e.relatedStaffIdNo ? escapeHtml(e.relatedStaffIdNo) : '—'})</div></div><div class="detail-item"><div class="dlabel">Relationship to Staff</div><div class="dvalue">${e.staffRelationship ? escapeHtml(e.staffRelationship) : '—'}</div></div>` : ''}
+            <div class="detail-item"><div class="dlabel">Date of Birth</div><div class="dvalue">${escapeHtml(e.dob||'—')}</div></div>
+            <div class="detail-item"><div class="dlabel">Gender</div><div class="dvalue">${escapeHtml(e.gender||'—')}</div></div>
+            <div class="detail-item"><div class="dlabel">Nationality</div><div class="dvalue">${escapeHtml(e.nationality||'—')}</div></div>
+            <div class="detail-item"><div class="dlabel">Phone</div><div class="dvalue">${escapeHtml(e.phone||'—')}</div></div>
+            <div class="detail-item"><div class="dlabel">Email</div><div class="dvalue">${escapeHtml(e.email||'—')}</div></div>
+            <div class="detail-item"><div class="dlabel">ID No. / Code</div><div class="dvalue">${escapeHtml(e.idNo||'—')}</div></div>
+            <div class="detail-item"><div class="dlabel">Address</div><div class="dvalue">${escapeHtml(e.address||'—')}</div></div>
+            <div class="detail-item"><div class="dlabel">Expires</div><div class="dvalue">${escapeHtml(formatExpiry(e))}</div></div>
+            <div class="detail-item"><div class="dlabel">Photo</div><div class="dvalue">${e.photoUrl ? `<a href="${escapeHtml(e.photoUrl)}" target="_blank" rel="noopener" style="color:var(--blue);">View photo →</a>` : '—'}</div></div>
+            <div class="detail-item"><div class="dlabel">Signature</div><div class="dvalue">${e.signatureUrl ? `<a href="${escapeHtml(e.signatureUrl)}" target="_blank" rel="noopener" style="color:var(--blue);">View signature →</a>` : '—'}</div></div>
+          </div>
         </div>
       </div>`;
     }).join('');
+
+    host.querySelectorAll('.approval-head').forEach(head => {
+      const toggle = () => {
+        const card = head.closest('.approval-card');
+        const expanded = card.classList.toggle('expanded');
+        head.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      };
+      head.addEventListener('click', toggle);
+      head.addEventListener('keydown', (ev) => {
+        if(ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); toggle(); }
+      });
+    });
 
     const expiredCount = list.filter(isExpired).length;
     footNote.textContent = `Showing ${list.length} of ${approvedEntries.length} registrant(s) · ${expiredCount} expired/used up. Auto-refreshes every ${AUTO_REFRESH_MS/1000}s.`;
