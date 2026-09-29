@@ -1419,7 +1419,19 @@
     return list;
   }
 
+  // Same reasoning as renderTable()'s own wrapper above — the Visit
+  // Log's search box calls this directly, so a crash in here must show
+  // something on screen instead of just leaving the box looking dead.
   function renderVisitsTable(){
+    try {
+      renderVisitsTableUnsafe();
+    } catch (err) {
+      document.getElementById('visitsTableHost').innerHTML =
+        `<div class="empty-state"><p>Couldn't display the Visit Log.</p><p style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-faint);">${escapeHtml(String(err && err.message || err))}</p></div>`;
+      console.error('renderVisitsTable failed:', err);
+    }
+  }
+  function renderVisitsTableUnsafe(){
     const host = document.getElementById('visitsTableHost');
     const footNote = document.getElementById('visitsFootNote');
     const list = sortedFilteredVisits();
@@ -1918,7 +1930,23 @@
     .catch(() => showToast("Couldn't reach the sheet — check connection", true));
   });
 
+  // A search box's own 'input' listener calls this directly — if
+  // anything in here throws (one bad row's data, an unexpected value),
+  // the exception used to propagate silently: the search box's event
+  // fired fine, but the table underneath it never updated, which just
+  // looks like "search doesn't do anything" with nothing to explain
+  // why. This wrapper means a crash always shows SOMETHING on screen
+  // instead of leaving the page looking unresponsive.
   function renderTable(){
+    try {
+      renderTableUnsafe();
+    } catch (err) {
+      document.getElementById('tableHost').innerHTML =
+        `<div class="empty-state"><p>Couldn't display the registration table.</p><p style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-faint);">${escapeHtml(String(err && err.message || err))}</p></div>`;
+      console.error('renderTable failed:', err);
+    }
+  }
+  function renderTableUnsafe(){
     const tableHost = document.getElementById('tableHost');
     const footNote = document.getElementById('footNote');
     const list = sortedFiltered();
