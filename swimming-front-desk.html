@@ -617,10 +617,11 @@
       pinBuffer = ""; updatePinDots();
       pinError.textContent = "";
       showScreen('desk');
-          renderActivitySwitcher();
-          loadAll();
-          scheduleAutoRefresh();
-          subscribeLive();
+      renderActivitySwitcher();
+      showActivityLoading();
+      loadAll().then(prefetchOtherActivities);
+      scheduleAutoRefresh();
+      subscribeLive();
     })
     .catch(() => fail("Couldn't reach the server — check the connection and try again."));
   }
@@ -646,6 +647,12 @@
     try{ localStorage.setItem('swimmingDeskActivityKey', key); }catch(e){}
     searchTerm = ""; document.getElementById('searchBox').value = "";
     renderActivitySwitcher();
+    // Paint the new activity right now — from memory if we have it,
+    // otherwise a "Loading…" state; never the previous activity's list.
+    // Then refresh in the background to catch up with any change made
+    // since it was remembered.
+    const st = storeFor(key);
+    if(st.loaded) showActivityFromStore(st); else showActivityLoading();
     loadAll();
     attachLiveActivity();
   }
@@ -675,24 +682,70 @@
   // early by a live Firebase "touch" signal (see attachLiveActivity()
   // further down, which only ever triggers a fetch, never hands data
   // to this function directly).
+  // Everything loaded so far, remembered PER ACTIVITY (Leisure and
+  // Lessons). Switching used to leave the old activity's list on screen
+  // until the new one's fetch came back, and forgot it again on the way
+  // out, so every switch meant waiting. Now a switch paints from this
+  // memory instantly and refreshes it in the background, and the other
+  // activity is loaded once right after sign-in so even the first
+  // switch is instant.
+  const store = {};
+  function storeFor(key){
+    return store[key] || (store[key] = { registrations: [], alerts: [], loaded: false });
+  }
+  function showActivityFromStore(st){
+    approvedEntries = st.registrations; alertEntries = st.alerts;
+    renderTally(); renderRegistrants(); renderAlerts();
+  }
+  // Only for an activity with nothing remembered yet: say it's loading
+  // instead of showing the previous activity's list or a misleading
+  // "no registrants" state.
+  function showActivityLoading(){
+    approvedEntries = []; alertEntries = [];
+    document.getElementById('registrantsHost').innerHTML =
+      `<div class="empty-state"><p>Loading ${escapeHtml(currentActivity.label)}…</p></div>`;
+    document.getElementById('tally').innerHTML = '';
+    document.getElementById('footNote').textContent = '';
+    const banner = document.getElementById('alertBanner'); banner.style.display = 'none'; banner.innerHTML = '';
+  }
+  let prefetchRunning = false;
+  function prefetchOtherActivities(){
+    if(prefetchRunning) return;
+    prefetchRunning = true;
+    const others = Object.keys(ACTIVITIES).filter(k => k !== currentActivity.key && !storeFor(k).loaded);
+    others.reduce((p, k) => p.then(() => loadAll(ACTIVITIES[k])), Promise.resolve())
+      .then(() => { prefetchRunning = false; }, () => { prefetchRunning = false; });
+  }
   function applyDashboardPayload(res, activity){
-    if(activity.key !== currentActivity.key) return; // switched while in flight/in transit
-    approvedEntries = res.registrations || [];
-    alertEntries = res.alerts || [];
+    const st = storeFor(activity.key);
+    st.registrations = res.registrations || [];
+    st.alerts = res.alerts || [];
+    st.loaded = true;
+    // Not the activity on screen (prefetch/background refresh, or the
+    // person switched while this was in flight): remembered for later.
+    if(activity.key !== currentActivity.key) return;
+    approvedEntries = st.registrations;
+    alertEntries = st.alerts;
     renderTally();
     renderRegistrants();
     renderAlerts();
   }
-  function loadAll(){
-    const activity = currentActivity;
+  // activity defaults to the one on screen. Any other activity is a
+  // background load: it fills that activity's memory and never toasts or
+  // counts toward the connection-failure warning.
+  function loadAll(activity){
+    if(!activity || !activity.key) activity = currentActivity;
     return fetchJSON(SCRIPT_URL + "?activity=" + activity.key + "&view=registrantsDashboard&t=" + Date.now())
       .then(res => {
-        consecutiveLoadFailures = 0;
-        if(activity.key !== currentActivity.key) return;
-        if(res.status !== "ok"){ showToast(res.message || "Couldn't reach the sheet — check connection", true); return; }
+        if(res.status !== "ok"){
+          if(activity.key === currentActivity.key) showToast(res.message || "Couldn't reach the sheet — check connection", true);
+          return;
+        }
+        if(activity.key === currentActivity.key) consecutiveLoadFailures = 0;
         applyDashboardPayload(res, activity);
       })
       .catch(() => {
+        if(activity.key !== currentActivity.key) return;
         consecutiveLoadFailures++;
         if(consecutiveLoadFailures === 4){
           showToast("Couldn't reach the sheet — check connection", true);
@@ -750,12 +803,19 @@
   // regardless of whether the previous batch ever finished — during
   // any slow patch that piles requests up faster than Apps Script can
   // drain them, which then makes everything slower still.
+  let refreshTick = 0;
   function scheduleAutoRefresh(){
     clearTimeout(refreshTimer);
     if(!staffToken) return; // signed out — checkPin() restarts this after the next login
     refreshTimer = setTimeout(() => {
       if(document.hidden){ scheduleAutoRefresh(); return; }
       loadAll().then(scheduleAutoRefresh);
+      // Keep the other activity's memory from going stale: refresh it
+      // every 5th cycle (~15s), fired separately so a slow one can never
+      // delay the visible activity's own cycle.
+      if(++refreshTick % 5 === 0){
+        Object.keys(ACTIVITIES).filter(k => k !== currentActivity.key).forEach(k => loadAll(ACTIVITIES[k]));
+      }
     }, AUTO_REFRESH_MS);
   }
 

@@ -1020,12 +1020,12 @@
       pinBuffer = ""; updatePinDots();
       pinError.textContent = "";
       showScreen('desk');
-          renderActivitySwitcher();
-          loadAll();
-          loadFullVisitHistory();
-          refreshAllPendingCounts();
-          scheduleAutoRefresh();
-          subscribeLive();
+      renderActivitySwitcher();
+      showActivityLoading();
+      Promise.all([loadAll(), loadFullVisitHistory()]).then(prefetchOtherActivities);
+      refreshAllPendingCounts();
+      scheduleAutoRefresh();
+      subscribeLive();
     })
     .catch(() => fail("Couldn't reach the server — check the connection and try again."));
   }
@@ -1121,14 +1121,17 @@
     // the old one's (e.g. both empty) — see the snapshot vars' comment.
     lastPendingJSON = lastApprovedJSON = lastVisitsJSON = lastAlertsJSON = null;
     lastClearedAtSeen = undefined;
-    // The full Visits history loaded so far belongs to the activity
-    // just switched away from — clear it so nothing stale shows while
-    // the new activity's history loads (loadAll()'s next cycle would
-    // otherwise merge today's rows into the OLD activity's history).
-    visitEntries = [];
+    // Paint the new activity right now — from memory if we have it
+    // (normally always, thanks to the post-login prefetch), otherwise a
+    // "Loading…" state. Either way the previous activity's lists are
+    // gone the instant the label changes. Then refresh in the
+    // background so what's shown catches up with any change made since
+    // it was remembered.
     renderActivitySwitcher();
+    const st = storeFor(key);
+    if(st.loaded) showActivityFromStore(st); else showActivityLoading();
     loadAll();
-    loadFullVisitHistory();
+    if(!st.visitsLoaded) loadFullVisitHistory();
     attachLiveActivity();
   }
 
@@ -1220,9 +1223,58 @@
   // the same check-ins duplicating in the Visit Log forever. Falls
   // back to a local guess only if talking to an older deployment that
   // doesn't send visitsDateLabel yet.
-  function mergeTodayVisits(todayRows, todayLabel){
+  function mergeTodayVisits(existing, todayRows, todayLabel){
     const label = todayLabel || formatDateDMY(new Date());
-    visitEntries = visitEntries.filter(v => v.date !== label).concat(todayRows);
+    return existing.filter(v => v.date !== label).concat(todayRows);
+  }
+
+  // Everything this desk has loaded, remembered PER ACTIVITY. Switching
+  // used to leave the old activity's lists on screen until the new
+  // one's fetch came back, and threw everything away again on the way
+  // out, so every switch — even back to one you'd just been looking at —
+  // meant waiting. Now a switch paints from this memory instantly
+  // (showActivityFromStore) and then refreshes it in the background, and
+  // every activity is loaded once right after sign-in
+  // (prefetchOtherActivities) so even the first visit is instant.
+  // pendingEntries/approvedEntries/... below stay the "what's on screen
+  // now" copies every render function already reads.
+  const store = {};
+  function storeFor(key){
+    return store[key] || (store[key] = { pending: [], registrations: [], clearedAt: null, alerts: [], visits: [], loaded: false, visitsLoaded: false });
+  }
+  function showActivityFromStore(st){
+    pendingEntries = st.pending; approvedEntries = st.registrations;
+    registrationsClearedAt = st.clearedAt; alertEntries = st.alerts; visitEntries = st.visits;
+    renderTally(); renderApprovals(); renderTable(); renderVisitsTable(); renderAlerts();
+  }
+  // Only for an activity with nothing remembered yet (first visit,
+  // before the prefetch reached it): show that it's loading instead of
+  // the previous activity's data or a misleading "nothing here" state.
+  function showActivityLoading(){
+    pendingEntries = []; approvedEntries = []; alertEntries = []; visitEntries = [];
+    registrationsClearedAt = null;
+    const loading = `<div class="empty-state"><p>Loading ${escapeHtml(currentActivity.label)}…</p></div>`;
+    ['approvalsHost', 'tableHost', 'visitsTableHost'].forEach(id => { document.getElementById(id).innerHTML = loading; });
+    document.getElementById('tally').innerHTML = '';
+    document.getElementById('pendingBadge').textContent = pendingCounts[currentActivity.key] || 0;
+    const banner = document.getElementById('alertBanner'); banner.style.display = 'none'; banner.innerHTML = '';
+    document.getElementById('clearedNote').style.display = 'none';
+    document.getElementById('footNote').textContent = '';
+    document.getElementById('visitsFootNote').textContent = '';
+  }
+  // Quietly loads every activity we don't have yet, one at a time and
+  // only after the visible one has finished, so it never competes with
+  // what the person is actually looking at. Small dashboards first, the
+  // (larger) full visit histories after.
+  let prefetchRunning = false;
+  function prefetchOtherActivities(){
+    if(prefetchRunning) return;
+    prefetchRunning = true;
+    const others = Object.keys(ACTIVITIES).filter(k => k !== currentActivity.key);
+    const chain = (jobFor) => others.reduce((p, k) => p.then(() => jobFor(k)), Promise.resolve());
+    chain(k => storeFor(k).loaded ? null : loadAll(ACTIVITIES[k]))
+      .then(() => chain(k => storeFor(k).visitsLoaded ? null : loadFullVisitHistory(ACTIVITIES[k])))
+      .then(() => { prefetchRunning = false; }, () => { prefetchRunning = false; });
   }
   // Applies one dashboard-shaped payload (pending/registrations/visits/
   // alerts/clearedAt) to the UI — called by loadAll() below on every
@@ -1233,7 +1285,18 @@
   // there's exactly one code path that turns server data into UI,
   // whichever reason triggered the fetch.
   function applyDashboardPayload(res, activity){
-    if(activity.key !== currentActivity.key) return; // switched while in flight/in transit
+    const st = storeFor(activity.key);
+    st.pending = res.pending || [];
+    st.registrations = res.registrations || [];
+    st.clearedAt = res.clearedAt || null;
+    st.alerts = res.alerts || [];
+    st.visits = mergeTodayVisits(st.visits, res.visits || [], res.visitsDateLabel);
+    st.loaded = true;
+    pendingCounts[activity.key] = st.pending.length;
+    // Not the activity on screen (a prefetch/background refresh, or the
+    // person switched while this was in flight): remembered for later,
+    // nothing to paint.
+    if(activity.key !== currentActivity.key) return;
 
     const newPendingJSON = JSON.stringify(res.pending || []);
     const newApprovedJSON = JSON.stringify(res.registrations || []);
@@ -1246,11 +1309,11 @@
     const visitsChanged = newVisitsJSON !== lastVisitsJSON;
     const alertsChanged = newAlertsJSON !== lastAlertsJSON;
 
-    pendingEntries = res.pending || [];
-    approvedEntries = res.registrations || [];
+    pendingEntries = st.pending;
+    approvedEntries = st.registrations;
     registrationsClearedAt = newClearedAt;
-    if(visitsChanged) mergeTodayVisits(res.visits || [], res.visitsDateLabel);
-    alertEntries = res.alerts || [];
+    visitEntries = st.visits;
+    alertEntries = st.alerts;
 
     // Every render() below rebuilds its panel's full innerHTML from
     // scratch — skip whichever ones the sheet hasn't actually
@@ -1270,8 +1333,13 @@
     lastAlertsJSON = newAlertsJSON;
     lastClearedAtSeen = newClearedAt;
   }
-  function loadAll(){
-    const activity = currentActivity;
+  // activity defaults to the one on screen (also called straight from
+  // click handlers, which pass an Event — hence the .key check). Any
+  // other activity is a background load: it fills that activity's
+  // memory and never toasts or counts toward the connection-failure
+  // warning.
+  function loadAll(activity){
+    if(!activity || !activity.key) activity = currentActivity;
     // TEMPORARY debug instrumentation (see Code.gs's matching comment
     // on the "dashboard" view) — logs the server's own step-by-step
     // breakdown for THIS poll, alongside the client-observed round
@@ -1282,13 +1350,16 @@
     const _reqStart = Date.now();
     return fetchJSON(SCRIPT_URL + "?activity=" + activity.key + "&view=dashboard&t=" + Date.now())
       .then(res => {
-        consecutiveLoadFailures = 0;
         if(res._timing) console.log(`[dashboard poll timing] activity=${activity.key} clientRoundTripMs=${Date.now() - _reqStart}`, res._timing);
-        if(activity.key !== currentActivity.key) return; // switched while in flight
-        if(res.status !== "ok"){ showToast(res.message || "Couldn't reach the sheet — check connection", true); return; }
+        if(res.status !== "ok"){
+          if(activity.key === currentActivity.key) showToast(res.message || "Couldn't reach the sheet — check connection", true);
+          return;
+        }
+        if(activity.key === currentActivity.key) consecutiveLoadFailures = 0;
         applyDashboardPayload(res, activity);
       })
       .catch(() => {
+        if(activity.key !== currentActivity.key) return;
         consecutiveLoadFailures++;
         if(consecutiveLoadFailures === 4){
           showToast("Couldn't reach the sheet — check connection", true);
@@ -1303,13 +1374,16 @@
   // only brings in today's rows after this. Resets lastVisitsJSON so the
   // very next dashboard cycle's change-check can't skip a real update by
   // comparing against a now-stale value.
-  function loadFullVisitHistory(){
-    const activity = currentActivity;
+  function loadFullVisitHistory(activity){
+    if(!activity || !activity.key) activity = currentActivity;
     return fetchJSON(SCRIPT_URL + "?activity=" + activity.key + "&view=visits&t=" + Date.now())
       .then(res => {
-        if(activity.key !== currentActivity.key) return; // switched while in flight
         if(res.status !== "ok") return;
-        visitEntries = res.rows || [];
+        const st = storeFor(activity.key);
+        st.visits = res.rows || [];
+        st.visitsLoaded = true;
+        if(activity.key !== currentActivity.key) return; // remembered for a later switch
+        visitEntries = st.visits;
         lastVisitsJSON = null;
         renderVisitsTable();
       })
@@ -1377,7 +1451,7 @@
     liveBadgeRefs.length = 0;
     Object.keys(ACTIVITIES).forEach(key => {
       const ref = firebase.database().ref('live/' + key + '/touch');
-      onLiveRef(ref, () => { if(key !== currentActivity.key) refreshAllPendingCounts(); });
+      onLiveRef(ref, () => { if(key !== currentActivity.key){ refreshAllPendingCounts(); loadAll(ACTIVITIES[key]); } });
       liveBadgeRefs.push(ref);
     });
   }
@@ -1400,12 +1474,20 @@
   // still. Also skips the cycle entirely while the tab is
   // hidden/backgrounded, since a front desk device is often left open
   // all day.
+  let refreshTick = 0;
   function scheduleAutoRefresh(){
     clearTimeout(refreshTimer);
     if(!staffToken) return; // signed out — checkPin() restarts this after the next login
     refreshTimer = setTimeout(() => {
       if(document.hidden){ scheduleAutoRefresh(); return; }
       Promise.allSettled([loadAll(), refreshAllPendingCounts()]).then(scheduleAutoRefresh);
+      // Keep the other activities' memory from going stale: one of them
+      // every 5th cycle (~15s), round-robin, fired separately so a slow
+      // one can never delay the visible activity's own cycle.
+      if(++refreshTick % 5 === 0){
+        const others = Object.keys(ACTIVITIES).filter(k => k !== currentActivity.key);
+        if(others.length) loadAll(ACTIVITIES[others[Math.floor(refreshTick / 5) % others.length]]);
+      }
     }, AUTO_REFRESH_MS);
   }
 
@@ -1892,6 +1974,21 @@
     });
   }
 
+  // idNos may be numbers if a cell was ever hand-edited in the sheet, so
+  // compare as strings. Updates that activity's memory too, in case the
+  // person has already switched away by the time the server answers.
+  function removePendingLocally(activity, idNos){
+    const gone = new Set(idNos.map(String));
+    const st = storeFor(activity.key);
+    st.pending = st.pending.filter(e => !gone.has(String(e.idNo)));
+    pendingCounts[activity.key] = st.pending.length;
+    if(activity.key !== currentActivity.key) return;
+    pendingEntries = st.pending;
+    renderApprovals();
+    renderTally();
+    renderActivitySwitcher();
+  }
+
   function handleApprovalAction(idNo, action){
     const entry = pendingEntries.find(e => e.idNo === idNo);
     const isWalkin = action === "approve" && entry && entry.duration === "Walk-in";
@@ -1951,7 +2048,12 @@
         } else {
           showToast(isRenewal ? "Renewal request rejected" : (familySize > 1 ? `Family of ${familySize} rejected` : "Rejected"));
         }
-        loadAll();
+        // The server has confirmed, so take those entries off the list
+        // now instead of leaving the card sitting there until the
+        // reload below comes back (approving used to cost the approval
+        // round trip PLUS a full dashboard reload before anything moved).
+        removePendingLocally(activity, data.approvedIdNos || data.rejectedIdNos || [idNo]);
+        loadAll(activity);
       } else {
         showToast(data.message || "Couldn't update — try again", true);
         renderApprovals();
