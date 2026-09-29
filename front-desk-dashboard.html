@@ -399,6 +399,37 @@
     .approval-actions{ width:100%; }
     .approval-actions .approve-btn, .approval-actions .reject-btn{ flex:1; padding:11px 10px; }
     .table-toolbar .search-box{ width:100%; }
+
+    /* No sideways scrolling on a phone: the Registration Table and
+       Visit Log each collapse from a 7-9 column table into one stacked
+       card per row — photo and name on top, every other column below
+       as a small labelled pair (label text comes from each cell's
+       data-label, set in renderTable()/renderVisitsTable()). The
+       column headers can't sit above a stacked layout, so they're
+       hidden; column-sorting stays available on wider screens. */
+    .table-scroll{ overflow-x:visible; }
+    .table-scroll table{ min-width:0; }
+    .table-scroll table, .table-scroll tbody{ display:block; }
+    .table-scroll thead{ display:none; }
+    .table-scroll tbody tr{
+      display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px;
+      padding:12px 6px; border-bottom:1px solid var(--line);
+    }
+    .table-scroll tbody tr.expired-row{ border-bottom-color:rgba(192,57,43,0.25); }
+    .table-scroll tbody td{ display:block; padding:0; border:none; white-space:normal; }
+    .table-scroll td.cell-photo{ flex:0 0 auto; }
+    .table-scroll td.name-cell{ flex:1 1 0; min-width:0; font-size:14.5px; }
+    .table-scroll td[data-label]{ flex:1 1 40%; min-width:0; word-break:break-word; }
+    .table-scroll td[data-label]::before{
+      content:attr(data-label); display:block; margin-bottom:2px;
+      font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:0.06em;
+      text-transform:uppercase; color:var(--text-faint);
+    }
+    .table-scroll tbody tr.group-row{ display:block; padding:0; border-bottom:none; }
+    .table-scroll tbody tr.group-row td{
+      display:block; padding:10px 6px;
+      border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+    }
   }
   /* Phone-width specifically (640px above already covers a small
      tablet/large-phone-landscape range) — the tally row and kiosk PIN
@@ -1477,13 +1508,13 @@
         const photoUrl = photoByIdNo[v.idNo];
         return `
         <tr>
-          <td>${photoUrl ? `<a href="${escapeHtml(photoUrl)}" target="_blank" rel="noopener"><img src="${escapeHtml(driveThumbUrl(photoUrl, 100))}" class="photo-thumb-cell" loading="lazy" decoding="async" alt=""></a>` : '<span class="photo-thumb-placeholder">—</span>'}</td>
+          <td class="cell-photo">${photoUrl ? `<a href="${escapeHtml(photoUrl)}" target="_blank" rel="noopener"><img src="${escapeHtml(driveThumbUrl(photoUrl, 100))}" class="photo-thumb-cell" loading="lazy" decoding="async" alt=""></a>` : '<span class="photo-thumb-placeholder">—</span>'}</td>
           <td class="name-cell">${escapeHtml(v.name)}</td>
-          <td><span class="badge ${badgeClassFor(currentActivity, v.class)}">${escapeHtml(v.class||'')}</span></td>
-          <td class="id-cell">${escapeHtml(v.duration||'—')}</td>
-          <td class="id-cell">${(v.duration === 'Walk-in' && currentActivity.idRequiredCategories.indexOf(v.class) === -1) ? '<span style="color:var(--text-faint);">—</span>' : escapeHtml(v.idNo||'')}</td>
-          <td class="id-cell">${escapeHtml(v.timeIn||'—')}</td>
-          <td class="id-cell">${v.timeOut ? escapeHtml(v.timeOut) : '<span class="status-tag" style="background:var(--gold-dim);color:var(--gold-dark);">Still in</span>'}</td>
+          <td data-label="Category"><span class="badge ${badgeClassFor(currentActivity, v.class)}">${escapeHtml(v.class||'')}</span></td>
+          <td class="id-cell" data-label="Plan">${escapeHtml(v.duration||'—')}</td>
+          <td class="id-cell" data-label="ID / Code">${(v.duration === 'Walk-in' && currentActivity.idRequiredCategories.indexOf(v.class) === -1) ? '<span style="color:var(--text-faint);">—</span>' : escapeHtml(v.idNo||'')}</td>
+          <td class="id-cell" data-label="Time In">${escapeHtml(v.timeIn||'—')}</td>
+          <td class="id-cell" data-label="Time Out">${v.timeOut ? escapeHtml(v.timeOut) : '<span class="status-tag" style="background:var(--gold-dim);color:var(--gold-dark);">Still in</span>'}</td>
         </tr>`;
       }).join('');
       return `
@@ -2000,15 +2031,15 @@
         const expired = isExpired(e);
         return `
         <tr class="${expired ? 'expired-row' : ''}">
-          <td>${e.photoUrl ? `<a href="${escapeHtml(e.photoUrl)}" target="_blank" rel="noopener"><img src="${escapeHtml(driveThumbUrl(e.photoUrl, 100))}" class="photo-thumb-cell" loading="lazy" decoding="async" alt=""></a>` : '<span class="photo-thumb-placeholder">—</span>'}</td>
+          <td class="cell-photo">${e.photoUrl ? `<a href="${escapeHtml(e.photoUrl)}" target="_blank" rel="noopener"><img src="${escapeHtml(driveThumbUrl(e.photoUrl, 100))}" class="photo-thumb-cell" loading="lazy" decoding="async" alt=""></a>` : '<span class="photo-thumb-placeholder">—</span>'}</td>
           <td class="name-cell">${escapeHtml(e.name)}</td>
-          <td><span class="badge ${badgeClassFor(currentActivity, e.class)}">${escapeHtml(e.class||'')}</span></td>
-          <td class="id-cell">${e.department ? escapeHtml(e.department) : '<span style="color:var(--text-faint);">—</span>'}</td>
-          <td class="id-cell">${escapeHtml(e.phone||'')}</td>
-          <td class="id-cell">${escapeHtml(e.idNo||'')}</td>
-          <td class="dur-tag">${(e.duration||'').replace('/', ' / ')}</td>
-          <td class="id-cell">${statusCellHtml(e)}</td>
-          <td class="id-cell">${escapeHtml(e.date||'')} · ${escapeHtml(e.time||'')}</td>
+          <td data-label="Category"><span class="badge ${badgeClassFor(currentActivity, e.class)}">${escapeHtml(e.class||'')}</span></td>
+          <td class="id-cell" data-label="Department">${e.department ? escapeHtml(e.department) : '<span style="color:var(--text-faint);">—</span>'}</td>
+          <td class="id-cell" data-label="Phone">${escapeHtml(e.phone||'')}</td>
+          <td class="id-cell" data-label="ID / Code">${escapeHtml(e.idNo||'')}</td>
+          <td class="dur-tag" data-label="Plan">${(e.duration||'').replace('/', ' / ')}</td>
+          <td class="id-cell" data-label="Status">${statusCellHtml(e)}</td>
+          <td class="id-cell" data-label="Registered">${escapeHtml(e.date||'')} · ${escapeHtml(e.time||'')}</td>
         </tr>`;
       }).join('');
       return `
