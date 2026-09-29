@@ -42,7 +42,11 @@
   @keyframes screenFadeIn{ from{opacity:0; transform:scale(1.015);} to{opacity:1; transform:scale(1);} }
 
   /* PIN gate */
-  #pinScreen{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:32px 20px; }
+  #pinScreen{ min-height:100vh; align-items:center; justify-content:center; padding:32px 20px; }
+  /* display:flex only while active — an ID selector outranks .screen{display:none},
+     so a bare display:flex here kept the PIN card on the page after login,
+     pushing the whole dashboard a full screen-height down. */
+  #pinScreen.active{ display:flex; }
   .kiosk-card{
     width:100%; max-width:340px; background:var(--panel); border:1px solid var(--line);
     border-top:4px solid var(--gold); border-radius:16px; padding:34px 30px 30px;
@@ -179,6 +183,7 @@
   .btn-ghost:hover{border-color:var(--blue); color:var(--blue);}
 
   .table-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  .label-short{ display:none; }
   table{width:100%; border-collapse:collapse; font-size:13.5px; min-width:900px;}
   thead th{
     text-align:left; font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.06em;
@@ -390,57 +395,157 @@
   .tab-btn{ transition:background .12s ease, color .12s ease, box-shadow .12s ease; }
   tbody tr{ transition:background .1s ease; }
 
-  /* ---- Phone screens ---- */
+  /* ---- Phone screens ----
+     Laid out for a phone held upright (360-430px wide), not a squeezed
+     desktop: smaller type and padding throughout, every control row fits
+     on one line, and the two data tables become two-line rows instead of
+     a 9-column grid. Nothing here applies above 640px. */
   @media (max-width:640px){
-    #deskScreen .wrap{ padding:18px 12px 60px; }
-    .panel{ padding:14px; }
-    .tab-btn{ font-size:10.5px; padding:10px 4px; letter-spacing:0.01em; }
-    .walkin-row{ grid-template-columns:1fr; }
-    .approval-actions{ width:100%; }
-    .approval-actions .approve-btn, .approval-actions .reject-btn{ flex:1; padding:11px 10px; }
-    .table-toolbar .search-box{ width:100%; }
+    #deskScreen .wrap{ padding:14px 12px 56px; }
 
-    /* No sideways scrolling on a phone: the Registration Table and
-       Visit Log each collapse from a 7-9 column table into one stacked
-       card per row — photo and name on top, every other column below
-       as a small labelled pair (label text comes from each cell's
-       data-label, set in renderTable()/renderVisitsTable()). The
-       column headers can't sit above a stacked layout, so they're
-       hidden; column-sorting stays available on wider screens. */
+    /* Header: one compact brand line + title, tally full width */
+    header{ gap:12px; margin-bottom:14px; padding-bottom:14px; border-bottom-width:2px; }
+    .header-left{ width:100%; }
+    .header-left .brand-lockup{ gap:8px; margin-bottom:4px; }
+    .header-left .brand-logo{ width:20px; height:24px; }
+    .header-left .brand-eyebrow{ font-size:8.5px; letter-spacing:0.08em; line-height:1.4; margin:0; }
+    header h1{ font-size:30px; }
+    .tally{ width:100%; display:grid; grid-template-columns:repeat(auto-fit,minmax(62px,1fr)); }
+    .tally-cell{
+      min-width:0; padding:8px 4px; border-right:none;
+      box-shadow:1px 0 0 var(--line), 0 1px 0 var(--line);
+    }
+    .tally-num{ font-size:22px; }
+    .tally-label{ font-size:8px; letter-spacing:0.04em; line-height:1.3; }
+
+    /* Activity pills: one row, equal widths */
+    .activity-switcher{ gap:6px; margin-bottom:12px; }
+    .activity-switcher-row{ flex-wrap:nowrap; gap:6px; }
+    .activity-switcher-subrow{ padding-left:0; }
+    .activity-pill, .activity-pill-sub{
+      flex:1 1 0; min-width:0; justify-content:center; gap:5px;
+      padding:9px 6px; font-size:12px; border-radius:9px;
+    }
+    .activity-pill > span:first-child{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .activity-pill-badge{ font-size:9.5px; padding:1px 5px; min-width:16px; }
+
+    /* Expired-sign-in alerts */
+    .alert-banner{ gap:6px; margin-bottom:12px; }
+    .alert-item{ padding:9px 10px; gap:10px; border-radius:9px; }
+    .alert-item-text{ font-size:12px; line-height:1.4; }
+    .alert-item-sub{ font-size:10.5px; }
+    .alert-dismiss-btn{ padding:6px 10px; font-size:11px; }
+
+    /* Tabs: short labels so nothing wraps */
+    .label-long{ display:none; }
+    .label-short{ display:inline; }
+    .tab-bar{ gap:4px; padding:4px; margin-bottom:12px; border-radius:10px; }
+    .tab-btn{ font-size:11px; padding:9px 4px; letter-spacing:0; gap:5px; white-space:nowrap; }
+    .tab-badge{ font-size:10px; padding:1px 6px; }
+
+    /* Panels and toolbars */
+    .panel{ padding:14px 12px; border-radius:12px; }
+    .panel-title{ font-size:9.5px; letter-spacing:0.1em; margin-bottom:12px; gap:4px; }
+    .live-dot{ font-size:9.5px; }
+    .btn-ghost{ padding:8px 12px; font-size:12px; }
+    .table-toolbar{ gap:8px; margin-bottom:10px; }
+    .table-toolbar .search-box{ width:100%; min-width:0; font-size:16px; padding:8px 12px 8px 32px; }
+    .toolbar-actions{ width:100%; gap:6px; flex-wrap:nowrap; }
+    .toolbar-actions .legend{ display:none; }
+    .toolbar-actions .btn-ghost{ flex:1 1 0; min-width:0; padding:8px 4px; text-align:center; white-space:nowrap; }
+    .foot-note{ font-size:10.5px; margin-top:10px; }
+    .cleared-note{ font-size:12px; }
+
+    /* Walk-in quick entry — 16px inputs stop iOS zooming the page in */
+    .walkin-card{ padding:14px 12px; }
+    .walkin-row{ grid-template-columns:1fr; }
+    .walkin-card input[type=text], .walkin-card select{ font-size:16px; }
+
+    /* Approval cards */
+    .approval-card{ padding:14px 12px; border-radius:12px; margin-bottom:12px; }
+    .approval-head{ gap:10px; margin-bottom:12px; }
+    .approval-head .photo-thumb-cell, .approval-head .photo-thumb-placeholder{ width:40px !important; height:40px !important; flex-shrink:0; }
+    .approval-name{ font-size:21px; line-height:1.05; }
+    .approval-sub{ font-size:11px; }
+    .approval-actions{ width:100%; gap:8px; }
+    .approval-actions .approve-btn, .approval-actions .reject-btn{ flex:1; padding:10px 8px; font-size:12px; }
+    .approval-renewal-note{ display:block; font-size:12px; line-height:1.5; padding:8px 10px; margin-bottom:10px; }
+    .approval-renewal-note .status-tag{ display:inline-block; margin:0 6px 2px 0; }
+    .emergency-callout, .medical-callout{ padding:8px 10px; margin-bottom:10px; gap:2px 8px; }
+    .emergency-callout-label, .medical-callout-label{ font-size:9px; }
+    .emergency-callout-value, .medical-callout-value{ font-size:12.5px; }
+    .detail-grid{ grid-template-columns:1fr 1fr; gap:10px 12px; }
+    .detail-item{ min-width:0; }
+    .detail-item .dlabel{ font-size:9px; margin-bottom:2px; }
+    .detail-item .dvalue{ font-size:12.5px; }
+    .detail-item.is-empty{ display:none; }
+    /* Approval cards already carry their own border/background, so the
+       panel around them is dropped on phones instead of nesting a card
+       inside a card (which cost a double indent on a narrow screen). */
+    #tab-approvals > .panel{ background:transparent; border:none; box-shadow:none; padding:4px 0 0; }
+
+    /* Registration Table + Visit Log: two-line rows, no sideways scroll.
+       Line 1: name, with expiry (registrations) or time in → out
+       (visits) on the right. Line 2: category · ID · plan. Tapping a
+       registration row reveals department, phone and registered time
+       (.m-extra, toggled by renderTable()). Column headers can't sit
+       above this layout, so sorting is a wider-screen feature. */
     .table-scroll{ overflow-x:visible; }
-    .table-scroll table{ min-width:0; }
+    .table-scroll table{ min-width:0; font-size:13px; }
     .table-scroll table, .table-scroll tbody{ display:block; }
     .table-scroll thead{ display:none; }
     .table-scroll tbody tr{
-      display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px;
-      padding:12px 6px; border-bottom:1px solid var(--line);
+      position:relative; display:flex; flex-wrap:wrap; align-items:baseline;
+      column-gap:8px; row-gap:3px; min-height:58px;
+      padding:11px 4px 11px 50px; border-bottom:1px solid var(--line);
     }
+    .table-scroll tbody tr::after{ content:""; order:3; flex-basis:100%; height:0; }
     .table-scroll tbody tr.expired-row{ border-bottom-color:rgba(192,57,43,0.25); }
     .table-scroll tbody td{ display:block; padding:0; border:none; white-space:normal; }
-    .table-scroll td.cell-photo{ flex:0 0 auto; }
-    .table-scroll td.name-cell{ flex:1 1 0; min-width:0; font-size:14.5px; }
-    .table-scroll td[data-label]{ flex:1 1 40%; min-width:0; word-break:break-word; }
-    .table-scroll td[data-label]::before{
-      content:attr(data-label); display:block; margin-bottom:2px;
-      font-family:'JetBrains Mono',monospace; font-size:9.5px; letter-spacing:0.06em;
+    .table-scroll td.cell-photo{ position:absolute; left:4px; top:11px; }
+    .table-scroll td.cell-photo .photo-thumb-cell,
+    .table-scroll td.cell-photo .photo-thumb-placeholder{ width:36px; height:36px; }
+    .table-scroll td.name-cell{ order:1; flex:1 1 0; min-width:0; font-size:14.5px; line-height:1.25; overflow-wrap:anywhere; }
+    .table-scroll td.m-side{ order:2; flex:0 0 auto; max-width:46%; text-align:right; font-size:11.5px; line-height:1.3; }
+    .table-scroll td.m-meta{ order:4; font-size:11.5px; color:var(--text-dim); }
+    .table-scroll td.m-meta ~ td.m-meta::before{ content:"·"; margin-right:8px; color:var(--text-faint); }
+    .table-scroll td.m-meta.m-empty{ display:none; }
+    .table-scroll td.m-meta .badge{ font-size:10px; padding:2px 7px; }
+    .table-scroll td.m-extra{ order:5; display:none; flex-basis:100%; font-size:12px; color:var(--text-dim); padding-top:3px; }
+    .table-scroll tr.m-open td.m-extra{ display:flex; gap:8px; }
+    .table-scroll td.m-extra::before{
+      content:attr(data-label); flex:0 0 76px; padding-top:2px;
+      font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.06em;
       text-transform:uppercase; color:var(--text-faint);
     }
-    .table-scroll tbody tr.group-row{ display:block; padding:0; border-bottom:none; }
+    .table-scroll tr.m-expandable{ cursor:pointer; }
+    .table-scroll tr.m-open:not(.expired-row){ background:var(--panel-alt); }
+    #tableHost td.m-side::before{
+      content:"Expires"; display:block; font-family:'JetBrains Mono',monospace;
+      font-size:8.5px; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-faint);
+    }
+    #tableHost tr.m-expandable td.name-cell::after{ content:" ▾"; font-size:10px; color:var(--text-faint); }
+    #tableHost tr.m-open td.name-cell::after{ content:" ▴"; }
+    #visitsTableHost td.m-time-out::before{ content:"→ "; color:var(--text-faint); }
+    .table-scroll td.m-side .status-tag{ font-size:10px; padding:2px 7px; }
+    .table-scroll tbody tr.group-row{ display:block; min-height:0; padding:0; border-bottom:none; }
+    .table-scroll tbody tr.group-row::after{ display:none; }
     .table-scroll tbody tr.group-row td{
-      display:block; padding:10px 6px;
+      display:block; padding:8px 6px; font-size:9.5px;
       border-top:1px solid var(--line); border-bottom:1px solid var(--line);
     }
+
+    /* Toast: full-width strip at the bottom instead of a half-width
+       box (left:50% + translateX(-50%) squeezed it to half the screen) */
+    .toast{ left:12px; right:12px; bottom:14px; transform:translateY(20px); text-align:center; font-size:13px; padding:11px 14px; }
+    .toast.show{ transform:translateY(0); }
+
+    /* "Here's the member's code" popup */
+    .code-modal{ padding:22px 18px; }
+    .code-modal-actions{ flex-wrap:wrap; }
   }
-  /* Phone-width specifically (640px above already covers a small
-     tablet/large-phone-landscape range) — the tally row and kiosk PIN
-     card are the two things sized for a much wider starting point than
-     an actual phone screen. */
   @media (max-width:480px){
     .kiosk-card{ padding:26px 20px 24px; }
-    .tally-cell{ padding:9px 12px; min-width:72px; }
-    .tally-num{ font-size:24px; }
-    .approval-card{ padding:14px 14px; }
-    .detail-grid{ grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); }
   }
 </style>
 </head>
@@ -499,7 +604,7 @@
       <button class="tab-btn active" data-tab="approvals">
         Approvals <span class="tab-badge" id="pendingBadge">0</span>
       </button>
-      <button class="tab-btn" data-tab="table">Registration Table</button>
+      <button class="tab-btn" data-tab="table"><span class="label-long">Registration Table</span><span class="label-short">Registrations</span></button>
       <button class="tab-btn" data-tab="visits">Visit Log</button>
     </div>
 
@@ -572,7 +677,7 @@
           <div class="toolbar-actions">
             <span class="legend"><span class="swatch"></span> expired / used up</span>
             <button class="btn-ghost" id="refreshBtn">↻ Refresh</button>
-            <button class="btn-ghost" id="exportBtn" style="border-color:var(--gold); color:var(--gold-dark);">⬇ Export to Excel</button>
+            <button class="btn-ghost" id="exportBtn" style="border-color:var(--gold); color:var(--gold-dark);">⬇ Export<span class="label-long"> to Excel</span></button>
             <button class="btn-ghost" id="clearListBtn" style="border-color:var(--danger); color:var(--danger);">🧹 Clear List</button>
           </div>
         </div>
@@ -1510,11 +1615,11 @@
         <tr>
           <td class="cell-photo">${photoUrl ? `<a href="${escapeHtml(photoUrl)}" target="_blank" rel="noopener"><img src="${escapeHtml(driveThumbUrl(photoUrl, 100))}" class="photo-thumb-cell" loading="lazy" decoding="async" alt=""></a>` : '<span class="photo-thumb-placeholder">—</span>'}</td>
           <td class="name-cell">${escapeHtml(v.name)}</td>
-          <td data-label="Category"><span class="badge ${badgeClassFor(currentActivity, v.class)}">${escapeHtml(v.class||'')}</span></td>
-          <td class="id-cell" data-label="Plan">${escapeHtml(v.duration||'—')}</td>
-          <td class="id-cell" data-label="ID / Code">${(v.duration === 'Walk-in' && currentActivity.idRequiredCategories.indexOf(v.class) === -1) ? '<span style="color:var(--text-faint);">—</span>' : escapeHtml(v.idNo||'')}</td>
-          <td class="id-cell" data-label="Time In">${escapeHtml(v.timeIn||'—')}</td>
-          <td class="id-cell" data-label="Time Out">${v.timeOut ? escapeHtml(v.timeOut) : '<span class="status-tag" style="background:var(--gold-dim);color:var(--gold-dark);">Still in</span>'}</td>
+          <td class="m-meta"><span class="badge ${badgeClassFor(currentActivity, v.class)}">${escapeHtml(v.class||'')}</span></td>
+          <td class="id-cell m-meta">${escapeHtml(v.duration||'—')}</td>
+          <td class="id-cell m-meta m-id${(v.duration === 'Walk-in' && currentActivity.idRequiredCategories.indexOf(v.class) === -1) ? ' m-empty' : ''}">${(v.duration === 'Walk-in' && currentActivity.idRequiredCategories.indexOf(v.class) === -1) ? '<span style="color:var(--text-faint);">—</span>' : escapeHtml(v.idNo||'')}</td>
+          <td class="id-cell m-side m-time-in">${escapeHtml(v.timeIn||'—')}</td>
+          <td class="id-cell m-side m-time-out">${v.timeOut ? escapeHtml(v.timeOut) : '<span class="status-tag" style="background:var(--gold-dim);color:var(--gold-dark);">Still in</span>'}</td>
         </tr>`;
       }).join('');
       return `
@@ -1724,6 +1829,13 @@
       return renderApprovalCard(e);
     }).join('');
     host.innerHTML = cardsHtml;
+    // Flag fields that were never filled in (a walk-in has no DOB,
+    // address, photo...) so phone-width CSS can hide them instead of
+    // listing a column of "—" dashes. Wider screens still show them.
+    host.querySelectorAll('.detail-item').forEach(item => {
+      const v = item.querySelector('.dvalue');
+      if(v && v.textContent.trim() === '—') item.classList.add('is-empty');
+    });
 
     host.querySelectorAll('[data-action]').forEach(btn => {
       btn.addEventListener('click', () => handleApprovalAction(btn.dataset.idno, btn.dataset.action));
@@ -2030,16 +2142,16 @@
       const groupRows = g.rows.map(e => {
         const expired = isExpired(e);
         return `
-        <tr class="${expired ? 'expired-row' : ''}">
+        <tr class="m-expandable${expired ? ' expired-row' : ''}">
           <td class="cell-photo">${e.photoUrl ? `<a href="${escapeHtml(e.photoUrl)}" target="_blank" rel="noopener"><img src="${escapeHtml(driveThumbUrl(e.photoUrl, 100))}" class="photo-thumb-cell" loading="lazy" decoding="async" alt=""></a>` : '<span class="photo-thumb-placeholder">—</span>'}</td>
           <td class="name-cell">${escapeHtml(e.name)}</td>
-          <td data-label="Category"><span class="badge ${badgeClassFor(currentActivity, e.class)}">${escapeHtml(e.class||'')}</span></td>
-          <td class="id-cell" data-label="Department">${e.department ? escapeHtml(e.department) : '<span style="color:var(--text-faint);">—</span>'}</td>
-          <td class="id-cell" data-label="Phone">${escapeHtml(e.phone||'')}</td>
-          <td class="id-cell" data-label="ID / Code">${escapeHtml(e.idNo||'')}</td>
-          <td class="dur-tag" data-label="Plan">${(e.duration||'').replace('/', ' / ')}</td>
-          <td class="id-cell" data-label="Status">${statusCellHtml(e)}</td>
-          <td class="id-cell" data-label="Registered">${escapeHtml(e.date||'')} · ${escapeHtml(e.time||'')}</td>
+          <td class="m-meta"><span class="badge ${badgeClassFor(currentActivity, e.class)}">${escapeHtml(e.class||'')}</span></td>
+          <td class="id-cell m-extra" data-label="Department">${e.department ? escapeHtml(e.department) : '<span style="color:var(--text-faint);">—</span>'}</td>
+          <td class="id-cell m-extra" data-label="Phone">${escapeHtml(e.phone||'')}</td>
+          <td class="id-cell m-meta m-id">${escapeHtml(e.idNo||'')}</td>
+          <td class="dur-tag m-meta">${(e.duration||'').replace('/', ' / ')}</td>
+          <td class="id-cell m-side">${statusCellHtml(e)}</td>
+          <td class="id-cell m-extra" data-label="Registered">${escapeHtml(e.date||'')} · ${escapeHtml(e.time||'')}</td>
         </tr>`;
       }).join('');
       return `
@@ -2073,6 +2185,16 @@
       };
       th.addEventListener('click', trigger);
       th.addEventListener('keydown', (e) => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); trigger(); } });
+    });
+    // Phones only: each row shows a two-line summary, and a tap reveals
+    // the rest (department, phone, registered time) — see .m-extra in
+    // the max-width:640px CSS. Wider screens show every column already.
+    tableHost.querySelectorAll('tr.m-expandable').forEach(tr => {
+      tr.addEventListener('click', (ev) => {
+        if(ev.target.closest('a')) return;
+        if(!window.matchMedia('(max-width:640px)').matches) return;
+        tr.classList.toggle('m-open');
+      });
     });
     const expiredCount = list.filter(isExpired).length;
     footNote.textContent = `Showing ${list.length} of ${approvedEntries.length} approved registration(s) across ${groups.length} day${groups.length===1?'':'s'} · ${expiredCount} expired/used up. Auto-refreshes every ${AUTO_REFRESH_MS/1000}s.`;

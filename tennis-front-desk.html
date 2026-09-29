@@ -40,7 +40,11 @@
   @keyframes screenFadeOut{ from{opacity:1; transform:scale(1);} to{opacity:0; transform:scale(0.98);} }
   @keyframes screenFadeIn{ from{opacity:0; transform:scale(1.015);} to{opacity:1; transform:scale(1);} }
 
-  #pinScreen{ min-height:100vh; display:flex; align-items:center; justify-content:center; padding:32px 20px; }
+  #pinScreen{ min-height:100vh; align-items:center; justify-content:center; padding:32px 20px; }
+  /* display:flex only while active — an ID selector outranks .screen{display:none},
+     so a bare display:flex here kept the PIN card on the page after login,
+     pushing the whole dashboard a full screen-height down. */
+  #pinScreen.active{ display:flex; }
   .kiosk-card{
     width:100%; max-width:340px; background:var(--panel); border:1px solid var(--line);
     border-top:4px solid var(--gold); border-radius:16px; padding:34px 30px 30px;
