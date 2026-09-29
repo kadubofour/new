@@ -45,7 +45,20 @@ A Swimming Lessons session is only counted as "used" when the member **signs out
 7. Host the four HTML files wherever you like (a static host, or just open them locally) and distribute the links: `index.html` to members, `front-desk-dashboard.html` to the main desk, `tennis-front-desk.html` to the tennis court desk, `swimming-front-desk.html` to the pool desk.
 8. Any time `Code.gs` is edited again: Deploy → Manage deployments → pencil icon → Version: New version → Deploy, or the live URL won't see the change.
 
-Default staff PIN on every front-desk app is `1234` — change the `STAFF_PIN` constant near the top of each file's `<script>` before going live.
+## Staff PIN and privacy
+
+Members' actions (register, renew, sign in/out, look up a code) are open to anyone with the link. **Everything on the front-desk pages is locked behind a staff PIN that the server checks** — the registrant list, visit log, pending approvals, alerts, and every approve/reject/clear action. The PIN is *not* in any file: it lives in Apps Script's private settings.
+
+**Required setup — the front-desk pages won't open without it:**
+
+1. Apps Script editor → Project Settings (gear icon) → Script Properties → Add property: name `STAFF_PIN`, value your **4-digit** PIN. Pick something that isn't `1234` or an obvious pattern.
+2. Deploy → Manage deployments → pencil icon → New version → Deploy.
+
+To change the PIN later, edit that property — no redeploy needed.
+
+How it behaves: a correct PIN signs that device in for up to 6 hours (then it asks again). Five wrong PINs in a row locks *new* PIN attempts for 15 minutes; devices already signed in keep working. The PIN is only sent once, at sign-in; after that the page sends a random session token instead.
+
+**Keep the repository private.** The `/exec` URL and the Firebase config are in the page code by necessity, so anyone who can read your repo can read them. The PIN protects the data either way, but there's no reason to publish your setup.
 
 See the large header comment at the top of `Code.gs` for details on photo/signature storage, the date-grouped Registrations sheet, walk-ins, renewals, and the Excel export.
 

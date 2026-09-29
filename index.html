@@ -496,8 +496,10 @@
      look for it can find it on any screen. z-index kept low (1) so it
      sits under every overlay (confirm/approval-wait/photo sheet, all
      z-index 5+) instead of poking through one that's open.
-     PIN-protected either way (see STAFF_PIN in each front-desk file),
-     so this is about not advertising the door, not locking it. */
+     This is about not advertising the door, not locking it: the real
+     lock is server-side — the front-desk pages need a staff PIN that
+     Code.gs checks (see "Staff authentication" there), so knowing these
+     links, or the /exec URL, gets nobody any data. */
   .staff-links{
     position:fixed; right:10px; bottom:8px; z-index:1;
     display:flex; gap:10px;

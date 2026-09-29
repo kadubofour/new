@@ -340,7 +340,6 @@
       <button class="pin-key wide" id="pinClear">⌫</button>
     </div>
     <p class="pin-error" id="pinError"></p>
-    <p style="text-align:center;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--text-faint);margin-top:6px;">Default PIN: 1234</p>
   </div>
 </div>
 
@@ -421,20 +420,49 @@
   // wait each time: 0.6s, 1.2s, 2.4s, 4.8s) so a genuine busy-moment
   // failure gets a real chance to resolve itself before surfacing as
   // an error.
-  function fetchJSON(url, options, attempt){
+  function fetchWithRetry(url, options, attempt){
     if(attempt === undefined) attempt = 0;
     return fetch(url, options)
       .then(r => r.json())
       .catch(err => {
         if(attempt < 4){
           return new Promise(resolve => setTimeout(resolve, 600 * Math.pow(2, attempt)))
-            .then(() => fetchJSON(url, options, attempt + 1));
+            .then(() => fetchWithRetry(url, options, attempt + 1));
         }
         throw err;
       });
   }
 
-  const STAFF_PIN = "1234";
+  // The staff PIN is checked by the server (see "Staff authentication"
+  // in Code.gs) and is deliberately NOT in this file — this page sits in
+  // a public repo and anyone can read its source. A correct PIN gets back
+  // a random session token, kept in memory only (closing or reloading the
+  // page means entering the PIN again); fetchJSON() below attaches it to
+  // every request, and the server refuses front-desk data without one.
+  let staffToken = null;
+  function fetchJSON(url, options){
+    if(!staffToken) return Promise.resolve({ status: 'error', code: 'auth', message: 'Please enter the staff PIN.' });
+    const sentToken = staffToken;
+    let u = url, o = options;
+    if(!o || !o.method || o.method === 'GET'){
+      u = url + (url.indexOf('?') === -1 ? '?' : '&') + 'token=' + encodeURIComponent(staffToken);
+    } else {
+      try{ const b = JSON.parse(o.body); b.token = staffToken; o = Object.assign({}, o, { body: JSON.stringify(b) }); }catch(e){}
+    }
+    return fetchWithRetry(u, o).then(res => {
+      // Token expired (6h) or the server restarted its cache: back to the
+      // PIN screen. Ignored if a newer login has already replaced it.
+      if(res && res.code === 'auth' && staffToken === sentToken) sessionExpired();
+      return res;
+    });
+  }
+  function sessionExpired(){
+    staffToken = null;
+    clearTimeout(refreshTimer);
+    pinBuffer = ""; updatePinDots();
+    pinError.textContent = "Session ended — please enter the PIN again.";
+    showScreen('pin');
+  }
   // Cut from 15s (then 5s): staff waiting on a walk-in or registration
   // to show up (submitted from the registrant app, or the main front
   // desk) were feeling that delay directly — this should feel close to
@@ -526,6 +554,7 @@
   const toastedAlertIds = new Set();
   let searchTerm = "";
   let pinBuffer = "";
+  let pinChecking = false;
   let refreshTimer = null;
 
   const screens = { pin: document.getElementById('pinScreen'), desk: document.getElementById('deskScreen') };
@@ -550,7 +579,7 @@
   const pinError = document.getElementById('pinError');
   document.querySelectorAll('.pin-key[data-k]').forEach(btn => {
     btn.addEventListener('click', () => {
-      if(pinBuffer.length >= 4) return;
+      if(pinChecking || pinBuffer.length >= 4) return;
       pinBuffer += btn.dataset.k;
       updatePinDots();
       if(pinBuffer.length === 4) setTimeout(checkPin, 120);
@@ -560,15 +589,12 @@
   document.getElementById('pinClear').addEventListener('click', () => { pinBuffer = pinBuffer.slice(0,-1); updatePinDots(); });
   function updatePinDots(){ pinDots.forEach((d,i) => d.classList.toggle('filled', i < pinBuffer.length)); }
   function checkPin(){
-    if(pinBuffer === STAFF_PIN){
-      pinBuffer = "";
-      showScreen('desk');
-      renderActivitySwitcher();
-      loadAll();
-      scheduleAutoRefresh();
-      subscribeLive();
-    } else {
-      pinError.textContent = "Incorrect PIN — try again.";
+    if(pinChecking) return;
+    pinChecking = true;
+    pinError.textContent = "Checking…";
+    const fail = (msg) => {
+      pinChecking = false;
+      pinError.textContent = msg;
       pinDots.forEach(d => d.classList.add('error'));
       document.getElementById('pinDots').classList.add('shake');
       setTimeout(() => {
@@ -576,7 +602,28 @@
         pinDots.forEach(d => d.classList.remove('error'));
         pinBuffer = ""; updatePinDots();
       }, 320);
-    }
+    };
+    fetchWithRetry(SCRIPT_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "verifyStaffPin", pin: pinBuffer })
+    })
+    .then(data => {
+      if(!(data && data.status === "ok" && data.token)){
+        fail((data && data.message) || "Couldn't check the PIN — try again.");
+        return;
+      }
+      pinChecking = false;
+      staffToken = data.token;
+      pinBuffer = ""; updatePinDots();
+      pinError.textContent = "";
+      showScreen('desk');
+          renderActivitySwitcher();
+          loadAll();
+          scheduleAutoRefresh();
+          subscribeLive();
+    })
+    .catch(() => fail("Couldn't reach the server — check the connection and try again."));
   }
 
   function renderActivitySwitcher(){
@@ -606,6 +653,7 @@
 
   const toast = document.getElementById('toast');
   function showToast(msg, isError, duration){
+    if(!staffToken) return; // signed out — the PIN screen carries its own message
     toast.textContent = msg;
     toast.classList.toggle('error', !!isError);
     toast.classList.add('show');
@@ -704,6 +752,8 @@
   // any slow patch that piles requests up faster than Apps Script can
   // drain them, which then makes everything slower still.
   function scheduleAutoRefresh(){
+    clearTimeout(refreshTimer);
+    if(!staffToken) return; // signed out — checkPin() restarts this after the next login
     refreshTimer = setTimeout(() => {
       if(document.hidden){ scheduleAutoRefresh(); return; }
       loadAll().then(scheduleAutoRefresh);

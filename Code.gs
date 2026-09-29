@@ -1767,6 +1767,12 @@ function findLastOpenVisitRow(visits, matchColIndex, timeOutColIndex, lastRow, t
 
 function doGet(e) {
   try {
+    // Every GET view is front-desk data (registrants, visits, pending,
+    // alerts) — the member-facing app never issues a GET at all — so
+    // none of it is served without a live staff session token. See
+    // "Staff authentication" above.
+    if (!isStaffTokenValid(e.parameter.token)) return authRequired();
+
     // No specific activity needed — one sheet read total, instead of
     // the front desk making a separate request per activity just to
     // populate the pending-count badges. (Pending is still the one
@@ -1923,6 +1929,10 @@ function handleDoPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
     const action = data.action || "submit";
+    // Staff login and the staff-only actions come first, ahead of the
+    // activity check — see "Staff authentication" above.
+    if (action === "verifyStaffPin") return verifyStaffPin(data.pin);
+    if (STAFF_ACTIONS.indexOf(action) !== -1 && !isStaffTokenValid(data.token)) return authRequired();
     const activity = getActivity(data.activity);
     if (!activity) return errorMsg("Unknown or missing activity.");
 
@@ -2863,6 +2873,102 @@ function handleDoPost(e) {
   } catch (err) {
     return errorOut(err);
   }
+}
+
+
+// ------------------------------------------------------------------
+// Staff authentication
+// ------------------------------------------------------------------
+// The /exec URL has to sit in index.html for members to use the app, so
+// anyone can find it — which means the URL can't be what keeps the
+// front-desk data private. Without this, the front-desk pages' PIN was
+// only a screen lock in the browser: anything that knew the URL could
+// read every registrant's phone, email, date of birth, address and
+// medical notes, or approve/reject registrations, with no PIN at all.
+//
+// How it works: the PIN lives in Script Properties (STAFF_PIN — never in
+// any file). A front-desk page sends it once ("verifyStaffPin"); if it's
+// right the server hands back a random session token, kept in
+// CacheService for up to 6 hours, and the page sends that token with
+// every later request instead of the PIN. Every front-desk read (all of
+// doGet) and every staff-only write (STAFF_ACTIONS) requires a live
+// token. Members' actions — sign in/out, register, renew, look up a
+// code — never need one.
+//
+// Guessing is throttled: 5 wrong PINs in a row locks PIN attempts for
+// 15 minutes, so a 4-digit PIN can't simply be brute-forced (that's at
+// most ~480 guesses a day). The lockout only blocks NEW logins — staff
+// already signed in keep working, since their token isn't a guessable
+// 4-digit number.
+const STAFF_ACTIONS = [
+  "approve", "reject", "addWalkinVisit", "acknowledgeAlert",
+  "clearRegistrationsView", "restoreRegistrationsView"
+];
+const STAFF_TOKEN_PREFIX = "staffTok_";
+const STAFF_TOKEN_TTL_SECONDS = 21600; // CacheService's maximum
+const STAFF_TOKEN_REFRESH_MS = 3600000; // slide the expiry forward at most hourly
+const STAFF_PIN_FAILS_KEY = "staffPinFails";
+const STAFF_PIN_MAX_FAILS = 5;
+const STAFF_PIN_LOCK_SECONDS = 900;
+
+function authRequired() {
+  return ContentService
+    .createTextOutput(JSON.stringify({ status: "error", code: "auth", message: "Please enter the staff PIN." }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function isStaffTokenValid(token) {
+  const t = String(token || "");
+  if (t.length < 40 || t.length > 100) return false;
+  try {
+    const cache = CacheService.getScriptCache();
+    const key = STAFF_TOKEN_PREFIX + t;
+    const issued = cache.get(key);
+    if (!issued) return false;
+    if (Date.now() - Number(issued) > STAFF_TOKEN_REFRESH_MS) {
+      cache.put(key, String(Date.now()), STAFF_TOKEN_TTL_SECONDS);
+    }
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
+
+// Compares every character regardless of where the first mismatch is,
+// so response timing can't hint at how much of a guess was right.
+function safeEquals(a, b) {
+  const x = String(a), y = String(b);
+  let diff = x.length ^ y.length;
+  for (let i = 0; i < Math.max(x.length, y.length); i++) {
+    diff |= (x.charCodeAt(i) || 0) ^ (y.charCodeAt(i) || 0);
+  }
+  return diff === 0;
+}
+
+function verifyStaffPin(pin) {
+  const expected = PropertiesService.getScriptProperties().getProperty("STAFF_PIN");
+  if (!expected) {
+    return errorMsg("The staff PIN hasn't been set up on the server yet. In Apps Script: Project Settings > Script Properties > add STAFF_PIN (4 digits).");
+  }
+  if (!/^\d{4}$/.test(expected)) {
+    return errorMsg("STAFF_PIN in Script Properties must be exactly 4 digits.");
+  }
+  const cache = CacheService.getScriptCache();
+  const fails = Number(cache.get(STAFF_PIN_FAILS_KEY) || 0);
+  if (fails >= STAFF_PIN_MAX_FAILS) {
+    return errorMsg("Too many wrong PIN attempts. Please try again in 15 minutes.");
+  }
+  if (safeEquals(pin, expected)) {
+    cache.remove(STAFF_PIN_FAILS_KEY);
+    const token = Utilities.getUuid() + Utilities.getUuid();
+    cache.put(STAFF_TOKEN_PREFIX + token, String(Date.now()), STAFF_TOKEN_TTL_SECONDS);
+    return ok({ token: token });
+  }
+  cache.put(STAFF_PIN_FAILS_KEY, String(fails + 1), STAFF_PIN_LOCK_SECONDS);
+  const left = STAFF_PIN_MAX_FAILS - (fails + 1);
+  return errorMsg(left > 0
+    ? "Incorrect PIN — try again. (" + left + " attempt" + (left === 1 ? "" : "s") + " left)"
+    : "Too many wrong PIN attempts. Please try again in 15 minutes.");
 }
 
 
