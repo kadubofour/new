@@ -1748,6 +1748,13 @@ function getRecentVisits(activity) {
 // same total, just chunked) for the rare case where the open visit is
 // unusually old, or doesn't exist at all.
 function findLastOpenVisitRow(visits, matchColIndex, timeOutColIndex, lastRow, targetValue) {
+  // targetValue is often a Number: Sheets stores a digits-only ID (every
+  // UG Student/Staff ID) as a real number, and "checkout" hands over
+  // match.idNo straight from the Registrations row. Comparing the cell's
+  // text to that Number with === is never true, so sign-out reported
+  // "No open sign-in found" for exactly those members while a text code
+  // like G1234567 worked fine. Compare both sides as trimmed text.
+  const target = String(targetValue).trim();
   const CHUNK = 200;
   let windowStart = 2;
   while (windowStart <= lastRow) {
@@ -1756,7 +1763,7 @@ function findLastOpenVisitRow(visits, matchColIndex, timeOutColIndex, lastRow, t
     const matchVals = visits.getRange(windowStart, matchColIndex + 1, count, 1).getValues();
     const timeOuts = visits.getRange(windowStart, timeOutColIndex + 1, count, 1).getValues();
     for (let i = 0; i < matchVals.length; i++) {
-      if (String(matchVals[i][0]).trim() === targetValue && !timeOuts[i][0]) {
+      if (String(matchVals[i][0]).trim() === target && !timeOuts[i][0]) {
         return windowStart + i;
       }
     }
