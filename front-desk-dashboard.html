@@ -959,6 +959,7 @@
   let approvedEntries = [];
   let alertEntries = [];
   let registrationsClearedAt = null;
+  let registrationStats = null;
   let pendingCounts = {};
   // Snapshots of the last data loadAll() actually rendered, so a 3s
   // poll that comes back identical (the common case — nothing changed
@@ -971,7 +972,7 @@
   // first load for a newly-selected activity always renders, even in
   // the edge case where its data happens to serialize identically to
   // the previous activity's (e.g. both empty).
-  let lastPendingJSON = null, lastApprovedJSON = null, lastVisitsJSON = null, lastAlertsJSON = null, lastClearedAtSeen = undefined;
+  let lastPendingJSON = null, lastApprovedJSON = null, lastVisitsJSON = null, lastAlertsJSON = null, lastClearedAtSeen = undefined, lastStatsJSON = null;
   let sortKey = "class";
   let sortDir = 1;
   let searchTerm = "";
@@ -1143,7 +1144,7 @@
     // Force the next loadAll() to render every panel regardless of
     // whether the new activity's data happens to serialize the same as
     // the old one's (e.g. both empty) — see the snapshot vars' comment.
-    lastPendingJSON = lastApprovedJSON = lastVisitsJSON = lastAlertsJSON = null;
+    lastPendingJSON = lastApprovedJSON = lastVisitsJSON = lastAlertsJSON = null; lastStatsJSON = null;
     lastClearedAtSeen = undefined;
     // Paint the new activity right now — from memory if we have it
     // (normally always, thanks to the post-login prefetch), otherwise a
@@ -1264,10 +1265,10 @@
   // now" copies every render function already reads.
   const store = {};
   function storeFor(key){
-    return store[key] || (store[key] = { pending: [], registrations: [], clearedAt: null, alerts: [], visits: [], loaded: false, visitsLoaded: false });
+    return store[key] || (store[key] = { pending: [], registrations: [], stats: null, clearedAt: null, alerts: [], visits: [], loaded: false, visitsLoaded: false });
   }
   function showActivityFromStore(st){
-    pendingEntries = st.pending; approvedEntries = st.registrations;
+    pendingEntries = st.pending; approvedEntries = st.registrations; registrationStats = st.stats;
     registrationsClearedAt = st.clearedAt; alertEntries = st.alerts; visitEntries = st.visits;
     renderTally(); renderApprovals(); renderTable(); renderVisitsTable(); renderAlerts();
   }
@@ -1276,7 +1277,7 @@
   // the previous activity's data or a misleading "nothing here" state.
   function showActivityLoading(){
     pendingEntries = []; approvedEntries = []; alertEntries = []; visitEntries = [];
-    registrationsClearedAt = null;
+    registrationsClearedAt = null; registrationStats = null;
     const loading = `<div class="empty-state"><p>Loading ${escapeHtml(currentActivity.label)}…</p></div>`;
     ['approvalsHost', 'tableHost', 'visitsTableHost'].forEach(id => { document.getElementById(id).innerHTML = loading; });
     document.getElementById('tally').innerHTML = '';
@@ -1329,6 +1330,7 @@
     st.pending = res.pending || [];
     st.registrations = res.registrations || [];
     st.clearedAt = res.clearedAt || null;
+    st.stats = res.stats || null;
     st.alerts = res.alerts || [];
     st.visits = mergeTodayVisits(st.visits, res.visits || [], res.visitsDateLabel);
     st.loaded = true;
@@ -1345,12 +1347,13 @@
     const newClearedAt = res.clearedAt || null;
 
     const pendingChanged = newPendingJSON !== lastPendingJSON;
-    const approvedChanged = newApprovedJSON !== lastApprovedJSON || newClearedAt !== lastClearedAtSeen;
+    const approvedChanged = newApprovedJSON !== lastApprovedJSON || newClearedAt !== lastClearedAtSeen || JSON.stringify(res.stats || null) !== lastStatsJSON;
     const visitsChanged = newVisitsJSON !== lastVisitsJSON;
     const alertsChanged = newAlertsJSON !== lastAlertsJSON;
 
     pendingEntries = st.pending;
     approvedEntries = st.registrations;
+    registrationStats = st.stats;
     registrationsClearedAt = newClearedAt;
     visitEntries = st.visits;
     alertEntries = st.alerts;
@@ -1372,6 +1375,7 @@
     lastVisitsJSON = newVisitsJSON;
     lastAlertsJSON = newAlertsJSON;
     lastClearedAtSeen = newClearedAt;
+    lastStatsJSON = JSON.stringify(res.stats || null);
   }
   // activity defaults to the one on screen (also called straight from
   // click handlers, which pass an Event — hence the .key check). Any
@@ -1829,10 +1833,14 @@
   }
 
   function renderTally(){
+    // Totals come from the server's own count of ALL registrations (stats), so they don't
+    // shrink when Clear List hides rows from the table; fall back to the visible rows if absent.
+    const stats = registrationStats;
     const counts = {};
-    currentActivity.categories.forEach(c => counts[c] = 0);
-    approvedEntries.forEach(e => { if(counts[e.class] !== undefined) counts[e.class]++; });
-    let html = `<div class="tally-cell"><div class="tally-num">${approvedEntries.length}</div><div class="tally-label">Total</div></div>`;
+    currentActivity.categories.forEach(c => counts[c] = stats && stats.byClass ? (Number(stats.byClass[c]) || 0) : 0);
+    if(!stats) approvedEntries.forEach(e => { if(counts[e.class] !== undefined) counts[e.class]++; });
+    const total = stats && stats.total !== undefined ? stats.total : approvedEntries.length;
+    let html = `<div class="tally-cell"><div class="tally-num">${total}</div><div class="tally-label">Total</div></div>`;
     currentActivity.categories.forEach(c => {
       html += `<div class="tally-cell"><div class="tally-num">${counts[c]}</div><div class="tally-label">${escapeHtml(c)}</div></div>`;
     });
@@ -2290,7 +2298,7 @@
     const activity = currentActivity;
     const confirmed = confirm(
       `Clear the Registration Table for ${activity.label}?\n\n` +
-      `This only hides the current list from this app (and future Excel exports) — every entry stays exactly as-is in the Google Sheet, and members can still sign in/out and renew normally. You can restore the full list here anytime.`
+      `This only hides the current list from this app (and future Excel exports) — the totals at the top stay as they are, and every entry stays exactly as-is in the Google Sheet, and members can still sign in/out and renew normally. You can restore the full list here anytime.`
     );
     if(!confirmed) return;
     fetchJSON(SCRIPT_URL, {

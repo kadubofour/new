@@ -1723,12 +1723,17 @@ function getVisibleRegistrations(activity) {
 
   const sheet = getOrCreateSheet(activity.registrationsSheet, REGISTRATIONS_HEADERS);
   let rows = dedupeRegistrationsByIdNo(sheetToObjects(sheet));
+  // The tally (Total + per-category counts) is computed from EVERY
+  // registration, before the Clear List cutoff below hides any rows —
+  // clearing the list tidies the table, it must not wipe the statistics.
+  const stats = { total: rows.length, byClass: {} };
+  rows.forEach(r => { const c = r.class; if (c) stats.byClass[c] = (stats.byClass[c] || 0) + 1; });
   const clearedAt = PropertiesService.getScriptProperties().getProperty(VIEW_CLEARED_AT_PREFIX + activity.key);
   if (clearedAt) {
     const cutoffMs = new Date(clearedAt).getTime();
     rows = rows.filter(r => registrationTimestampMs(r) > cutoffMs);
   }
-  const result = { rows: rows, clearedAt: clearedAt || null };
+  const result = { rows: rows, clearedAt: clearedAt || null, stats: stats };
   try {
     // Skip saving if a write invalidated the cache while this read was in
     // progress — this copy may already be out of date.
@@ -1927,6 +1932,7 @@ function doGet(e) {
         pending: pendingRows,
         registrations: registrations.rows,
         clearedAt: registrations.clearedAt,
+        stats: registrations.stats,
         visits: recentVisits,
         // The date label "visits" rows were just filtered by — the
         // front end merges them in by matching this exact string (see
@@ -1953,6 +1959,7 @@ function doGet(e) {
       return ok({
         registrations: registrations.rows,
         clearedAt: registrations.clearedAt,
+        stats: registrations.stats,
         alerts: getAlerts(activity)
       });
     }

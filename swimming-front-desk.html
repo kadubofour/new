@@ -573,6 +573,7 @@
   }catch(e){}
 
   let approvedEntries = [];
+  let registrationStats = null;
   let alertEntries = [];
   const toastedAlertIds = new Set();
   let searchTerm = "";
@@ -715,17 +716,17 @@
   // switch is instant.
   const store = {};
   function storeFor(key){
-    return store[key] || (store[key] = { registrations: [], alerts: [], loaded: false });
+    return store[key] || (store[key] = { registrations: [], stats: null, alerts: [], loaded: false });
   }
   function showActivityFromStore(st){
-    approvedEntries = st.registrations; alertEntries = st.alerts;
+    approvedEntries = st.registrations; registrationStats = st.stats; alertEntries = st.alerts;
     renderTally(); renderRegistrants(); renderAlerts();
   }
   // Only for an activity with nothing remembered yet: say it's loading
   // instead of showing the previous activity's list or a misleading
   // "no registrants" state.
   function showActivityLoading(){
-    approvedEntries = []; alertEntries = [];
+    approvedEntries = []; alertEntries = []; registrationStats = null;
     document.getElementById('registrantsHost').innerHTML =
       `<div class="empty-state"><p>Loading ${escapeHtml(currentActivity.label)}…</p></div>`;
     document.getElementById('tally').innerHTML = '';
@@ -743,12 +744,14 @@
   function applyDashboardPayload(res, activity){
     const st = storeFor(activity.key);
     st.registrations = res.registrations || [];
+    st.stats = res.stats || null;
     st.alerts = res.alerts || [];
     st.loaded = true;
     // Not the activity on screen (prefetch/background refresh, or the
     // person switched while this was in flight): remembered for later.
     if(activity.key !== currentActivity.key) return;
     approvedEntries = st.registrations;
+    registrationStats = st.stats;
     alertEntries = st.alerts;
     renderTally();
     renderRegistrants();
@@ -1066,10 +1069,14 @@
   }
 
   function renderTally(){
+    // Totals come from the server's own count of ALL registrations (stats), so they don't
+    // shrink when Clear List hides rows at the main desk; fall back to the visible rows if absent.
+    const stats = registrationStats;
     const counts = {};
-    currentActivity.categories.forEach(c => counts[c] = 0);
-    approvedEntries.forEach(e => { if(counts[e.class] !== undefined) counts[e.class]++; });
-    let html = `<div class="tally-cell"><div class="tally-num">${approvedEntries.length}</div><div class="tally-label">Total</div></div>`;
+    currentActivity.categories.forEach(c => counts[c] = stats && stats.byClass ? (Number(stats.byClass[c]) || 0) : 0);
+    if(!stats) approvedEntries.forEach(e => { if(counts[e.class] !== undefined) counts[e.class]++; });
+    const total = stats && stats.total !== undefined ? stats.total : approvedEntries.length;
+    let html = `<div class="tally-cell"><div class="tally-num">${total}</div><div class="tally-label">Total</div></div>`;
     currentActivity.categories.forEach(c => {
       html += `<div class="tally-cell"><div class="tally-num">${counts[c]}</div><div class="tally-label">${escapeHtml(c)}</div></div>`;
     });
