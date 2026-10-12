@@ -326,6 +326,40 @@
   }
   body{ min-height:100vh; min-height:100dvh; }
   #pinScreen{ min-height:100vh; min-height:100dvh; }
+
+  /* ---- Tally: one card per number instead of one boxed strip ----
+     Total is the navy tile; each category gets its own card with a gold
+     edge, numbers left-aligned and big, labels allowed to wrap so long
+     names ("UG Staff Relation (17 & Above)") are never squeezed or cut. */
+  .tally, .tally .tally-cell{ box-shadow:none; }
+  .tally{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(138px,1fr)); gap:10px;
+    background:transparent; border:none; border-radius:0; overflow:visible; width:100%; max-width:900px;
+  }
+  .tally .tally-cell{
+    min-width:0; padding:12px 14px 11px; text-align:left; border:1px solid var(--line); border-left:3px solid var(--gold);
+    border-radius:10px; background:var(--panel);
+    box-shadow:0 1px 3px rgba(15,29,59,0.05);
+    display:flex; flex-direction:column; justify-content:space-between; gap:6px;
+  }
+  .tally .tally-num{ font-size:32px; line-height:1; color:var(--blue); }
+  .tally .tally-label{ font-size:10px; letter-spacing:0.07em; line-height:1.35; margin-top:0; color:var(--text-dim); }
+  .tally .tally-cell:first-child{ background:var(--blue); border-color:var(--blue); border-left-color:var(--gold); }
+  .tally .tally-cell:first-child .tally-num{ color:#fff; }
+  .tally .tally-cell:first-child .tally-label{ color:rgba(255,255,255,0.78); }
+  @media (max-width:640px){
+    .tally{ grid-template-columns:1fr 1fr; gap:8px; max-width:none; }
+    .tally .tally-cell{ padding:7px 11px 7px; gap:3px; box-shadow:0 1px 2px rgba(15,29,59,0.05); }
+    .tally .tally-num{ font-size:22px; }
+    .tally .tally-label{ font-size:9.5px; letter-spacing:0.05em; }
+    /* Total runs the full width with the number and label side by side. */
+    .tally .tally-cell:first-child{ grid-column:1 / -1; flex-direction:row; align-items:center; justify-content:space-between; }
+    .tally .tally-cell:first-child{ padding:8px 14px; }
+    .tally .tally-cell:first-child .tally-num{ font-size:26px; }
+    .tally .tally-cell:first-child .tally-label{ font-size:10.5px; }
+    /* An odd leftover category card spans both columns instead of leaving a hole. */
+    .tally .tally-cell:last-child:nth-child(even){ grid-column:1 / -1; }
+  }
 </style>
 </head>
 <body>
