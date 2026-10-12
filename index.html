@@ -283,12 +283,12 @@
     font-size:11px; font-weight:700; color:var(--text-faint); transition:all .15s ease;
   }
   .wizard-progress-step.active .wizard-progress-dot{ border-color:var(--blue); background:var(--blue); color:#fff; }
-  .wizard-progress-step.done .wizard-progress-dot{ border-color:var(--blue); background:var(--blue-dim); color:transparent; }
-  /* Same masked-SVG checkmark as .tick-box above, not a text glyph. */
+  .wizard-progress-step.done .wizard-progress-dot{ border-color:var(--blue); background:var(--blue); color:transparent; font-size:0; line-height:0; }
+  /* Masked-SVG checkmark, centred in a solid blue dot. font-size:0 stops the hidden step number taking up room beside it. */
   .wizard-progress-step.done .wizard-progress-dot::after{
     content:"";
-    display:block; width:11px; height:11px;
-    background-color:var(--blue);
+    display:block; flex:none; width:14px; height:14px;
+    background-color:#fff;
     -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='4 12 9 17 20 6'/%3E%3C/svg%3E");
     mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='4 12 9 17 20 6'/%3E%3C/svg%3E");
     -webkit-mask-size:contain; mask-size:contain;
@@ -1814,6 +1814,9 @@
   function closePhotoSheet(){ photoSheetOverlay.classList.remove('show'); }
 
   photoUploadBox.addEventListener('click', openPhotoSheet);
+  // The hidden file inputs live inside photoUploadBox, so their programmatic click() would bubble up
+  // and re-open the menu right after the person picked a photo. Stop it here.
+  [photoInputSelfie, photoInputGallery].forEach(el => el.addEventListener('click', e => e.stopPropagation()));
   photoSheetCancel.addEventListener('click', closePhotoSheet);
   photoSheetOverlay.addEventListener('click', (e) => {
     if(e.target === photoSheetOverlay) closePhotoSheet();
@@ -1828,6 +1831,7 @@
   });
 
   function handlePhotoFile(inputEl){
+    closePhotoSheet();
     const file = inputEl.files[0];
     if(!file) return;
     if(!file.type.startsWith('image/')){
