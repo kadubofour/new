@@ -1159,6 +1159,25 @@ function consumeWalkinTrackId(activityKey, idNo) {
 // Shared approve/reject logic
 // ------------------------------------------------------------------
 
+function pendingThumbKey(activityKey, idNo) {
+  return "pthumb_" + activityKey + "_" + String(idNo).trim();
+}
+
+// Adds "photoThumb" (a tiny data: image) to each Pending row whose real photo hasn't been saved to
+// Drive yet and which has a preview parked in the cache. Once photoUrl is filled in, nothing is
+// attached any more, so the preview doesn't ride along on every 3-second poll for long.
+function attachPendingThumbs(activityKey, rows) {
+  try {
+    const wanted = {};
+    rows.forEach(r => { if (!r.photoUrl && r.idNo) wanted[pendingThumbKey(activityKey, r.idNo)] = r; });
+    const keys = Object.keys(wanted);
+    if (keys.length === 0) return rows;
+    const found = CacheService.getScriptCache().getAll(keys);
+    keys.forEach(k => { if (found[k]) wanted[k].photoThumb = found[k]; });
+  } catch (err) { /* best effort */ }
+  return rows;
+}
+
 // Approves exactly one Pending row. A Walk-in never becomes a
 // Registrations row — it's a one-off visit, so approving it writes a
 // Visits row directly (checked in right now, no code needed later) and
@@ -1883,7 +1902,7 @@ function doGet(e) {
     }
     if (view === 'pending') {
       const sheet = getOrCreateSheet(PENDING_SHEET_NAME, PENDING_HEADERS);
-      return ok({ rows: sheetToObjects(sheet).filter(r => r.activity === activity.key) });
+      return ok({ rows: attachPendingThumbs(activity.key, sheetToObjects(sheet).filter(r => r.activity === activity.key)) });
     }
     if (view === 'dashboard') {
       // Everything the MAIN front desk's auto-refresh cycle needs for
@@ -1911,7 +1930,7 @@ function doGet(e) {
       let _t = t0;
 
       const pendingSheet = getOrCreateSheet(PENDING_SHEET_NAME, PENDING_HEADERS);
-      const pendingRows = sheetToObjects(pendingSheet).filter(r => r.activity === activity.key);
+      const pendingRows = attachPendingThumbs(activity.key, sheetToObjects(pendingSheet).filter(r => r.activity === activity.key));
       timing.push(["readPending", Date.now() - _t]);
 
       _t = Date.now();
@@ -2279,6 +2298,17 @@ function handleDoPostInner(e) {
       _t = Date.now();
       sheet.getRange(sheet.getLastRow() + 1, 1, allNewRows.length, PENDING_HEADERS.length).setValues(allNewRows);
       timing.push(["writePending", Date.now() - _t]);
+      // The registrant's app also sends a ~5KB preview of their photo. It's parked in the cache
+      // (never in the sheet) so the front desk's approval card can show a face the moment the row
+      // appears, instead of a blank until the real photo has been uploaded to Drive and Drive's
+      // thumbnail service has caught up — that Drive round trip was most of the "photos take too
+      // long to appear" wait. See attachPendingThumbs().
+      try {
+        const thumb = String(data.photoThumb || "");
+        if (thumb && thumb.length < 60000 && thumb.indexOf("data:image/") === 0) {
+          CacheService.getScriptCache().put(pendingThumbKey(activity.key, idNo), thumb, 21600);
+        }
+      } catch (err) { /* cache unavailable — the card just waits for the Drive photo as before */ }
       _t = Date.now();
       // A brand-new submission only ever writes Pending — it isn't
       // approved yet, so Registrations (and its cache) is untouched;

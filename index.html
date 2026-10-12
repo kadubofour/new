@@ -1991,11 +1991,14 @@
   // ---- Photo upload ----
   let photoBase64 = null;
   let photoMimeType = null;
-  const MAX_PHOTO_BYTES = 4 * 1024 * 1024; // ~4MB, generous but keeps requests small
+  let photoThumbBase64 = null; // tiny preview the front desk can show before the real upload lands
+  // The picked photo is shrunk below before it's sent, so the limit only needs to cover what a phone camera produces.
+  const MAX_PHOTO_BYTES = 15 * 1024 * 1024;
 
   function resetPhotoUI(){
     photoBase64 = null;
     photoMimeType = null;
+    photoThumbBase64 = null;
     photoThumb.innerHTML = "📷";
     photoCopyMain.textContent = "Tap to add a photo";
     photoCopySub.textContent = "Clear photo of your face";
@@ -2032,21 +2035,57 @@
       return;
     }
     if(file.size > MAX_PHOTO_BYTES){
-      showConfirm(true, "Photo too large", "Please choose a photo under 4MB.");
+      showConfirm(true, "Photo too large", "Please choose a photo under 15MB.");
       inputEl.value = '';
       return;
     }
     const reader = new FileReader();
     reader.onload = () => {
-      photoBase64 = reader.result;
-      photoMimeType = file.type;
-      photoThumb.innerHTML = `<img src="${reader.result}" alt="Selected photo">`;
-      photoCopyMain.textContent = "Photo added — tap to change";
-      photoCopySub.textContent = "Clear photo of your face";
-      photoUploadBox.classList.add('has-photo');
-      clearFieldError('field-photo');
+      const original = reader.result;
+      // Phone cameras make 3-8MB photos; uploading that over mobile data (then Drive saving it) was most
+      // of the wait before a photo showed up on the front desk's approval screen. Shrink it to a sensible
+      // size first (~100-200KB), plus a tiny preview the front desk can show straight away.
+      shrinkPhoto(original, file.type).then(shrunk => {
+        photoBase64 = shrunk.full;
+        photoMimeType = shrunk.mime;
+        photoThumbBase64 = shrunk.thumb;
+        photoThumb.innerHTML = `<img src="${shrunk.thumb || shrunk.full}" alt="Selected photo">`;
+        photoCopyMain.textContent = "Photo added — tap to change";
+        photoCopySub.textContent = "Clear photo of your face";
+        photoUploadBox.classList.add('has-photo');
+        clearFieldError('field-photo');
+      });
     };
     reader.readAsDataURL(file);
+  }
+
+  // Resolves with { full, mime, thumb }. If the browser can't decode the image (an unusual format),
+  // falls back to sending the original untouched, exactly as before.
+  function shrinkPhoto(dataUrl, originalMime){
+    return new Promise(resolve => {
+      const fallback = { full: dataUrl, mime: originalMime, thumb: null };
+      const img = new Image();
+      img.onload = () => {
+        try{
+          function draw(maxEdge, quality){
+            const scale = Math.min(1, maxEdge / Math.max(img.naturalWidth, img.naturalHeight));
+            const c = document.createElement('canvas');
+            c.width = Math.max(1, Math.round(img.naturalWidth * scale));
+            c.height = Math.max(1, Math.round(img.naturalHeight * scale));
+            const g = c.getContext('2d');
+            g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+            g.drawImage(img, 0, 0, c.width, c.height);
+            return c.toDataURL('image/jpeg', quality);
+          }
+          const full = draw(1024, 0.82);
+          const thumb = draw(120, 0.7);
+          // Never make it bigger than what we were given.
+          resolve({ full: full.length < dataUrl.length ? full : dataUrl, mime: full.length < dataUrl.length ? 'image/jpeg' : originalMime, thumb: thumb });
+        }catch(e){ resolve(fallback); }
+      };
+      img.onerror = () => resolve(fallback);
+      img.src = dataUrl;
+    });
   }
 
   photoInputSelfie.addEventListener('change', () => handlePhotoFile(photoInputSelfie));
@@ -2365,6 +2404,7 @@
     const payload = {
       action: "submit",
       activity: currentActivity.key,
+      photoThumb: photoThumbBase64 || "",
       class: classField.value,
       name: fullName,
       department: deptField.value.trim(),

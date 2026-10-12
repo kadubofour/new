@@ -925,6 +925,23 @@
     return `https://drive.google.com/thumbnail?id=${m[1]}&sz=w${size || 200}`;
   }
 
+  // Photo for an approval card. The server sends a tiny preview ("photoThumb") the moment a
+  // registration arrives, long before the real photo has been saved to Drive. It's shown straight
+  // away, remembered here, and kept as the backdrop while the Drive thumbnail loads once that
+  // exists — so the face is there immediately and never flashes blank in between.
+  const thumbMemory = {};
+  function approvalPhotoHtml(e){
+    const key = String(e.idNo);
+    if(e.photoThumb) thumbMemory[key] = e.photoThumb;
+    const mem = thumbMemory[key];
+    if(e.photoUrl){
+      const bg = mem ? `background:#fff url('${escapeHtml(mem)}') center/cover no-repeat;` : '';
+      return `<img src="${escapeHtml(driveThumbUrl(e.photoUrl, 100))}" class="photo-thumb-cell" style="width:44px;height:44px;${bg}" decoding="async" alt="">`;
+    }
+    if(mem) return `<img src="${escapeHtml(mem)}" class="photo-thumb-cell" style="width:44px;height:44px;" alt="">`;
+    return `<span class="photo-thumb-placeholder" style="width:44px;height:44px;">—</span>`;
+  }
+
   /* ===================== ACTIVITIES (mirrors Code.gs ACTIVITIES — keep in sync) ===================== */
   const FAMILY_CATEGORY = "Family Package (Max 5)";
   const LESSON_STYLE_CATEGORIES = [
@@ -2093,7 +2110,7 @@
     <div class="approval-card">
       <div class="approval-head">
         <div style="display:flex; align-items:center; gap:12px;">
-          ${e.photoUrl ? `<img src="${escapeHtml(driveThumbUrl(e.photoUrl, 100))}" class="photo-thumb-cell" style="width:44px;height:44px;" loading="lazy" decoding="async" alt="">` : `<span class="photo-thumb-placeholder" style="width:44px;height:44px;">—</span>`}
+          ${approvalPhotoHtml(e)}
           <div>
             <div class="approval-name">${escapeHtml(e.name)}${isRenewal ? ' <span class="status-tag" style="background:var(--gold-dim);color:var(--gold-dark);font-size:10px;vertical-align:middle;">RENEWAL</span>' : ''}</div>
             <div class="approval-sub">${isRenewal ? 'Requested' : 'Submitted'} ${escapeHtml(e.date||'')} · ${escapeHtml(e.time||'')}</div>
@@ -2146,7 +2163,7 @@
     <div class="approval-card">
       <div class="approval-head">
         <div style="display:flex; align-items:center; gap:12px;">
-          ${primary.photoUrl ? `<img src="${escapeHtml(driveThumbUrl(primary.photoUrl, 100))}" class="photo-thumb-cell" style="width:44px;height:44px;" loading="lazy" decoding="async" alt="">` : `<span class="photo-thumb-placeholder" style="width:44px;height:44px;">—</span>`}
+          ${approvalPhotoHtml(primary)}
           <div>
             <div class="approval-name">${escapeHtml(primary.name)} <span class="status-tag" style="background:var(--gold-dim);color:var(--gold-dark);font-size:10px;vertical-align:middle;">FAMILY · ${members.length}</span></div>
             <div class="approval-sub">Submitted ${escapeHtml(primary.date||'')} · ${escapeHtml(primary.time||'')}</div>
