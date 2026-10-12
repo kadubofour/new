@@ -425,6 +425,16 @@
   .result.error .result-icon, .result.expired .result-icon{ background:var(--danger-dim); color:var(--danger); }
   .result-name{ font-family:'Bebas Neue',sans-serif; font-size:32px; letter-spacing:0.02em; margin:0 0 4px; }
   .result-sub{ font-size:12.5px; color:var(--text-dim); margin:0 0 22px; }
+  /* Signed-in success: the whole page and card turn green so it reads from across a desk. */
+  body.signed-in-ok{ background:#168A47; }
+  body.signed-in-ok .card{ background:#1FA55A; border-color:#168A47; border-top-color:#0E6B35; color:#fff; }
+  body.signed-in-ok .tab-bar{ opacity:.85; }
+  body.signed-in-ok .card h1{ color:#fff; }
+  body.signed-in-ok .result-icon{ background:#fff; color:#168A47; }
+  body.signed-in-ok .result-name, body.signed-in-ok .result-sub, body.signed-in-ok .error-msg{ color:#fff; }
+  body.signed-in-ok .countdown-box{ background:rgba(255,255,255,0.16); border-color:rgba(255,255,255,0.35); }
+  body.signed-in-ok .countdown-num, body.signed-in-ok .countdown-label{ color:#fff; }
+  body.signed-in-ok .btn-secondary{ background:#fff; border-color:#fff; color:#0E6B35; }
   .countdown-box{
     background:var(--panel-alt); border:1px solid var(--line); border-radius:12px; padding:20px; margin-bottom:16px;
   }
@@ -1462,6 +1472,7 @@
       Object.values(topPanels).forEach(p => p.classList.remove('active'));
       btn.classList.add('active');
       topPanels[btn.dataset.tab].classList.add('active');
+      document.body.classList.remove('signed-in-ok');
     });
   });
 
@@ -2262,7 +2273,9 @@
     walkin: document.getElementById('view-walkin'),
     result: document.getElementById('view-result')
   };
+  function setSignedInTheme(on){ document.body.classList.toggle('signed-in-ok', !!on); }
   function showView(name){
+    setSignedInTheme(false);
     Object.values(views).forEach(v => v.classList.remove('active'));
     views[name].classList.add('active');
   }
@@ -2331,6 +2344,7 @@
       `;
       document.querySelector('#view-result .result').className = 'result';
       showView('result');
+      setSignedInTheme(true);
       document.getElementById('doneSigninBtn').addEventListener('click', () => {
         resetWalkinForm();
         showView('code');
@@ -2695,6 +2709,8 @@
     `;
     document.querySelector('#view-result .result').className = 'result' + (info.expired ? ' expired' : '');
     showView('result');
+    // Green only when they were actually signed in (not the expired "see front desk" case).
+    if(opts.signedIn && !info.expired) setSignedInTheme(true);
     document.getElementById('doneBtn').addEventListener('click', resetSignIn);
     attachCopyButtons(document.getElementById('resultBody'));
   }
@@ -2760,7 +2776,7 @@
       checkinBtn.disabled = false;
       checkinBtn.textContent = "Sign In";
       if(data.status === "ok"){
-        renderMemberResult(data.member, { subtitle: "Signed in" });
+        renderMemberResult(data.member, { subtitle: "Signed in", signedIn: true });
       } else if(data.status === "expired" && data.member){
         // Not signed in (no visit logged, see Code.gs), but still show
         // the member's own status — name, plan, how long ago it expired
