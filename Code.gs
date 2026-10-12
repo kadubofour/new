@@ -1021,9 +1021,12 @@ function savePhotoAndGetUrl(filenameBase, base64Data, mimeType, folder) {
 // rejected by mistake. Never throws — a stray file left behind is not
 // worth failing the reject over, and an empty/unparseable url is a
 // no-op.
+// Set to an array by doPost() while it holds the script lock; null otherwise (deletes happen immediately).
+let DEFERRED_DRIVE_TRASH = null;
 function deleteDriveFileIfAny(url) {
   const fileId = parseDriveFileId(url);
   if (!fileId) return;
+  if (DEFERRED_DRIVE_TRASH) { DEFERRED_DRIVE_TRASH.push(fileId); return; } // inside a locked request: done after the lock is released (see doPost)
   try { DriveApp.getFileById(fileId).setTrashed(true); } catch (err) { /* already gone, or never a real file — nothing to clean up */ }
 }
 
@@ -2015,8 +2018,94 @@ function doGet(e) {
 // elsewhere in this file) — and failing that open with a plain "busy,
 // try again" message is far better than a second request silently
 // corrupting the first one's write.
-function doPost(e) {
+// "addPhoto": the follow-up call that uploads a fresh submission's photo/signature (the "submit"
+// handler writes the Pending row with both blank — see its comment) — also used to add one to an
+// already-approved member. Saving a file to Drive and sharing it takes several real seconds per file.
+// Doing that inside the script-wide lock (see doPost) meant a handful of registrations arriving
+// together kept the lock busy for a minute or more, so approvals, sign-ins and everything else queued
+// behind them and started failing with "the system is busy". So the upload happens here with NO lock
+// held, and the lock is only taken for the moment it takes to write the two URLs into the sheet.
+function handleAddPhoto(data) {
+  const activity = getActivity(data.activity);
+  if (!activity) return errorMsg("Unknown or missing activity.");
+  const timing = [];
+  const t0 = Date.now();
+  let _t = t0;
+
+  const idNo = String(data.idNo || "").trim();
+  if (!idNo) return errorMsg("Enter your code or ID number.");
+  if (!data.photoBase64 && !data.signatureBase64) return errorMsg("No photo received.");
+
+  // Finds the row this idNo lives in right now: still Pending, or (if it was approved in the
+  // meantime) already in this activity's Registrations. Called once before the upload (to name the
+  // file and pick the folder) and again under the lock (rows move while an upload is running).
+  function locateRow() {
+    const pending = getOrCreateSheet(PENDING_SHEET_NAME, PENDING_HEADERS);
+    let idx = findRowIndexByIdNo(pending, idNo, PENDING_HEADERS, activity.key);
+    if (idx !== -1) return { sheet: pending, headers: PENDING_HEADERS, idx: idx, isPending: true };
+    const registrations = getOrCreateSheet(activity.registrationsSheet, REGISTRATIONS_HEADERS);
+    idx = findRowIndexByIdNo(registrations, idNo, REGISTRATIONS_HEADERS);
+    if (idx !== -1) return { sheet: registrations, headers: REGISTRATIONS_HEADERS, idx: idx, isPending: false };
+    return null;
+  }
+
+  const target = locateRow();
+  if (!target) return errorMsg("Code not recognized");
+  timing.push(["findTargetRow", Date.now() - _t]);
+
+  _t = Date.now();
+  const applicantName = target.sheet.getRange(target.idx, target.headers.indexOf("name") + 1).getValue();
+  const applicantFileName = sanitizeForFilename(applicantName);
+  // Pending vs. already-approved decides which folder — same split as the "submit" handler.
+  const folder = target.isPending ? getPendingPhotosFolder() : getPhotosFolder();
+  timing.push(["getFolder", Date.now() - _t]);
+
+  // Never hard-fails if one upload doesn't come back with a URL — same "never blocks on a photo
+  // problem" philosophy as savePhotoAndGetUrl() itself never throwing.
+  let photoUrl = "", signatureUrl = "";
+  if (data.photoBase64) {
+    _t = Date.now();
+    photoUrl = savePhotoAndGetUrl(`${applicantFileName} (${idNo})`, data.photoBase64, data.photoMimeType, folder);
+    timing.push(["savePhoto", Date.now() - _t]);
+  }
+  if (data.signatureBase64) {
+    _t = Date.now();
+    signatureUrl = savePhotoAndGetUrl(`${applicantFileName} (${idNo}) - Signature`, data.signatureBase64, data.signatureMimeType, folder);
+    timing.push(["saveSignature", Date.now() - _t]);
+  }
+
+  _t = Date.now();
   const lock = LockService.getScriptLock();
+  if (!lock.tryLock(30000)) return errorMsg("The system is busy right now — please try again in a moment.");
+  try {
+    const now = locateRow() || target; // fall back to the first answer if it can't be found again
+    if (photoUrl) now.sheet.getRange(now.idx, now.headers.indexOf("photoUrl") + 1).setValue(photoUrl);
+    if (signatureUrl) now.sheet.getRange(now.idx, now.headers.indexOf("signatureUrl") + 1).setValue(signatureUrl);
+    // Only actually stale the Registrations cache when the row written to IS a Registrations row;
+    // the common case (a fresh submission's photo) only touches Pending — see markActivityLive().
+    if (now.isPending) markActivityLive(activity.key); else touchActivity(activity.key);
+  } finally {
+    lock.releaseLock();
+  }
+  timing.push(["writeUrls", Date.now() - _t]);
+
+  timing.push(["TOTAL", Date.now() - t0]);
+  Logger.log("addPhoto timing for " + idNo + ": " + JSON.stringify(timing));
+  return ok({ _timing: timing });
+}
+
+function doPost(e) {
+  // addPhoto does its own (short) locking — see handleAddPhoto().
+  let peek = null;
+  try { peek = JSON.parse(e.postData.contents); } catch (err) { /* not JSON — handled below */ }
+  if (peek && peek.action === "addPhoto") {
+    try { return handleAddPhoto(peek); } catch (err) { return errorOut(err); }
+  }
+
+  const lock = LockService.getScriptLock();
+  // Drive clean-up of rejected/approved-walk-in photos is slow (several seconds); it's queued while
+  // the lock is held and done right after it's released, so it never keeps other requests waiting.
+  DEFERRED_DRIVE_TRASH = [];
   try {
     if (!lock.tryLock(30000)) {
       return errorMsg("The system is busy right now — please try again in a moment.");
@@ -2025,6 +2114,9 @@ function doPost(e) {
       return handleDoPost(e);
     } finally {
       lock.releaseLock();
+      const queued = DEFERRED_DRIVE_TRASH || [];
+      DEFERRED_DRIVE_TRASH = null;
+      queued.forEach(id => { try { DriveApp.getFileById(id).setTrashed(true); } catch (err) { /* already gone */ } });
     }
   } catch (err) {
     return errorOut(err);
@@ -2557,83 +2649,8 @@ function handleDoPostInner(e) {
     }
 
 
-    if (action === "addPhoto") {
-      // Also doubles as the "submit" handler's follow-up call: a fresh
-      // submission writes its Pending row with photoUrl/signatureUrl
-      // blank (see the long comment in "submit" above) and the
-      // registrant-app client fires this action right after, with the
-      // same idNo, to actually upload whichever of photoBase64/
-      // signatureBase64 it has — that's why either one alone is
-      // accepted here, not just a photo.
-      // TEMPORARY debug instrumentation — see doApprove()'s matching
-      // comment. Safe to strip out (along with the "_timing" field on
-      // the response) once a slow upload's been diagnosed from this.
-      const timing = [];
-      const t0 = Date.now();
-      let _t = t0;
-
-      const idNo = String(data.idNo || "").trim();
-      if (!idNo) return errorMsg("Enter your code or ID number.");
-      if (!data.photoBase64 && !data.signatureBase64) return errorMsg("No photo received.");
-
-      const pending = getOrCreateSheet(PENDING_SHEET_NAME, PENDING_HEADERS);
-      let idx = findRowIndexByIdNo(pending, idNo, PENDING_HEADERS, activity.key);
-      let targetSheet = null, targetHeaders = null;
-      if (idx !== -1) {
-        targetSheet = pending;
-        targetHeaders = PENDING_HEADERS;
-      } else {
-        const registrations = getOrCreateSheet(activity.registrationsSheet, REGISTRATIONS_HEADERS);
-        idx = findRowIndexByIdNo(registrations, idNo, REGISTRATIONS_HEADERS);
-        if (idx !== -1) { targetSheet = registrations; targetHeaders = REGISTRATIONS_HEADERS; }
-      }
-      if (!targetSheet) return errorMsg("Code not recognized");
-      timing.push(["findTargetRow", Date.now() - _t]);
-
-      _t = Date.now();
-      const nameColIndex = targetHeaders.indexOf("name") + 1;
-      const applicantName = targetSheet.getRange(idx, nameColIndex).getValue();
-      const applicantFileName = sanitizeForFilename(applicantName);
-      // Pending vs. already-approved decides which folder — same split
-      // as the "submit" handler.
-      const folder = targetSheet === pending ? getPendingPhotosFolder() : getPhotosFolder();
-      timing.push(["getFolder", Date.now() - _t]);
-
-      // Never hard-fails if one upload doesn't come back with a URL —
-      // same "never blocks on a photo problem" philosophy as
-      // savePhotoAndGetUrl() itself never throwing. Whichever of the
-      // two wasn't sent (or failed) is simply left as-is.
-      if (data.photoBase64) {
-        _t = Date.now();
-        const photoUrl = savePhotoAndGetUrl(`${applicantFileName} (${idNo})`, data.photoBase64, data.photoMimeType, folder);
-        if (photoUrl) targetSheet.getRange(idx, targetHeaders.indexOf("photoUrl") + 1).setValue(photoUrl);
-        timing.push(["savePhoto", Date.now() - _t]);
-      }
-      if (data.signatureBase64) {
-        _t = Date.now();
-        const signatureUrl = savePhotoAndGetUrl(`${applicantFileName} (${idNo}) - Signature`, data.signatureBase64, data.signatureMimeType, folder);
-        if (signatureUrl) targetSheet.getRange(idx, targetHeaders.indexOf("signatureUrl") + 1).setValue(signatureUrl);
-        timing.push(["saveSignature", Date.now() - _t]);
-      }
-      _t = Date.now();
-      // Only actually stale the Registrations cache when the row that
-      // was just written to IS a Registrations row (photo/signature
-      // added to an already-approved member) — the common case, a
-      // fresh submission's photo follow-up, only ever touches Pending
-      // and never needs that cache invalidated; see markActivityLive()'s
-      // comment.
-      if (targetSheet === pending) {
-        markActivityLive(activity.key);
-      } else {
-        touchActivity(activity.key);
-      }
-      timing.push(["touchActivity", Date.now() - _t]);
-
-      timing.push(["TOTAL", Date.now() - t0]);
-      Logger.log("addPhoto timing for " + idNo + ": " + JSON.stringify(timing));
-      return ok({ _timing: timing });
-    }
-
+    // "addPhoto" is handled by handleAddPhoto() — it deliberately runs OUTSIDE the script-wide lock
+    // for its slow Drive upload; see doPost() and handleAddPhoto().
 
     if (action === "lookup") {
       // Returns EVERY approved row sharing this phone number, across
