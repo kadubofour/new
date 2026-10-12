@@ -1324,24 +1324,95 @@
   let currentActivity = null;
 
   // ---- Country codes for phone fields ----
+  // Country list for the phone fields. The flag is built from the 2-letter country code
+  // (Windows shows the letters, e.g. "JP +81", instead of a flag picture — that's normal there).
+  // US and Canada share +1, so one entry covers both.
   const COUNTRY_CODES = [
-    { code:"+233", label:"🇬🇭 +233", def:true },
-    { code:"+234", label:"🇳🇬 +234" },
-    { code:"+225", label:"🇨🇮 +225" },
-    { code:"+228", label:"🇹🇬 +228" },
-    { code:"+229", label:"🇧🇯 +229" },
-    { code:"+226", label:"🇧🇫 +226" },
-    { code:"+223", label:"🇲🇱 +223" },
-    { code:"+221", label:"🇸🇳 +221" },
-    { code:"+232", label:"🇸🇱 +232" },
-    { code:"+231", label:"🇱🇷 +231" },
-    { code:"+27",  label:"🇿🇦 +27" },
-    { code:"+254", label:"🇰🇪 +254" },
-    { code:"+1",   label:"🇺🇸 +1" },
-    { code:"+44",  label:"🇬🇧 +44" },
-    { code:"+91",  label:"🇮🇳 +91" },
-    { code:"+86",  label:"🇨🇳 +86" }
-  ];
+    { iso:"GH", code:"+233",def:true },
+    { iso:"NG", code:"+234" },
+    { iso:"CI", code:"+225" },
+    { iso:"TG", code:"+228" },
+    { iso:"BJ", code:"+229" },
+    { iso:"BF", code:"+226" },
+    { iso:"ML", code:"+223" },
+    { iso:"SN", code:"+221" },
+    { iso:"SL", code:"+232" },
+    { iso:"LR", code:"+231" },
+    { iso:"GM", code:"+220" },
+    { iso:"GN", code:"+224" },
+    { iso:"NE", code:"+227" },
+    { iso:"CM", code:"+237" },
+    { iso:"ZA", code:"+27" },
+    { iso:"KE", code:"+254" },
+    { iso:"EG", code:"+20" },
+    { iso:"ET", code:"+251" },
+    { iso:"TZ", code:"+255" },
+    { iso:"UG", code:"+256" },
+    { iso:"RW", code:"+250" },
+    { iso:"ZM", code:"+260" },
+    { iso:"ZW", code:"+263" },
+    { iso:"BW", code:"+267" },
+    { iso:"NA", code:"+264" },
+    { iso:"MA", code:"+212" },
+    { iso:"DZ", code:"+213" },
+    { iso:"TN", code:"+216" },
+    { iso:"US", code:"+1" },
+    { iso:"GB", code:"+44" },
+    { iso:"IE", code:"+353" },
+    { iso:"FR", code:"+33" },
+    { iso:"DE", code:"+49" },
+    { iso:"NL", code:"+31" },
+    { iso:"BE", code:"+32" },
+    { iso:"CH", code:"+41" },
+    { iso:"AT", code:"+43" },
+    { iso:"IT", code:"+39" },
+    { iso:"ES", code:"+34" },
+    { iso:"PT", code:"+351" },
+    { iso:"SE", code:"+46" },
+    { iso:"NO", code:"+47" },
+    { iso:"DK", code:"+45" },
+    { iso:"FI", code:"+358" },
+    { iso:"IS", code:"+354" },
+    { iso:"PL", code:"+48" },
+    { iso:"CZ", code:"+420" },
+    { iso:"GR", code:"+30" },
+    { iso:"TR", code:"+90" },
+    { iso:"RU", code:"+7" },
+    { iso:"UA", code:"+380" },
+    { iso:"AE", code:"+971" },
+    { iso:"SA", code:"+966" },
+    { iso:"QA", code:"+974" },
+    { iso:"IL", code:"+972" },
+    { iso:"IN", code:"+91" },
+    { iso:"PK", code:"+92" },
+    { iso:"BD", code:"+880" },
+    { iso:"LK", code:"+94" },
+    { iso:"CN", code:"+86" },
+    { iso:"HK", code:"+852" },
+    { iso:"JP", code:"+81" },
+    { iso:"KR", code:"+82" },
+    { iso:"SG", code:"+65" },
+    { iso:"MY", code:"+60" },
+    { iso:"TH", code:"+66" },
+    { iso:"VN", code:"+84" },
+    { iso:"PH", code:"+63" },
+    { iso:"ID", code:"+62" },
+    { iso:"AU", code:"+61" },
+    { iso:"NZ", code:"+64" },
+    { iso:"BR", code:"+55" },
+    { iso:"MX", code:"+52" },
+    { iso:"AR", code:"+54" },
+    { iso:"CO", code:"+57" }
+  ].map(c => Object.assign(c, {
+    label: (c.iso === "US" ? "\uD83C\uDDFA\uD83C\uDDF8\uD83C\uDDE8\uD83C\uDDE6" : String.fromCodePoint(...[...c.iso].map(ch => 0x1F1E6 + ch.charCodeAt(0) - 65))) + " " + c.code
+  }));
+  // Digits allowed in the number part, after the country code and without the leading 0.
+  // Ghana's are exactly 9; everywhere else numbers vary (Norway 8, Germany up to 11, USA/UK 10...), so
+  // allow anything from 7 digits up to the international limit of 15 digits in total with the country code.
+  function phoneDigitRules(code){
+    if(code === '+233') return { min: 9, max: 9 };
+    return { min: 7, max: Math.max(7, 15 - String(code).replace(/\D/g, '').length) };
+  }
   function populateCountryCodeSelects(){
     document.querySelectorAll('select.country-code-select').forEach(sel => {
       sel.innerHTML = COUNTRY_CODES.map(c =>
@@ -1355,20 +1426,26 @@
   // ("024 123 4567") even though every phone field here already pairs
   // with an explicit country code select that accounts for it — so a
   // leading 0 is dropped the moment it's typed, and typing is capped
-  // at 9 digits (the length of a local number once that 0 is gone).
+  // at the most digits that country's numbers can have (see phoneDigitRules).
   document.querySelectorAll('.phone-group input[type="text"]').forEach(input => {
-    input.addEventListener('input', () => {
-      let value = input.value.replace(/^0/, '');
+    const codeSelect = input.closest('.phone-group').querySelector('select');
+    function applyLimit(){
+      const code = codeSelect ? codeSelect.value : '+233';
+      const maxDigits = phoneDigitRules(code).max;
+      // Italy is the one common exception where the leading 0 is part of the number.
+      let value = code === '+39' ? input.value : input.value.replace(/^0/, '');
       let digitCount = 0, cutIndex = value.length;
       for(let i = 0; i < value.length; i++){
         if(/\d/.test(value[i])){
           digitCount++;
-          if(digitCount > 9){ cutIndex = i; break; }
+          if(digitCount > maxDigits){ cutIndex = i; break; }
         }
       }
       value = value.slice(0, cutIndex);
       if(value !== input.value) input.value = value;
-    });
+    }
+    input.addEventListener('input', applyLimit);
+    if(codeSelect) codeSelect.addEventListener('change', applyLimit);
   });
 
   /* ===================== Screens: activity picker <-> app ===================== */
@@ -2084,7 +2161,7 @@
   function validateStep3(){
     let valid = true;
     const phoneDigits = phoneField.value.replace(/[^0-9+]/g, '');
-    if(!phoneDigits || phoneDigits.replace(/\D/g,'').length < 9){ markInvalid('field-phone'); valid = false; } else clearFieldError('field-phone');
+    if(!phoneDigits || phoneDigits.replace(/\D/g,'').length < phoneDigitRules(regPhoneCode.value).min){ markInvalid('field-phone'); valid = false; } else clearFieldError('field-phone');
     if(!isValidEmail(emailField.value.trim())){ markInvalid('field-email'); valid = false; } else clearFieldError('field-email');
     if(!addressField.value.trim()){ markInvalid('field-address'); valid = false; } else clearFieldError('field-address');
     return valid;
@@ -2103,7 +2180,7 @@
     if(!emergencySurnameField.value.trim()){ markInvalid('field-emergencySurname'); valid = false; } else clearFieldError('field-emergencySurname');
     if(!emergencyOtherNamesField.value.trim()){ markInvalid('field-emergencyOtherNames'); valid = false; } else clearFieldError('field-emergencyOtherNames');
     const emPhoneDigits = emergencyPhoneField.value.replace(/[^0-9+]/g, '');
-    if(!emPhoneDigits || emPhoneDigits.replace(/\D/g,'').length < 9){ markInvalid('field-emergencyPhone'); valid = false; } else clearFieldError('field-emergencyPhone');
+    if(!emPhoneDigits || emPhoneDigits.replace(/\D/g,'').length < phoneDigitRules(regEmergencyPhoneCode.value).min){ markInvalid('field-emergencyPhone'); valid = false; } else clearFieldError('field-emergencyPhone');
     if(!emergencyRelationshipField.value.trim()){ markInvalid('field-emergencyRelationship'); valid = false; } else clearFieldError('field-emergencyRelationship');
     return valid;
   }
@@ -2831,7 +2908,7 @@
     e.preventDefault();
     if(!requireCurrentActivity()) return;
     const phoneDigits = phoneInput.value.replace(/[^0-9+]/g, '');
-    if(!phoneDigits || phoneDigits.replace(/\D/g,'').length < 9){ markInvalid('field-phone-lookup'); return; }
+    if(!phoneDigits || phoneDigits.replace(/\D/g,'').length < phoneDigitRules(document.getElementById('phoneInputCode').value).min){ markInvalid('field-phone-lookup'); return; }
     clearFieldError('field-phone-lookup');
 
     lookupBtn.disabled = true;
@@ -3239,13 +3316,13 @@
     e.preventDefault();
     let valid = true;
     const phoneDigits = renPhone.value.replace(/[^0-9+]/g, '');
-    if(!phoneDigits || phoneDigits.replace(/\D/g,'').length < 9){ markInvalid('field-ren-phone'); valid = false; } else clearFieldError('field-ren-phone');
+    if(!phoneDigits || phoneDigits.replace(/\D/g,'').length < phoneDigitRules(renPhoneCode.value).min){ markInvalid('field-ren-phone'); valid = false; } else clearFieldError('field-ren-phone');
     if(!isValidEmail(renEmail.value.trim())){ markInvalid('field-ren-email'); valid = false; } else clearFieldError('field-ren-email');
     if(!renAddress.value.trim()){ markInvalid('field-ren-address'); valid = false; } else clearFieldError('field-ren-address');
     if(!renEmergencySurname.value.trim()){ markInvalid('field-ren-emergencySurname'); valid = false; } else clearFieldError('field-ren-emergencySurname');
     if(!renEmergencyOtherNames.value.trim()){ markInvalid('field-ren-emergencyOtherNames'); valid = false; } else clearFieldError('field-ren-emergencyOtherNames');
     const emPhoneDigits = renEmergencyPhone.value.replace(/[^0-9+]/g, '');
-    if(!emPhoneDigits || emPhoneDigits.replace(/\D/g,'').length < 9){ markInvalid('field-ren-emergencyPhone'); valid = false; } else clearFieldError('field-ren-emergencyPhone');
+    if(!emPhoneDigits || emPhoneDigits.replace(/\D/g,'').length < phoneDigitRules(renEmergencyPhoneCode.value).min){ markInvalid('field-ren-emergencyPhone'); valid = false; } else clearFieldError('field-ren-emergencyPhone');
     if(!renEmergencyRelationship.value.trim()){ markInvalid('field-ren-emergencyRelationship'); valid = false; } else clearFieldError('field-ren-emergencyRelationship');
     if(!valid) return;
 
