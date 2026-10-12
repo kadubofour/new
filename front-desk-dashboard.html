@@ -798,6 +798,13 @@
   // page means entering the PIN again); fetchJSON() below attaches it to
   // every request, and the server refuses front-desk data without one.
   let staffToken = null;
+  // One-time id stamped on every write, and kept the same across this function's own retries, so the
+  // server can tell "the same request again" (reply got lost, we retried) from a genuinely new one and
+  // hand back the first answer instead of doing the work twice. See handleDoPost() in Code.gs.
+  function newRequestId(){
+    try{ if(window.crypto && crypto.randomUUID) return crypto.randomUUID(); }catch(e){}
+    return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
+  }
   function fetchJSON(url, options){
     if(!staffToken) return Promise.resolve({ status: 'error', code: 'auth', message: 'Please enter the staff PIN.' });
     const sentToken = staffToken;
@@ -805,7 +812,7 @@
     if(!o || !o.method || o.method === 'GET'){
       u = url + (url.indexOf('?') === -1 ? '?' : '&') + 'token=' + encodeURIComponent(staffToken);
     } else {
-      try{ const b = JSON.parse(o.body); b.token = staffToken; o = Object.assign({}, o, { body: JSON.stringify(b) }); }catch(e){}
+      try{ const b = JSON.parse(o.body); b.token = staffToken; if(!b.requestId) b.requestId = newRequestId(); o = Object.assign({}, o, { body: JSON.stringify(b) }); }catch(e){}
     }
     return fetchWithRetry(u, o).then(res => {
       // Token expired (6h) or the server restarted its cache: back to the
@@ -1301,8 +1308,24 @@
   // it only ever triggers the same fetch loadAll() already does — so
   // there's exactly one code path that turns server data into UI,
   // whichever reason triggered the fetch.
+  // Cards this desk has just approved/rejected. A poll that was already in
+  // flight when the click happened can come back AFTER the card was
+  // removed, carrying the old list — which used to put the card straight
+  // back ("stays in the approval area even after approval") until a later
+  // poll fixed it. Anything listed here is kept out of every incoming
+  // list until the server's own list stops containing it (or 45s pass).
+  const resolvedPending = {};
+  function filterResolvedPending(key, rows){
+    const m = resolvedPending[key];
+    if(!m || m.size === 0) return rows;
+    const present = new Set(rows.map(r => String(r.idNo)));
+    const now = Date.now();
+    m.forEach((ts, id) => { if(!present.has(id) || now - ts > 45000) m.delete(id); });
+    return rows.filter(r => !m.has(String(r.idNo)));
+  }
   function applyDashboardPayload(res, activity){
     const st = storeFor(activity.key);
+    res.pending = filterResolvedPending(activity.key, res.pending || []);
     st.pending = res.pending || [];
     st.registrations = res.registrations || [];
     st.clearedAt = res.clearedAt || null;
@@ -1355,6 +1378,7 @@
   // other activity is a background load: it fills that activity's
   // memory and never toasts or counts toward the connection-failure
   // warning.
+  const loadSeq = {}, appliedSeq = {};
   function loadAll(activity){
     if(!activity || !activity.key) activity = currentActivity;
     // TEMPORARY debug instrumentation (see Code.gs's matching comment
@@ -1365,8 +1389,16 @@
     // that feels slow to show up, this is where to look. Safe to
     // remove, here and in Code.gs, once that's done.
     const _reqStart = Date.now();
+    // Replies can arrive out of order (a slow earlier request finishing
+    // after a newer one). Only ever apply a reply newer than the last one
+    // applied, so an old list can't overwrite a newer one.
+    const seq = (loadSeq[activity.key] = (loadSeq[activity.key] || 0) + 1);
     return fetchJSON(SCRIPT_URL + "?activity=" + activity.key + "&view=dashboard&t=" + Date.now())
       .then(res => {
+        if(res && res.status === "ok"){
+          if(seq < (appliedSeq[activity.key] || 0)) return;
+          appliedSeq[activity.key] = seq;
+        }
         if(res._timing) console.log(`[dashboard poll timing] activity=${activity.key} clientRoundTripMs=${Date.now() - _reqStart}`, res._timing);
         if(res.status !== "ok"){
           if(activity.key === currentActivity.key) showToast(res.message || "Couldn't reach the sheet — check connection", true);
@@ -1996,6 +2028,8 @@
   // person has already switched away by the time the server answers.
   function removePendingLocally(activity, idNos){
     const gone = new Set(idNos.map(String));
+    const resolved = resolvedPending[activity.key] || (resolvedPending[activity.key] = new Map());
+    gone.forEach(id => resolved.set(id, Date.now()));
     const st = storeFor(activity.key);
     st.pending = st.pending.filter(e => !gone.has(String(e.idNo)));
     pendingCounts[activity.key] = st.pending.length;
@@ -2007,7 +2041,7 @@
   }
 
   function handleApprovalAction(idNo, action){
-    const entry = pendingEntries.find(e => e.idNo === idNo);
+    const entry = pendingEntries.find(e => String(e.idNo) === String(idNo));
     const isWalkin = action === "approve" && entry && entry.duration === "Walk-in";
     const isRenewal = entry && String(entry.isRenewal||'').trim().toUpperCase() === "TRUE";
     // A Family Package's group approves/rejects together server-side

@@ -455,6 +455,13 @@
   // page means entering the PIN again); fetchJSON() below attaches it to
   // every request, and the server refuses front-desk data without one.
   let staffToken = null;
+  // One-time id stamped on every write, and kept the same across this function's own retries, so the
+  // server can tell "the same request again" (reply got lost, we retried) from a genuinely new one and
+  // hand back the first answer instead of doing the work twice. See handleDoPost() in Code.gs.
+  function newRequestId(){
+    try{ if(window.crypto && crypto.randomUUID) return crypto.randomUUID(); }catch(e){}
+    return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
+  }
   function fetchJSON(url, options){
     if(!staffToken) return Promise.resolve({ status: 'error', code: 'auth', message: 'Please enter the staff PIN.' });
     const sentToken = staffToken;
@@ -462,7 +469,7 @@
     if(!o || !o.method || o.method === 'GET'){
       u = url + (url.indexOf('?') === -1 ? '?' : '&') + 'token=' + encodeURIComponent(staffToken);
     } else {
-      try{ const b = JSON.parse(o.body); b.token = staffToken; o = Object.assign({}, o, { body: JSON.stringify(b) }); }catch(e){}
+      try{ const b = JSON.parse(o.body); b.token = staffToken; if(!b.requestId) b.requestId = newRequestId(); o = Object.assign({}, o, { body: JSON.stringify(b) }); }catch(e){}
     }
     return fetchWithRetry(u, o).then(res => {
       // Token expired (6h) or the server restarted its cache: back to the

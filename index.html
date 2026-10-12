@@ -1132,8 +1132,23 @@
   // wait each time: 0.6s, 1.2s, 2.4s, 4.8s) so a genuine busy-moment
   // failure gets a real chance to resolve itself before surfacing as
   // an error.
+  // One-time id stamped on every write, and kept the same across this function's own retries, so the
+  // server can tell "the same request again" (reply got lost, we retried) from a genuinely new one and
+  // hand back the first answer instead of doing the work twice. See handleDoPost() in Code.gs.
+  function newRequestId(){
+    try{ if(window.crypto && crypto.randomUUID) return crypto.randomUUID(); }catch(e){}
+    return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 12);
+  }
   function fetchJSON(url, options, attempt){
-    if(attempt === undefined) attempt = 0;
+    if(attempt === undefined){
+      attempt = 0;
+      if(options && typeof options.body === 'string'){
+        try{
+          const b = JSON.parse(options.body);
+          if(!b.requestId){ b.requestId = newRequestId(); options = Object.assign({}, options, { body: JSON.stringify(b) }); }
+        }catch(e){}
+      }
+    }
     return fetch(url, options)
       .then(r => r.json())
       .catch(err => {

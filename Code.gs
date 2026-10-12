@@ -1293,12 +1293,48 @@ function approvePendingRow(activity, pending, registrations, idx, timing) {
   // regroupAllRegistrations() backstop. See insertRegistrationIntoDateGroup()
   // itself for how it stays cheap regardless of how big Registrations gets.
   _t = Date.now();
-  insertRegistrationIntoDateGroup(registrations, REGISTRATIONS_HEADERS, regRowValues, formatDateDMY(approvedNow), activity.key);
+  // If an earlier attempt at THIS approval already wrote the member into
+  // today's block but then failed before it could remove the Pending row
+  // (a Sheets timeout, a lost connection...), the card was left sitting in
+  // the approval area even though the person was registered. Approving it
+  // again must just finish the job — clear Pending — not add a second copy.
+  if (!registeredTodayAlready(registrations, regRowValues)) {
+    insertRegistrationIntoDateGroup(registrations, REGISTRATIONS_HEADERS, regRowValues, formatDateDMY(approvedNow), activity.key);
+  }
   if (timing) timing.push(["insertRegistrationIntoDateGroup", Date.now() - _t]);
   _t = Date.now();
   pending.deleteRow(idx);
   if (timing) timing.push(["deletePendingRow", Date.now() - _t]);
   return idNo;
+}
+
+// True if today's date block (always the first one in the sheet — see
+// insertRegistrationIntoDateGroup()) already holds a row with this
+// member's idNo AND the same plan. Reads only today's block, in bounded
+// chunks, so it stays cheap however big Registrations gets; never throws
+// (on any doubt it answers "no", i.e. carries on and registers them).
+function registeredTodayAlready(registrations, regRowValues) {
+  try {
+    const idCol = REGISTRATIONS_HEADERS.indexOf("idNo") + 1;
+    const durCol = REGISTRATIONS_HEADERS.indexOf("duration") + 1;
+    const wantedId = String(regRowValues[idCol - 1]).replace(/^'/, "").trim();
+    const wantedDur = String(regRowValues[durCol - 1]).trim();
+    const lastRow = registrations.getLastRow();
+    if (lastRow < 3 || !wantedId) return false;
+    if (registrations.getRange(2, idCol).getNote() !== DATE_HEADER_MARKER + formatDateDMY(new Date())) return false;
+    const CHUNK = 200;
+    for (let start = 3; start <= lastRow; start += CHUNK) {
+      const count = Math.min(CHUNK, lastRow - start + 1);
+      const ids = registrations.getRange(start, idCol, count, 1).getValues();
+      const notes = registrations.getRange(start, idCol, count, 1).getNotes();
+      const durs = registrations.getRange(start, durCol, count, 1).getValues();
+      for (let i = 0; i < count; i++) {
+        if (String(notes[i][0] || "").indexOf(DATE_HEADER_MARKER) === 0) return false; // end of today's block
+        if (String(ids[i][0]).replace(/^'/, "").trim() === wantedId && String(durs[i][0]).trim() === wantedDur) return true;
+      }
+    }
+  } catch (err) { /* fall through to "no" */ }
+  return false;
 }
 
 // A Family Package submission is several Pending rows sharing one
@@ -1407,14 +1443,33 @@ function doReject(activity, idNo) {
 function registrationTimestampMs(row) {
   const d = parseDateSafe(row.date);
   if (!d) return Infinity;
+  let hours = 0, minutes = 0;
   const timeMatch = String(row.time || "").trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
   if (timeMatch) {
-    let hours = Number(timeMatch[1]) % 12;
+    hours = Number(timeMatch[1]) % 12;
     if (/pm/i.test(timeMatch[3])) hours += 12;
-    d.setHours(hours, Number(timeMatch[2]), 0, 0);
+    minutes = Number(timeMatch[2]);
   }
-  const ms = d.getTime();
-  return isNaN(ms) ? Infinity : ms;
+  // The stored date/time are wall-clock values in TIMEZONE (Ghana), but
+  // "new Date(y, m, d)" + setHours() read them in whatever timezone the
+  // Apps Script PROJECT happens to be set to — and the Clear List cutoff
+  // this gets compared against is a real instant. If the project's own
+  // timezone isn't the same as TIMEZONE, every registration approved
+  // after a Clear List could be judged "older than the cutoff" and stay
+  // hidden for however many hours the two zones differ. Rebuilding the
+  // instant explicitly in TIMEZONE makes the comparison right whatever
+  // the project setting is.
+  try {
+    const ms = Utilities.parseDate(
+      d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate() + " " + hours + ":" + (minutes < 10 ? "0" : "") + minutes,
+      TIMEZONE, "yyyy-M-d H:mm"
+    ).getTime();
+    return isNaN(ms) ? Infinity : ms;
+  } catch (err) {
+    d.setHours(hours, minutes, 0, 0);
+    const ms = d.getTime();
+    return isNaN(ms) ? Infinity : ms;
+  }
 }
 
 // A renewal is its own new row (see approvePendingRow()'s comment) —
@@ -1467,7 +1522,17 @@ function dedupeRegistrationsByIdNo(rows) {
 const VISIBLE_REGISTRATIONS_CACHE_TTL_SECONDS = 20;
 
 function invalidateVisibleRegistrationsCache(activityKey) {
-  try { CacheService.getScriptCache().remove("visibleRegs_" + activityKey); } catch (err) { /* cache unavailable — nothing to invalidate */ }
+  try {
+    const cache = CacheService.getScriptCache();
+    cache.remove("visibleRegs_" + activityKey);
+    // Also bump a version stamp. A dashboard read (doGet isn't behind the
+    // write lock) that STARTED before this write but finishes after it
+    // would otherwise save its out-of-date copy right back into the cache,
+    // and every desk would keep being served that old copy for up to 20
+    // seconds — see getVisibleRegistrations(), which only saves its copy if
+    // this stamp hasn't moved since it began reading.
+    cache.put("visibleRegsVer_" + activityKey, String(Date.now()) + Math.random(), 21600);
+  } catch (err) { /* cache unavailable — nothing to invalidate */ }
 }
 
 // ------------------------------------------------------------------
@@ -1647,9 +1712,13 @@ function markActivityLive(activityKey) {
 // lives in one place.
 function getVisibleRegistrations(activity) {
   const cacheKey = "visibleRegs_" + activity.key;
+  const verKey = "visibleRegsVer_" + activity.key;
+  let verAtStart = null;
   try {
-    const cached = CacheService.getScriptCache().get(cacheKey);
+    const cache = CacheService.getScriptCache();
+    const cached = cache.get(cacheKey);
     if (cached) return JSON.parse(cached);
+    verAtStart = cache.get(verKey);
   } catch (err) { /* cache unavailable or corrupt — fall through to a real read */ }
 
   const sheet = getOrCreateSheet(activity.registrationsSheet, REGISTRATIONS_HEADERS);
@@ -1661,7 +1730,11 @@ function getVisibleRegistrations(activity) {
   }
   const result = { rows: rows, clearedAt: clearedAt || null };
   try {
-    CacheService.getScriptCache().put(cacheKey, JSON.stringify(result), VISIBLE_REGISTRATIONS_CACHE_TTL_SECONDS);
+    // Skip saving if a write invalidated the cache while this read was in
+    // progress — this copy may already be out of date.
+    if (CacheService.getScriptCache().get(verKey) === verAtStart) {
+      CacheService.getScriptCache().put(cacheKey, JSON.stringify(result), VISIBLE_REGISTRATIONS_CACHE_TTL_SECONDS);
+    }
   } catch (err) { /* result too large for the cache (100KB cap), or cache unavailable — fine, this call just reads fresh every time */ }
   return result;
 }
@@ -1932,7 +2005,40 @@ function doPost(e) {
   }
 }
 
+// A request's one-time id (see "requestId" in the apps' fetchJSON): the
+// apps silently retry a request whose reply got lost on the way back, even
+// though the first attempt had already gone through and written its row.
+// Without this, that retry wrote the same thing a second time — a second
+// Pending row for one registrant/walk-in (approve one and the other "stays
+// in the approval area" forever), a second Visits row for one sign-in, an
+// "Already handled" warning for an approval that actually worked. This runs
+// inside the script lock (see doPost), so a retry that arrives while the
+// first attempt is still working simply waits, then gets that attempt's own
+// answer handed back instead of doing the work again. Only successful
+// answers are remembered — a failed attempt is still free to be retried.
+const REQUEST_REPLAY_TTL_SECONDS = 600;
+
 function handleDoPost(e) {
+  let requestId = "";
+  try { requestId = String(JSON.parse(e.postData.contents).requestId || "").slice(0, 64); } catch (err) { /* not JSON — the real handler below reports that */ }
+  const replayKey = requestId ? "reqReplay_" + requestId : "";
+  if (replayKey) {
+    try {
+      const prior = CacheService.getScriptCache().get(replayKey);
+      if (prior) return ContentService.createTextOutput(prior).setMimeType(ContentService.MimeType.JSON);
+    } catch (err) { /* cache unavailable — just do the work */ }
+  }
+  const out = handleDoPostInner(e);
+  if (replayKey) {
+    try {
+      const body = out.getContent();
+      if (JSON.parse(body).status === "ok") CacheService.getScriptCache().put(replayKey, body, REQUEST_REPLAY_TTL_SECONDS);
+    } catch (err) { /* too large for the cache, or unavailable — a retry would simply redo the work, as before */ }
+  }
+  return out;
+}
+
+function handleDoPostInner(e) {
   try {
     const data = JSON.parse(e.postData.contents);
     const action = data.action || "submit";
