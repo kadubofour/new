@@ -428,7 +428,12 @@
   /* Signed-in success: the whole page and card turn green so it reads from across a desk. */
   body.signed-in-ok{ background:#168A47; }
   body.signed-in-ok .card{ background:#1FA55A; border-color:#168A47; border-top-color:#0E6B35; color:#fff; }
-  body.signed-in-ok .tab-bar{ opacity:.85; }
+  body.signed-in-ok .tab-bar{ background:#168A47; }
+  body.signed-in-ok .tab-btn{ color:rgba(255,255,255,0.8); }
+  body.signed-in-ok .tab-btn:hover{ color:#fff; }
+  body.signed-in-ok .tab-btn.active{ background:#fff; color:#0E6B35; box-shadow:0 1px 3px rgba(0,0,0,0.15), inset 0 -3px 0 #0E6B35; }
+  body.signed-in-ok .activity-chip{ background:#168A47; color:#fff; }
+  body.signed-in-ok .back-btn{ background:#fff; border-color:#fff; color:#0E6B35; }
   body.signed-in-ok .card h1{ color:#fff; }
   body.signed-in-ok .result-icon{ background:#fff; color:#168A47; }
   body.signed-in-ok .result-name, body.signed-in-ok .result-sub, body.signed-in-ok .error-msg{ color:#fff; }
