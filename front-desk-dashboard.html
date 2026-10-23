@@ -329,12 +329,13 @@
     width:100%; background:var(--bg); border:1px solid var(--line-strong); color:var(--text);
     padding:10px 11px; border-radius:8px; font-family:'Inter',sans-serif; font-size:14px; outline:none;
   }
+  .walkin-card select{ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237A8AA5' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; background-size:12px 12px; padding-right:34px; cursor:pointer; }
   .walkin-card input:focus, .walkin-card select:focus{ border-color:var(--blue); box-shadow:0 0 0 3px var(--blue-dim); }
   .walkin-card .field-error{ font-size:11px; color:var(--danger); margin-top:4px; display:none; }
   .walkin-card .field.invalid input, .walkin-card .field.invalid select{ border-color:var(--danger); }
   .walkin-card .field.invalid .field-error{ display:block; }
   .walkin-card .phone-group{ display:flex; gap:8px; }
-  .walkin-card .phone-group select{ flex:0 0 108px; }
+  .walkin-card .phone-group select{ flex:0 0 124px; padding-right:30px; text-overflow:ellipsis; }
   .walkin-card .phone-group input{ flex:1; min-width:0; }
   .walkin-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:4px; }
 
@@ -573,33 +574,36 @@
   #pinScreen{ min-height:100vh; min-height:100dvh; }
 
   /* ---- Tally: one card per number instead of one boxed strip ----
-     Total is the navy tile; each category gets its own card with a gold
-     edge, numbers left-aligned and big, labels allowed to wrap so long
-     names ("UG Staff Relation (17 & Above)") are never squeezed or cut. */
+     Total is the navy tile; each category is its own white card. Number on top, label directly
+     under it (so numbers and labels line up across cards however many lines a label wraps to),
+     and a short gold bar at the top edge as the accent — a coloured left border looked lopsided
+     against the rounded corners. */
   .tally, .tally .tally-cell{ box-shadow:none; }
   .tally{
-    display:grid; grid-template-columns:repeat(auto-fit,minmax(138px,1fr)); gap:10px;
-    background:transparent; border:none; border-radius:0; overflow:visible; width:100%; max-width:900px;
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px;
+    background:transparent; border:none; border-radius:0; overflow:visible; width:100%; max-width:960px;
   }
   .tally .tally-cell{
-    min-width:0; padding:12px 14px 11px; text-align:left; border:1px solid var(--line); border-left:3px solid var(--gold);
-    border-radius:10px; background:var(--panel);
+    position:relative; min-width:0; padding:16px 14px 12px; text-align:left;
+    border:1px solid var(--line); border-radius:10px; background:var(--panel);
     box-shadow:0 1px 3px rgba(15,29,59,0.05);
-    display:flex; flex-direction:column; justify-content:space-between; gap:6px;
+    display:flex; flex-direction:column; justify-content:flex-start; gap:6px;
   }
+  .tally .tally-cell::before{ content:""; position:absolute; top:-1px; left:14px; width:22px; height:3px; border-radius:0 0 3px 3px; background:var(--gold); }
   .tally .tally-num{ font-size:32px; line-height:1; color:var(--blue); }
-  .tally .tally-label{ font-size:10px; letter-spacing:0.07em; line-height:1.35; margin-top:0; color:var(--text-dim); }
-  .tally .tally-cell:first-child{ background:var(--blue); border-color:var(--blue); border-left-color:var(--gold); }
+  .tally .tally-label{ font-size:10px; letter-spacing:0.05em; line-height:1.4; margin-top:0; color:var(--text-dim); text-wrap:balance; overflow-wrap:anywhere; }
+  .tally .tally-cell:first-child{ background:var(--blue); border-color:var(--blue); }
   .tally .tally-cell:first-child .tally-num{ color:#fff; }
   .tally .tally-cell:first-child .tally-label{ color:rgba(255,255,255,0.78); }
   @media (max-width:640px){
     .tally{ grid-template-columns:1fr 1fr; gap:8px; max-width:none; }
-    .tally .tally-cell{ padding:7px 11px 7px; gap:3px; box-shadow:0 1px 2px rgba(15,29,59,0.05); }
+    .tally .tally-cell{ padding:12px 12px 9px; gap:4px; box-shadow:0 1px 2px rgba(15,29,59,0.05); }
+    .tally .tally-cell::before{ left:12px; }
     .tally .tally-num{ font-size:22px; }
     .tally .tally-label{ font-size:9.5px; letter-spacing:0.05em; }
     /* Total runs the full width with the number and label side by side. */
     .tally .tally-cell:first-child{ grid-column:1 / -1; flex-direction:row; align-items:center; justify-content:space-between; }
-    .tally .tally-cell:first-child{ padding:8px 14px; }
+    .tally .tally-cell:first-child{ padding:10px 14px; }
     .tally .tally-cell:first-child .tally-num{ font-size:26px; }
     .tally .tally-cell:first-child .tally-label{ font-size:10.5px; }
     /* An odd leftover category card spans both columns instead of leaving a hole. */
