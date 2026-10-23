@@ -78,18 +78,14 @@
 
   /* Tabs: four separate colours from the app's palette so each one is easy to spot and find again —
      Register navy, Renewal gold, Sign In green, Sign Out teal. Every tab is tinted in its own colour
-     with a matching icon; the selected one fills solid. */
+     the selected one fills solid. */
   .tab-bar{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:22px; padding:6px; background:var(--panel-alt); border-radius:14px; }
   .tab-btn{
-    flex:1 1 calc(50% - 3px); display:flex; align-items:center; justify-content:center; gap:7px; white-space:nowrap;
+    flex:1 1 calc(50% - 3px); display:flex; align-items:center; justify-content:center; white-space:nowrap;
     background:var(--tc-soft); border:1.5px solid var(--tc-line); color:var(--tc-dark);
     padding:12px 6px; border-radius:11px; cursor:pointer; font-weight:700; font-size:12.5px;
     font-family:'Inter',sans-serif; text-transform:uppercase; letter-spacing:0.02em;
     transition:background .12s ease, color .12s ease, border-color .12s ease, box-shadow .12s ease, transform .08s ease;
-  }
-  .tab-btn::before{
-    content:""; flex:none; width:16px; height:16px; background-color:currentColor;
-    -webkit-mask:var(--tab-icon) center/contain no-repeat; mask:var(--tab-icon) center/contain no-repeat;
   }
   .tab-btn:hover{ border-color:var(--tc); }
   .tab-btn:active{ transform:scale(0.98); }
@@ -97,10 +93,10 @@
     background:var(--tc); border-color:var(--tc); color:#fff; font-weight:800;
     box-shadow:0 3px 10px var(--tc-shadow);
   }
-  .tab-btn[data-tab="register"]{ --tc:#232559; --tc-dark:#232559; --tc-soft:rgba(35,37,89,0.07); --tc-line:rgba(35,37,89,0.28); --tc-shadow:rgba(35,37,89,0.30); --tab-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 20v-1.5a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4V20'/%3E%3Ccircle cx='9' cy='8' r='3.5'/%3E%3Cline x1='19' y1='8' x2='19' y2='14'/%3E%3Cline x1='16' y1='11' x2='22' y2='11'/%3E%3C/svg%3E"); }
-  .tab-btn[data-tab="renew"]{ --tc:#A47A35; --tc-dark:#7A5A24; --tc-soft:rgba(186,143,74,0.14); --tc-line:rgba(186,143,74,0.50); --tc-shadow:rgba(164,122,53,0.35); --tab-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 4 20 9 15 9'/%3E%3Cpath d='M19.5 9A8 8 0 1 0 20 13'/%3E%3C/svg%3E"); }
-  .tab-btn[data-tab="signin"]{ --tc:#1F8F52; --tc-dark:#17693C; --tc-soft:rgba(31,143,82,0.10); --tc-line:rgba(31,143,82,0.38); --tc-shadow:rgba(31,143,82,0.32); --tab-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 4h5a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-5'/%3E%3Cpolyline points='9 8 13 12 9 16'/%3E%3Cline x1='13' y1='12' x2='3' y2='12'/%3E%3C/svg%3E"); }
-  .tab-btn[data-tab="signout"]{ --tc:#1E7C9A; --tc-dark:#165E75; --tc-soft:rgba(30,124,154,0.10); --tc-line:rgba(30,124,154,0.38); --tc-shadow:rgba(30,124,154,0.32); --tab-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h5'/%3E%3Cpolyline points='16 8 20 12 16 16'/%3E%3Cline x1='20' y1='12' x2='10' y2='12'/%3E%3C/svg%3E"); }
+  .tab-btn[data-tab="register"]{ --tc:#232559; --tc-dark:#232559; --tc-soft:rgba(35,37,89,0.07); --tc-line:rgba(35,37,89,0.28); --tc-shadow:rgba(35,37,89,0.30); }
+  .tab-btn[data-tab="renew"]{ --tc:#A47A35; --tc-dark:#7A5A24; --tc-soft:rgba(186,143,74,0.14); --tc-line:rgba(186,143,74,0.50); --tc-shadow:rgba(164,122,53,0.35); }
+  .tab-btn[data-tab="signin"]{ --tc:#1F8F52; --tc-dark:#17693C; --tc-soft:rgba(31,143,82,0.10); --tc-line:rgba(31,143,82,0.38); --tc-shadow:rgba(31,143,82,0.32); }
+  .tab-btn[data-tab="signout"]{ --tc:#1E7C9A; --tc-dark:#165E75; --tc-soft:rgba(30,124,154,0.10); --tc-line:rgba(30,124,154,0.38); --tc-shadow:rgba(30,124,154,0.32); }
   .tab-panel{display:none;}
   .tab-panel.active{display:block;}
 
