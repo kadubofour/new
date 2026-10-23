@@ -1320,7 +1320,7 @@ function approvePendingRow(activity, pending, registrations, idx, timing) {
   // (a Sheets timeout, a lost connection...), the card was left sitting in
   // the approval area even though the person was registered. Approving it
   // again must just finish the job — clear Pending — not add a second copy.
-  if (!registeredTodayAlready(registrations, regRowValues)) {
+  if (!registeredTodayAlready(registrations, regRowValues, activity.key)) {
     insertRegistrationIntoDateGroup(registrations, REGISTRATIONS_HEADERS, regRowValues, formatDateDMY(approvedNow), activity.key);
   }
   if (timing) timing.push(["insertRegistrationIntoDateGroup", Date.now() - _t]);
@@ -1335,7 +1335,7 @@ function approvePendingRow(activity, pending, registrations, idx, timing) {
 // member's idNo AND the same plan. Reads only today's block, in bounded
 // chunks, so it stays cheap however big Registrations gets; never throws
 // (on any doubt it answers "no", i.e. carries on and registers them).
-function registeredTodayAlready(registrations, regRowValues) {
+function registeredTodayAlready(registrations, regRowValues, activityKey) {
   try {
     const idCol = REGISTRATIONS_HEADERS.indexOf("idNo") + 1;
     const durCol = REGISTRATIONS_HEADERS.indexOf("duration") + 1;
@@ -1344,6 +1344,22 @@ function registeredTodayAlready(registrations, regRowValues) {
     const lastRow = registrations.getLastRow();
     if (lastRow < 3 || !wantedId) return false;
     if (registrations.getRange(2, idCol).getNote() !== DATE_HEADER_MARKER + formatDateDMY(new Date())) return false;
+    // Fast path: insertRegistrationIntoDateGroup() remembers where today's block ended — one single-column
+    // read of just that stretch, and the plan column only if an idNo actually matches.
+    try {
+      const raw = CacheService.getScriptCache().get(todayDateBlockCacheKey(activityKey));
+      const hint = raw ? JSON.parse(raw) : null;
+      if (hint && hint.dateKey === formatDateDMY(new Date()) && Number(hint.blockEndRow) >= 3) {
+        const end = Math.min(Number(hint.blockEndRow), lastRow);
+        const ids = registrations.getRange(3, idCol, end - 2, 1).getValues();
+        for (let i = 0; i < ids.length; i++) {
+          if (String(ids[i][0]).replace(/^'/, "").trim() === wantedId) {
+            if (String(registrations.getRange(3 + i, durCol).getValue()).trim() === wantedDur) return true;
+          }
+        }
+        return false; // nothing newer than the hint can predate this approval's own earlier attempt
+      }
+    } catch (err) { /* fall through to the full scan of today's block */ }
     const CHUNK = 200;
     for (let start = 3; start <= lastRow; start += CHUNK) {
       const count = Math.min(CHUNK, lastRow - start + 1);
@@ -1462,6 +1478,16 @@ function doReject(activity, idNo) {
 // Invalid Date for day > 12), so this parses both pieces explicitly via
 // parseDateSafe() instead. Unparseable values are treated as "new"
 // (kept visible) rather than silently hidden.
+let _tzOffsetMs = null;
+function tzOffsetMs() {
+  if (_tzOffsetMs === null) {
+    const z = Utilities.formatDate(new Date(), TIMEZONE, "Z"); // e.g. "+0000"
+    const m = /^([+-])(\d{2})(\d{2})$/.exec(z);
+    _tzOffsetMs = m ? (m[1] === "-" ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3])) * 60000 : 0;
+  }
+  return _tzOffsetMs;
+}
+
 function registrationTimestampMs(row) {
   const d = parseDateSafe(row.date);
   if (!d) return Infinity;
@@ -1482,10 +1508,9 @@ function registrationTimestampMs(row) {
   // instant explicitly in TIMEZONE makes the comparison right whatever
   // the project setting is.
   try {
-    const ms = Utilities.parseDate(
-      d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate() + " " + hours + ":" + (minutes < 10 ? "0" : "") + minutes,
-      TIMEZONE, "yyyy-M-d H:mm"
-    ).getTime();
+    // Pure arithmetic using TIMEZONE's offset (looked up once per run) — this is called for every row
+    // of a big Registrations sheet, so it must not make a service call each time.
+    const ms = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), hours, minutes) - tzOffsetMs();
     return isNaN(ms) ? Infinity : ms;
   } catch (err) {
     d.setHours(hours, minutes, 0, 0);
