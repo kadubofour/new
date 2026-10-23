@@ -365,6 +365,13 @@
     .tally .tally-cell:last-child:nth-child(even){ grid-column:1 / -1; }
   }
   .expand-chevron{ display:inline-block; width:14px; height:14px; font-size:0; background-color:currentColor; -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") center/contain no-repeat; mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") center/contain no-repeat; }
+  /* Registrant cards: badge in the body font (it was inheriting the big condensed name font), and the
+     chevron stays on the right of the card's first row on phones instead of dropping to its own line. */
+  .approval-name .badge{ font-family:'Inter',sans-serif; margin-left:4px; vertical-align:middle; }
+  @media (max-width:640px){
+    #registrantsHost .approval-head{ flex-wrap:nowrap; align-items:flex-start; gap:8px; }
+    #registrantsHost .approval-actions{ width:auto; margin-left:auto; padding-top:2px; }
+  }
 </style>
 </head>
 <body>

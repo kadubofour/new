@@ -338,6 +338,8 @@
   .walkin-card .phone-group select{ flex:0 0 124px; padding-right:30px; text-overflow:ellipsis; }
   .walkin-card .phone-group input{ flex:1; min-width:0; }
   .walkin-actions{ display:flex; justify-content:flex-end; gap:8px; margin-top:4px; }
+  /* Both buttons the same height and style (they were different sizes, one capitalised and one not). */
+  .walkin-actions .btn-ghost, .walkin-actions .approve-btn{ display:inline-flex; align-items:center; justify-content:center; min-height:42px; padding:0 20px; font-size:12.5px; font-weight:700; letter-spacing:0.03em; text-transform:uppercase; border-radius:8px; }
 
   .toast{
     position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
@@ -720,7 +722,7 @@
             </div>
             <div class="walkin-actions">
               <button type="button" class="btn-ghost" id="walkinCancelBtn">Cancel</button>
-              <button type="submit" class="approve-btn" id="walkinSubmitBtn" style="padding:9px 18px;">Sign In</button>
+              <button type="submit" class="approve-btn" id="walkinSubmitBtn">Sign In</button>
             </div>
           </form>
         </div>
