@@ -1993,31 +1993,6 @@ function doGet(e) {
 }
 
 
-// Every write action below reads a sheet's current state — getLastRow(),
-// or which row a given idNo currently lives at — and then writes based
-// on that: appendRow, an insertRowBefore-based insert (insertVisitRow,
-// insertRegistrationIntoDateGroup), or a getRange(lastRow+1,...)
-// .setValues(). None of that is atomic on its own, and Apps Script does
-// NOT serialize concurrent doPost executions for you — two requests
-// landing close together (a genuine double-submit, or this app's own
-// fetchJSON silently retrying a request whose response got lost on the
-// way back even though the write itself already went through) can both
-// read the same "current state" and then overwrite each other's write,
-// silently losing one of them. That's exactly what made walk-in
-// submissions feel inconsistent: sometimes a submission the front desk
-// already has never finishes on the submitter's own screen (the
-// response got lost, and a retry raced the still-finishing original),
-// sometimes it looks submitted but nothing ever shows up at all (two
-// writes collided over the same row and only one survived). Wrapping
-// the whole action in a single script-wide lock closes that gap — a
-// second request just waits its turn instead of racing the first.
-// A 30-second wait is generous — this only ever queues behind another
-// write actually in progress (typically well under a second; even
-// addPhoto's Drive upload is a bounded few seconds, nothing like the
-// unbounded Firebase call decoupled from this same write path
-// elsewhere in this file) — and failing that open with a plain "busy,
-// try again" message is far better than a second request silently
-// corrupting the first one's write.
 // "addPhoto": the follow-up call that uploads a fresh submission's photo/signature (the "submit"
 // handler writes the Pending row with both blank — see its comment) — also used to add one to an
 // already-approved member. Saving a file to Drive and sharing it takes several real seconds per file.
@@ -2049,7 +2024,10 @@ function handleAddPhoto(data) {
     return null;
   }
 
-  const target = locateRow();
+  // This read runs without the lock, so it can land in the middle of another request deleting or
+  // inserting rows; if that makes it throw, give it one more go a moment later.
+  let target;
+  try { target = locateRow(); } catch (err) { Utilities.sleep(400); target = locateRow(); }
   if (!target) return errorMsg("Code not recognized");
   timing.push(["findTargetRow", Date.now() - _t]);
 
@@ -2078,7 +2056,9 @@ function handleAddPhoto(data) {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(30000)) return errorMsg("The system is busy right now — please try again in a moment.");
   try {
-    const now = locateRow() || target; // fall back to the first answer if it can't be found again
+    let now = null;
+    try { now = locateRow(); } catch (err) { /* fall back below */ }
+    now = now || target; // fall back to the first answer if it can't be found again
     if (photoUrl) now.sheet.getRange(now.idx, now.headers.indexOf("photoUrl") + 1).setValue(photoUrl);
     if (signatureUrl) now.sheet.getRange(now.idx, now.headers.indexOf("signatureUrl") + 1).setValue(signatureUrl);
     // Only actually stale the Registrations cache when the row written to IS a Registrations row;
@@ -2094,6 +2074,31 @@ function handleAddPhoto(data) {
   return ok({ _timing: timing });
 }
 
+// Every write action below reads a sheet's current state — getLastRow(),
+// or which row a given idNo currently lives at — and then writes based
+// on that: appendRow, an insertRowBefore-based insert (insertVisitRow,
+// insertRegistrationIntoDateGroup), or a getRange(lastRow+1,...)
+// .setValues(). None of that is atomic on its own, and Apps Script does
+// NOT serialize concurrent doPost executions for you — two requests
+// landing close together (a genuine double-submit, or this app's own
+// fetchJSON silently retrying a request whose response got lost on the
+// way back even though the write itself already went through) can both
+// read the same "current state" and then overwrite each other's write,
+// silently losing one of them. That's exactly what made walk-in
+// submissions feel inconsistent: sometimes a submission the front desk
+// already has never finishes on the submitter's own screen (the
+// response got lost, and a retry raced the still-finishing original),
+// sometimes it looks submitted but nothing ever shows up at all (two
+// writes collided over the same row and only one survived). Wrapping
+// the whole action in a single script-wide lock closes that gap — a
+// second request just waits its turn instead of racing the first.
+// A 30-second wait is generous — this only ever queues behind another
+// write actually in progress (typically well under a second; even
+// addPhoto's Drive upload is a bounded few seconds, nothing like the
+// unbounded Firebase call decoupled from this same write path
+// elsewhere in this file) — and failing that open with a plain "busy,
+// try again" message is far better than a second request silently
+// corrupting the first one's write.
 function doPost(e) {
   // addPhoto does its own (short) locking — see handleAddPhoto().
   let peek = null;
@@ -2138,7 +2143,12 @@ const REQUEST_REPLAY_TTL_SECONDS = 600;
 
 function handleDoPost(e) {
   let requestId = "";
-  try { requestId = String(JSON.parse(e.postData.contents).requestId || "").slice(0, 64); } catch (err) { /* not JSON — the real handler below reports that */ }
+  try {
+    const peek = JSON.parse(e.postData.contents);
+    requestId = String(peek.requestId || "").slice(0, 64);
+    // A staff-only action is only ever replayed for a still-valid staff session.
+    if (STAFF_ACTIONS.indexOf(peek.action) !== -1 && !isStaffTokenValid(peek.token)) requestId = "";
+  } catch (err) { /* not JSON — the real handler below reports that */ }
   const replayKey = requestId ? "reqReplay_" + requestId : "";
   if (replayKey) {
     try {
