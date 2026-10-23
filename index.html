@@ -77,22 +77,24 @@
   #changeActivityBtn{ margin:0 -6px 0 0; }
 
   /* Tabs: four separate colours from the app's palette so each one is easy to spot and find again —
-     Register navy, Renewal gold, Sign In green, Sign Out teal. Every tab is tinted in its own colour
-     the selected one fills solid. */
+     Register navy, Renewal gold, Sign In green, Sign Out teal. Tabs you are not on are filled with their
+     colour; the open tab is white. */
   .tab-bar{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:22px; padding:6px; background:var(--panel-alt); border-radius:14px; }
   .tab-btn{
     flex:1 1 calc(50% - 3px); display:flex; align-items:center; justify-content:center; white-space:nowrap;
-    background:var(--tc-soft); border:1.5px solid var(--tc-line); color:var(--tc-dark);
+    background:var(--tc); border:1.5px solid var(--tc); color:#fff;
     padding:12px 6px; border-radius:11px; cursor:pointer; font-weight:700; font-size:12.5px;
     font-family:'Inter',sans-serif; text-transform:uppercase; letter-spacing:0.02em;
     transition:background .12s ease, color .12s ease, border-color .12s ease, box-shadow .12s ease, transform .08s ease;
   }
-  .tab-btn:hover{ border-color:var(--tc); }
+  .tab-btn:hover{ filter:brightness(1.08); }
   .tab-btn:active{ transform:scale(0.98); }
+  /* The tab you are on turns white (with its colour kept on the text); the ones you are not on are solid colour. */
   .tab-btn.active{
-    background:var(--tc); border-color:var(--tc); color:#fff; font-weight:800;
-    box-shadow:0 3px 10px var(--tc-shadow);
+    background:#fff; border-color:var(--tc-line); color:var(--tc-dark); font-weight:800;
+    box-shadow:0 2px 8px var(--tc-shadow);
   }
+  .tab-btn.active:hover{ filter:none; }
   .tab-btn[data-tab="register"]{ --tc:#232559; --tc-dark:#232559; --tc-soft:rgba(35,37,89,0.07); --tc-line:rgba(35,37,89,0.28); --tc-shadow:rgba(35,37,89,0.30); }
   .tab-btn[data-tab="renew"]{ --tc:#A47A35; --tc-dark:#7A5A24; --tc-soft:rgba(186,143,74,0.14); --tc-line:rgba(186,143,74,0.50); --tc-shadow:rgba(164,122,53,0.35); }
   .tab-btn[data-tab="signin"]{ --tc:#1F8F52; --tc-dark:#17693C; --tc-soft:rgba(31,143,82,0.10); --tc-line:rgba(31,143,82,0.38); --tc-shadow:rgba(31,143,82,0.32); }
@@ -460,7 +462,7 @@
   body.signed-in-ok .card, body.signed-in-expired .card{ background:var(--rt-card); border-color:var(--rt-bg); border-top-color:var(--rt-dark); color:#fff; }
   body.signed-in-ok .tab-bar, body.signed-in-expired .tab-bar{ background:var(--rt-bg); }
   body.signed-in-ok .tab-btn, body.signed-in-expired .tab-btn{ background:rgba(255,255,255,0.14); border-color:transparent; color:#fff; box-shadow:none; }
-  body.signed-in-ok .tab-btn:hover, body.signed-in-expired .tab-btn:hover{ background:rgba(255,255,255,0.24); }
+  body.signed-in-ok .tab-btn:hover, body.signed-in-expired .tab-btn:hover{ filter:none; background:rgba(255,255,255,0.24); }
   body.signed-in-ok .tab-btn.active, body.signed-in-expired .tab-btn.active{ background:#fff; color:var(--rt-dark); box-shadow:0 2px 8px rgba(0,0,0,0.18); }
   body.signed-in-ok .activity-chip, body.signed-in-expired .activity-chip{ background:var(--rt-bg); color:#fff; }
   body.signed-in-ok .back-btn, body.signed-in-expired .back-btn{ color:#fff; }
