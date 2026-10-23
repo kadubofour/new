@@ -332,20 +332,18 @@
   /* ---- Tally: one card per number instead of one boxed strip ----
      Total is the navy tile; each category is its own white card. Number on top, label directly
      under it (so numbers and labels line up across cards however many lines a label wraps to),
-     and a short gold bar at the top edge as the accent — a coloured left border looked lopsided
-     against the rounded corners. */
+     and no coloured accents. */
   .tally, .tally .tally-cell{ box-shadow:none; }
   .tally{
     display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px;
     background:transparent; border:none; border-radius:0; overflow:visible; width:100%; max-width:960px;
   }
   .tally .tally-cell{
-    position:relative; min-width:0; padding:16px 14px 12px; text-align:left;
+    position:relative; min-width:0; padding:14px 14px 12px; text-align:left;
     border:1px solid var(--line); border-radius:10px; background:var(--panel);
     box-shadow:0 1px 3px rgba(15,29,59,0.05);
     display:flex; flex-direction:column; justify-content:flex-start; gap:6px;
   }
-  .tally .tally-cell::before{ content:""; position:absolute; top:-1px; left:14px; width:22px; height:3px; border-radius:0 0 3px 3px; background:var(--gold); }
   .tally .tally-num{ font-size:32px; line-height:1; color:var(--blue); }
   .tally .tally-label{ font-size:10px; letter-spacing:0.05em; line-height:1.4; margin-top:0; color:var(--text-dim); text-wrap:balance; overflow-wrap:anywhere; }
   .tally .tally-cell:first-child{ background:var(--blue); border-color:var(--blue); }
@@ -354,8 +352,7 @@
   @media (max-width:640px){
     .tally{ grid-template-columns:1fr 1fr; gap:8px; max-width:none; }
     .tally .tally-cell{ padding:12px 12px 9px; gap:4px; box-shadow:0 1px 2px rgba(15,29,59,0.05); }
-    .tally .tally-cell::before{ left:12px; }
-    .tally .tally-num{ font-size:22px; }
+      .tally .tally-num{ font-size:22px; }
     .tally .tally-label{ font-size:9.5px; letter-spacing:0.05em; }
     /* Total runs the full width with the number and label side by side. */
     .tally .tally-cell:first-child{ grid-column:1 / -1; flex-direction:row; align-items:center; justify-content:space-between; }
@@ -1149,6 +1146,15 @@
     footNote.textContent = `Showing ${list.length} of ${approvedEntries.length} registrant(s) · ${expiredCount} expired/used up. Auto-refreshes every ${AUTO_REFRESH_MS/1000}s.`;
   }
 
+  // Short names for the totals cards only (the full names are on each card's tooltip and everywhere else).
+  const TALLY_SHORT = {
+    "UG Staff Relation (Under 17)": "Staff Rel. U17",
+    "UG Staff Relation (17 & Above)": "Staff Rel. 17+",
+    "Public Child (Under 17)": "Child U17",
+    "Public Adult (17 & Above)": "Adult 17+",
+    "Family Package (Max 5)": "Family"
+  };
+  function tallyLabel(c){ return TALLY_SHORT[c] || c; }
   function renderTally(){
     // Totals come from the server's own count of ALL registrations (stats), so they don't
     // shrink when Clear List hides rows at the main desk; fall back to the visible rows if absent.
@@ -1159,7 +1165,7 @@
     const total = stats && stats.total !== undefined ? stats.total : approvedEntries.length;
     let html = `<div class="tally-cell"><div class="tally-num">${total}</div><div class="tally-label">Total</div></div>`;
     currentActivity.categories.forEach(c => {
-      html += `<div class="tally-cell"><div class="tally-num">${counts[c]}</div><div class="tally-label">${escapeHtml(c)}</div></div>`;
+      html += `<div class="tally-cell" title="${escapeHtml(c)}"><div class="tally-num">${counts[c]}</div><div class="tally-label">${escapeHtml(tallyLabel(c))}</div></div>`;
     });
     document.getElementById('tally').innerHTML = html;
   }
