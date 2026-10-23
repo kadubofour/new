@@ -2808,7 +2808,7 @@ function handleDoPostInner(e) {
       Logger.log("walkinQuickSubmit timing: " + JSON.stringify(timing));
       // See this file's "Walk-in live-status tracking" section.
       const trackId = startWalkinTracking(activity.key, finalIdNo);
-      return ok({ submitted: true, idNo: finalIdNo, trackId: trackId, _timing: timing });
+      return ok({ submitted: true, idNo: finalIdNo, trackId: trackId, class: match.class, _timing: timing });
     }
 
 

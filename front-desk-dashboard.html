@@ -180,7 +180,7 @@
   .search-box{
     background:var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%238B98AC'%3E%3Cpath fill-rule='evenodd' d='M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.6 4.2l3.6 3.6a.75.75 0 11-1.06 1.06l-3.6-3.6A7 7 0 012 9z' clip-rule='evenodd'/%3E%3C/svg%3E") no-repeat 11px center;
     background-size:14px; border:1px solid var(--line-strong); border-radius:8px; padding:9px 12px 9px 32px;
-    color:var(--text); font-size:13px; font-family:'Inter',sans-serif; min-width:200px; outline:none;
+    color:var(--text); font-size:13px; font-family:'Inter',sans-serif; min-width:290px; outline:none;
     transition:border-color .12s ease, box-shadow .12s ease;
   }
   .search-box:focus{border-color:var(--blue); box-shadow:0 0 0 3px var(--blue-dim);}
@@ -308,6 +308,9 @@
   }
   .medical-callout-value{ font-size:13px; color:var(--text); font-weight:600; word-break:break-word; }
   .medical-callout-empty{ color:var(--text-faint); font-weight:400; }
+  /* Nothing to flag: neutral grey, so the red box means something when it does appear. */
+  .medical-callout.is-none{ background:var(--panel-alt); border:1px solid var(--line); border-left:4px solid var(--line-strong); }
+  .medical-callout.is-none .medical-callout-label{ color:var(--text-dim); }
 
   /* Walk-in quick-entry form */
   .walkin-card{
@@ -517,7 +520,7 @@
     .table-scroll td.name-cell{ order:1; flex:1 1 0; min-width:0; font-size:14.5px; line-height:1.25; overflow-wrap:anywhere; }
     .table-scroll td.m-side{ order:2; flex:0 0 auto; max-width:46%; text-align:right; font-size:11.5px; line-height:1.3; }
     .table-scroll td.m-meta{ order:4; font-size:11.5px; color:var(--text-dim); }
-    .table-scroll td.m-meta ~ td.m-meta::before{ content:"·"; margin-right:8px; color:var(--text-faint); }
+    .table-scroll td.m-meta{ margin-right:12px; }
     .table-scroll td.m-meta.m-empty{ display:none; }
     .table-scroll td.m-meta .badge{ font-size:10px; padding:2px 7px; }
     .table-scroll td.m-extra{ order:5; display:none; flex-basis:100%; font-size:12px; color:var(--text-dim); padding-top:3px; }
@@ -533,9 +536,11 @@
       content:"Expires"; display:block; font-family:'JetBrains Mono',monospace;
       font-size:8.5px; letter-spacing:0.06em; text-transform:uppercase; color:var(--text-faint);
     }
-    #tableHost tr.m-expandable td.name-cell::after{ content:" ▾"; font-size:10px; color:var(--text-faint); }
-    #tableHost tr.m-open td.name-cell::after{ content:" ▴"; }
-    #visitsTableHost td.m-time-out::before{ content:"→ "; color:var(--text-faint); }
+    #tableHost tr.m-expandable td.name-cell::after{ content:""; display:inline-block; width:10px; height:10px; margin-left:5px; vertical-align:-1px; background-color:currentColor; -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") center/contain no-repeat; mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") center/contain no-repeat; }
+    #tableHost tr.m-expandable td.name-cell::after{ color:var(--text-faint); }
+    #tableHost tr.m-open td.name-cell::after{ -webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 15 12 9 18 15'/%3E%3C/svg%3E"); mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 15 12 9 18 15'/%3E%3C/svg%3E"); }
+    #visitsTableHost td.m-time-out::before{ content:""; display:inline-block; width:10px; height:10px; margin-left:5px; vertical-align:-1px; background-color:currentColor; -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='9 6 15 12 9 18'/%3E%3C/svg%3E") center/contain no-repeat; mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='9 6 15 12 9 18'/%3E%3C/svg%3E") center/contain no-repeat; }
+    #visitsTableHost td.m-time-out::before{ margin:0 4px 0 0; color:var(--text-faint); }
     .table-scroll td.m-side .status-tag{ font-size:10px; padding:2px 7px; }
     .table-scroll tbody tr.group-row{ display:block; min-height:0; padding:0; border-bottom:none; }
     .table-scroll tbody tr.group-row::after{ display:none; }
@@ -600,6 +605,11 @@
     /* An odd leftover category card spans both columns instead of leaving a hole. */
     .tally .tally-cell:last-child:nth-child(even){ grid-column:1 / -1; }
   }
+  /* Registered column: date on one line, time under it, so the column fits instead of being cut off at the edge. */
+  .reg-time{ display:block; color:var(--text-faint); font-size:11px; }
+  .reg-dot{ display:none; }
+  @media (max-width:640px){ .reg-time{ display:inline; font-size:inherit; color:inherit; } .reg-dot{ display:inline; } }
+  .btn-ghost .ico{ margin-right:6px; vertical-align:-2px; }
 </style>
 </head>
 <body>
@@ -729,8 +739,8 @@
           <div class="toolbar-actions">
             <span class="legend"><span class="swatch"></span> expired / used up</span>
             <button class="btn-ghost" id="refreshBtn">↻ Refresh</button>
-            <button class="btn-ghost" id="exportBtn" style="border-color:var(--gold); color:var(--gold-dark);">⬇ Export<span class="label-long"> to Excel</span></button>
-            <button class="btn-ghost" id="clearListBtn" style="border-color:var(--danger); color:var(--danger);">🧹 Clear List</button>
+            <button class="btn-ghost" id="exportBtn" style="border-color:var(--gold); color:var(--gold-dark);"><svg class="ico" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><polyline points="7 11 12 16 17 11"/><path d="M5 20h14"/></svg>Export<span class="label-long"> to Excel</span></button>
+            <button class="btn-ghost" id="clearListBtn" style="border-color:var(--danger); color:var(--danger);"><svg class="ico" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 7 20 7"/><path d="M6 7l1 13h10l1-13"/><path d="M9 7V4h6v3"/></svg>Clear List</button>
           </div>
         </div>
         <div class="cleared-note" id="clearedNote" style="display:none;"></div>
@@ -2108,7 +2118,7 @@
     const value = hasCondition
       ? escapeHtml(e.medicalConditionDetails || '(stated yes, no details given)')
       : (e.hasMedicalCondition === 'No' ? '<span class="medical-callout-empty">None reported</span>' : '<span class="medical-callout-empty">Not provided</span>');
-    return `<div class="medical-callout"><span class="medical-callout-label">Medical Conditions</span><span class="medical-callout-value">${value}</span></div>`;
+    return `<div class="medical-callout${hasCondition ? '' : ' is-none'}"><span class="medical-callout-label">Medical Conditions</span><span class="medical-callout-value">${value}</span></div>`;
   }
 
   // ---- Approvals tab ----
@@ -2607,7 +2617,7 @@
           <td class="id-cell m-meta m-id">${escapeHtml(e.idNo||'')}</td>
           <td class="dur-tag m-meta">${(e.duration||'').replace('/', ' / ')}</td>
           <td class="id-cell m-side">${statusCellHtml(e)}</td>
-          <td class="id-cell m-extra" data-label="Registered">${escapeHtml(e.date||'')} · ${escapeHtml(e.time||'')}</td>
+          <td class="id-cell m-extra" data-label="Registered">${escapeHtml(e.date||'')}<span class="reg-time"><span class="reg-dot"> · </span>${escapeHtml(e.time||'')}</span></td>
         </tr>`;
       }).join('');
       return `

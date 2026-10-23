@@ -19,6 +19,7 @@
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
+  body{ position:relative; }
   /* iPhone Safari: don't auto-inflate text, no grey tap flash, and don't let the page bounce sideways. */
   html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
   body{ -webkit-tap-highlight-color:transparent; overflow-x:hidden; }
@@ -59,8 +60,11 @@
   .activity-card{
     border:1px solid var(--line-strong); background:var(--bg); border-radius:12px;
     padding:20px 12px; text-align:center; cursor:pointer; transition:all .12s ease; user-select:none;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:96px;
   }
   .activity-card:hover, .activity-card:focus-visible{ border-color:var(--blue); background:var(--blue-dim); outline:none; }
+  /* An odd last card (3 activities) spans the row instead of leaving a hole beside it. */
+  .activity-grid .activity-card:last-child:nth-child(odd){ grid-column:1 / -1; }
   .activity-card-icon{ font-size:28px; margin-bottom:8px; }
   .activity-card-label{ font-weight:700; font-size:13.5px; color:var(--text); line-height:1.25; }
   .activity-card-sub{ font-size:11px; color:var(--text-dim); margin-top:3px; }
@@ -70,7 +74,7 @@
     display:inline-flex; align-items:center; gap:6px; background:var(--blue-dim); color:var(--blue);
     font-weight:700; font-size:12px; padding:6px 12px; border-radius:20px;
   }
-  #changeActivityBtn{ margin:0; padding:6px 12px; font-size:10.5px; }
+  #changeActivityBtn{ margin:0 -6px 0 0; }
 
   /* Tabs — back to the original plain white/gray treatment: a light
      gray-blue "arranger" bar groups all four tabs into one control, and
@@ -132,7 +136,7 @@
 
   /* Phone: country code + number */
   .phone-group{ display:flex; gap:8px; }
-  .phone-group select{ flex:0 0 118px; padding-left:10px; padding-right:28px; }
+  .phone-group select{ flex:0 0 132px; padding-left:10px; padding-right:30px; background-position:right 10px center; text-overflow:ellipsis; }
   .phone-group input{ flex:1; min-width:0; }
 
   /* Additional family member rows (Family Package) — name + optional
@@ -211,6 +215,7 @@
   }
   .signature-pad-footer{ display:flex; justify-content:space-between; align-items:center; margin-top:8px; gap:10px; }
   .signature-pad-hint{ font-size:11.5px; color:var(--text-faint); }
+  .signature-pad-footer .switch-link{ display:inline-block; width:auto; margin:0; padding:4px 2px; flex:none; }
 
   .tick-row{ display:flex; gap:10px; }
   .tick-box{
@@ -312,7 +317,8 @@
   @keyframes wizardIn{ from{opacity:0; transform:translateX(6px);} to{opacity:1; transform:translateX(0);} }
   .wizard-nav{ display:flex; gap:10px; margin-top:18px; }
   .wizard-nav .btn{ margin-top:0; width:auto; }
-  .wizard-nav .btn-secondary{ flex:0 0 auto; padding-left:22px; padding-right:22px; }
+  .wizard-nav .btn-secondary{ flex:0 0 auto; padding-left:18px; padding-right:22px; display:inline-flex; align-items:center; justify-content:center; gap:2px; }
+  .wizard-nav .btn-secondary .ico{ margin-left:0; }
   .wizard-nav .btn-primary{ flex:1; }
 
   .duration-grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
@@ -345,24 +351,23 @@
   .renew-option-title{ font-weight:700; font-size:14.5px; color:var(--text); }
   .renew-option-sub{ font-size:12px; color:var(--text-dim); margin-top:2px; }
   .renew-option-sub.expired{ color:var(--danger); font-weight:700; }
-  .renew-option-arrow{ font-size:18px; color:var(--text-faint); flex-shrink:0; transition:color .12s ease; }
+  .renew-option-arrow{ display:inline-flex; color:var(--text-faint); flex-shrink:0; transition:color .12s ease; }
+  .renew-option-arrow .ico{ margin:0; vertical-align:0; }
   .renew-option:hover .renew-option-arrow, .renew-option:focus-visible .renew-option-arrow{ color:var(--blue); }
-  /* Every "go back to the previous screen" control uses this one style —
-     a real bordered pill, not a bare faint text link, so it reads as a
-     pressable button worth noticing rather than something easy to miss.
-     Always paired with "← Back" so the wording is consistent everywhere
-     too (the wizard's own Back/Continue pair below is the one exception —
-     see .wizard-nav .btn-secondary — since it needs to match Continue's
-     full button styling, not this compact pill). */
+  /* Every "go back to the previous screen" control uses this one style: a quiet text button with a
+     chevron (no pill, no capitals), big enough to tap, tinted on hover/focus. The wizard's own
+     Back/Continue pair keeps button styling but uses the same chevron and wording. */
   .back-btn{
-    display:inline-flex; align-items:center; gap:6px; width:auto;
-    background:var(--panel-alt); border:1px solid var(--line-strong); color:var(--text);
-    font-family:'JetBrains Mono',monospace; font-size:11.5px; font-weight:700;
-    letter-spacing:0.04em; text-transform:uppercase;
-    padding:8px 14px; border-radius:20px; cursor:pointer; margin:0 0 16px;
-    transition:border-color .12s ease, color .12s ease, background .12s ease;
+    display:inline-flex; align-items:center; gap:2px; width:auto;
+    background:transparent; border:none; color:var(--text-dim);
+    font-family:'Inter',sans-serif; font-size:14px; font-weight:600; letter-spacing:0; text-transform:none;
+    padding:8px 12px 8px 6px; margin:0 0 10px -6px; border-radius:8px; cursor:pointer;
+    transition:color .12s ease, background .12s ease;
   }
-  .back-btn:hover{ border-color:var(--blue); color:var(--blue); background:var(--blue-dim); }
+  .back-btn:hover, .back-btn:focus-visible{ color:var(--blue); background:var(--blue-dim); outline:none; }
+  .ico{ flex:none; display:inline-block; vertical-align:-4px; }
+  .btn .ico{ margin-left:4px; }
+  .switch-link .ico{ width:14px; height:14px; margin-left:2px; vertical-align:-3px; }
 
   .btn{
     -webkit-appearance:none; appearance:none;
@@ -434,20 +439,29 @@
   .result-name{ font-family:'Bebas Neue',sans-serif; font-size:32px; letter-spacing:0.02em; margin:0 0 4px; }
   .result-sub{ font-size:12.5px; color:var(--text-dim); margin:0 0 22px; }
   /* Signed-in success: the whole page and card turn green so it reads from across a desk. */
-  body.signed-in-ok{ background:#168A47; }
-  body.signed-in-ok .card{ background:#1FA55A; border-color:#168A47; border-top-color:#0E6B35; color:#fff; }
-  body.signed-in-ok .tab-bar{ background:#168A47; }
-  body.signed-in-ok .tab-btn{ color:rgba(255,255,255,0.8); }
-  body.signed-in-ok .tab-btn:hover{ color:#fff; }
-  body.signed-in-ok .tab-btn.active{ background:#fff; color:#0E6B35; box-shadow:0 1px 3px rgba(0,0,0,0.15), inset 0 -3px 0 #0E6B35; }
-  body.signed-in-ok .activity-chip{ background:#168A47; color:#fff; }
-  body.signed-in-ok .back-btn{ background:#fff; border-color:#fff; color:#0E6B35; }
-  body.signed-in-ok .card h1{ color:#fff; }
-  body.signed-in-ok .result-icon{ background:#fff; color:#168A47; }
-  body.signed-in-ok .result-name, body.signed-in-ok .result-sub, body.signed-in-ok .error-msg{ color:#fff; }
-  body.signed-in-ok .countdown-box{ background:rgba(255,255,255,0.16); border-color:rgba(255,255,255,0.35); }
-  body.signed-in-ok .countdown-num, body.signed-in-ok .countdown-label{ color:#fff; }
-  body.signed-in-ok .btn-secondary{ background:#fff; border-color:#fff; color:#0E6B35; }
+  body.signed-in-ok{ --rt-bg:#168A47; --rt-card:#1FA55A; --rt-dark:#0E6B35; }
+  body.signed-in-expired{ --rt-bg:#B3261E; --rt-card:#CC3328; --rt-dark:#8C1D17; }
+  body.signed-in-ok, body.signed-in-expired{ background:var(--rt-bg); }
+  body.signed-in-ok .card, body.signed-in-expired .card{ background:var(--rt-card); border-color:var(--rt-bg); border-top-color:var(--rt-dark); color:#fff; }
+  body.signed-in-ok .tab-bar, body.signed-in-expired .tab-bar{ background:var(--rt-bg); }
+  body.signed-in-ok .tab-btn, body.signed-in-expired .tab-btn{ color:rgba(255,255,255,0.8); }
+  body.signed-in-ok .tab-btn:hover, body.signed-in-expired .tab-btn:hover{ color:#fff; }
+  body.signed-in-ok .tab-btn.active, body.signed-in-expired .tab-btn.active{ background:#fff; color:var(--rt-dark); box-shadow:0 1px 3px rgba(0,0,0,0.15), inset 0 -3px 0 var(--rt-dark); }
+  body.signed-in-ok .activity-chip, body.signed-in-expired .activity-chip{ background:var(--rt-bg); color:#fff; }
+  body.signed-in-ok .back-btn, body.signed-in-expired .back-btn{ color:#fff; }
+  body.signed-in-ok .back-btn:hover, body.signed-in-expired .back-btn:hover{ background:rgba(255,255,255,0.18); color:#fff; }
+  body.signed-in-ok .card h1, body.signed-in-expired .card h1{ color:#fff; }
+  body.signed-in-ok .result-icon, body.signed-in-expired .result-icon{ background:#fff; color:var(--rt-bg); }
+  body.signed-in-ok .result-name, body.signed-in-ok .result-sub, body.signed-in-ok .error-msg,
+  body.signed-in-expired .result-name, body.signed-in-expired .result-sub, body.signed-in-expired .error-msg{ color:#fff; }
+  body.signed-in-ok .countdown-box, body.signed-in-expired .countdown-box{ background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.35); }
+  body.signed-in-ok .countdown-num, body.signed-in-ok .countdown-label,
+  body.signed-in-expired .countdown-num, body.signed-in-expired .countdown-label{ color:#fff; }
+  body.signed-in-expired .result.expired .result-icon{ background:#fff; color:var(--rt-bg); }
+  body.signed-in-expired .countdown-box.expired .countdown-num, body.signed-in-expired .countdown-box.expired .countdown-label,
+  body.signed-in-expired .expired-tag{ color:#fff; }
+  body.signed-in-expired .countdown-box.expired{ background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.35); }
+  body.signed-in-ok .btn-secondary, body.signed-in-expired .btn-secondary{ background:#fff; border-color:#fff; color:var(--rt-dark); }
   .countdown-box{
     background:var(--panel-alt); border:1px solid var(--line); border-radius:12px; padding:20px; margin-bottom:16px;
   }
@@ -526,7 +540,7 @@
      Code.gs checks (see "Staff authentication" there), so knowing these
      links, or the /exec URL, gets nobody any data. */
   .staff-links{
-    position:fixed; right:10px; bottom:8px; z-index:1;
+    position:absolute; right:10px; bottom:8px; z-index:1;
     display:flex; gap:10px;
     font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:0.03em;
     opacity:0.3; transition:opacity .15s ease;
@@ -543,7 +557,7 @@
       <span class="brand-logo" role="img" aria-label="University of Ghana coat of arms"></span>
       <p class="brand-eyebrow">University of Ghana Sports and Wellness Directorate</p>
     </div>
-    <button type="button" class="back-btn" id="activityPickerBack" style="display:none;">← Back</button>
+    <button type="button" class="back-btn" id="activityPickerBack" style="display:none;"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>Back</button>
     <h1 id="activityPickerTitle">CHOOSE YOUR ACTIVITY</h1>
     <p class="subhead" id="activityPickerSub" style="display:none;"></p>
     <div class="setup-warning" id="setupWarningPicker" style="display:none;">
@@ -558,7 +572,7 @@
   <div class="card">
   <div class="activity-chip-row">
     <span class="activity-chip" id="activeActivityChip"></span>
-    <button type="button" class="back-btn" id="changeActivityBtn">← Back</button>
+    <button type="button" class="back-btn" id="changeActivityBtn"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>Activities</button>
   </div>
   <h1 id="mainTitle">GYM MEMBERSHIP</h1>
 
@@ -655,7 +669,7 @@
       <div class="field" id="field-photo">
         <label for="regPhotoInput">Photo</label>
         <div class="photo-upload" id="photoUploadBox">
-          <div class="photo-thumb" id="photoThumb">📷</div>
+          <div class="photo-thumb" id="photoThumb"><svg class="ico" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></div>
           <div class="photo-copy">
             <div id="photoCopyMain">Tap to add a photo</div>
             <div class="sub" id="photoCopySub">Clear photo of your face</div>
@@ -822,7 +836,7 @@
       </div>
 
       <div class="wizard-nav">
-        <button type="button" class="btn btn-secondary" id="wizBackBtn" style="display:none;">← Back</button>
+        <button type="button" class="btn btn-secondary" id="wizBackBtn" style="display:none;"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>Back</button>
         <button type="button" class="btn btn-primary" id="wizNextBtn">Continue</button>
         <button type="submit" class="btn btn-primary" id="submitBtn" style="display:none;" disabled>Submit for Approval</button>
       </div>
@@ -880,12 +894,12 @@
         </div>
         <button type="submit" class="btn btn-primary" id="checkinBtn">Sign In</button>
       </form>
-      <button class="switch-link" id="toLookupBtn">Don't have your code? →</button>
-      <button class="btn btn-gold" id="toWalkinBtn">Walk-in →</button>
+      <button class="switch-link" id="toLookupBtn">Don't have your code?<svg class="ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg></button>
+      <button class="btn btn-gold" id="toWalkinBtn">Walk-in<svg class="ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg></button>
     </div>
 
     <div class="view" id="view-lookup">
-      <button type="button" class="back-btn" id="toCodeBtn">← Back</button>
+      <button type="button" class="back-btn" id="toCodeBtn"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>Back</button>
       <p class="subhead">Find your code using the phone number you registered with.</p>
       <form id="lookupForm" novalidate>
         <div class="field" id="field-phone-lookup">
@@ -901,7 +915,7 @@
     </div>
 
     <div class="view" id="view-walkin">
-      <button type="button" class="back-btn" id="toCodeFromWalkinBtn">← Back</button>
+      <button type="button" class="back-btn" id="toCodeFromWalkinBtn"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>Back</button>
       <p class="subhead">Quick walk-in entry — enter your phone or ID number and hit submit. If you've visited before, that's all you need.</p>
       <form id="walkinSigninForm" novalidate>
         <div class="field" id="field-walkin-class">
@@ -949,11 +963,11 @@
     <div class="view active" id="view-out-start">
       <p class="subhead">Ready to head out?</p>
       <button type="button" class="btn btn-primary" id="toOutCodeFromStartBtn">Sign Out</button>
-      <button class="btn btn-gold" id="toOutPhoneFromStartBtn">Walk-in Sign Out →</button>
+      <button class="btn btn-gold" id="toOutPhoneFromStartBtn">Walk-in Sign Out<svg class="ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg></button>
     </div>
 
     <div class="view" id="view-out-code">
-      <button type="button" class="back-btn" id="toOutStartBtn">← Back</button>
+      <button type="button" class="back-btn" id="toOutStartBtn"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>Back</button>
       <p class="subhead">Enter your member code or ID number to sign out.</p>
       <form id="codeOutForm" novalidate>
         <div class="field" id="field-code-out">
@@ -966,7 +980,7 @@
     </div>
 
     <div class="view" id="view-out-phone">
-      <button type="button" class="back-btn" id="toOutCodeBtn">← Back</button>
+      <button type="button" class="back-btn" id="toOutCodeBtn"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>Back</button>
       <p class="subhead">Sign out using the phone number you entered when you walked in.</p>
       <form id="phoneOutForm" novalidate>
         <div class="field" id="field-phone-out">
@@ -1014,7 +1028,7 @@
           <div class="renew-option-title">Renew Plan</div>
           <div class="renew-option-sub" id="renewSubStatus">Extend your plan — needs front-desk approval</div>
         </div>
-        <span class="renew-option-arrow">→</span>
+        <span class="renew-option-arrow"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg></span>
       </div>
 
       <div class="renew-option" id="renewOptionDetails" tabindex="0" role="button">
@@ -1022,12 +1036,12 @@
           <div class="renew-option-title">Update My Details</div>
           <div class="renew-option-sub">Phone, email, address, emergency contact</div>
         </div>
-        <span class="renew-option-arrow">→</span>
+        <span class="renew-option-arrow"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg></span>
       </div>
     </div>
 
     <div class="view" id="view-renew-duration">
-      <button type="button" class="back-btn" id="toRenewMenuFromDurationBtn">← Back</button>
+      <button type="button" class="back-btn" id="toRenewMenuFromDurationBtn"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>Back</button>
       <p class="section-label">Choose a new plan</p>
       <div class="field" id="field-renew-duration">
         <div class="duration-grid" id="renewDurationGrid"></div>
@@ -1038,7 +1052,7 @@
     </div>
 
     <div class="view" id="view-renew-details">
-      <button type="button" class="back-btn" id="toRenewMenuFromDetailsBtn">← Back</button>
+      <button type="button" class="back-btn" id="toRenewMenuFromDetailsBtn"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>Back</button>
       <p class="section-label">Update your details</p>
       <form id="renewDetailsForm" novalidate>
         <div class="field" id="field-ren-phone">
@@ -1528,6 +1542,7 @@
     app: document.getElementById('screen-app')
   };
   function showScreen(name){
+    setResultTheme(null);
     Object.values(screens).forEach(s => s.classList.remove('active'));
     screens[name].classList.add('active');
   }
@@ -1548,7 +1563,7 @@
     document.getElementById('activityPickerTitle').textContent = pickerSection ? pickerSection.label : 'CHOOSE YOUR ACTIVITY';
     document.getElementById('activityPickerSub').textContent = pickerSection ? 'Leisure play, or structured lessons?' : '';
     document.getElementById('activityPickerSub').style.display = pickerSection ? 'block' : 'none';
-    document.getElementById('activityPickerBack').style.display = pickerSection ? 'block' : 'none';
+    document.getElementById('activityPickerBack').style.display = pickerSection ? 'inline-flex' : 'none';
     document.getElementById('brochureLinkBtn').style.display = pickerSection ? 'none' : 'block';
 
     if(pickerSection){
@@ -1566,7 +1581,7 @@
       grid.innerHTML = PICKER_SECTIONS.map(s => `
         <div class="activity-card" data-section="${s.key}" tabindex="0" role="button">
           <div class="activity-card-label">${escapeHtml(s.label)}</div>
-          ${s.options ? '<div class="activity-card-sub">Leisure or Lessons</div>' : ''}
+          <div class="activity-card-sub">${s.options ? 'Leisure or Lessons' : 'Membership'}</div>
         </div>`).join('');
       grid.querySelectorAll('.activity-card').forEach(el => {
         el.addEventListener('click', () => handleSectionClick(el.dataset.section));
@@ -1653,7 +1668,7 @@
       Object.values(topPanels).forEach(p => p.classList.remove('active'));
       btn.classList.add('active');
       topPanels[btn.dataset.tab].classList.add('active');
-      document.body.classList.remove('signed-in-ok');
+      setResultTheme(null);
     });
   });
 
@@ -1999,7 +2014,7 @@
     photoBase64 = null;
     photoMimeType = null;
     photoThumbBase64 = null;
-    photoThumb.innerHTML = "📷";
+    photoThumb.innerHTML = '<svg class="ico" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>';
     photoCopyMain.textContent = "Tap to add a photo";
     photoCopySub.textContent = "Clear photo of your face";
     photoUploadBox.classList.remove('has-photo');
@@ -2494,7 +2509,17 @@
     walkin: document.getElementById('view-walkin'),
     result: document.getElementById('view-result')
   };
-  function setSignedInTheme(on){ document.body.classList.toggle('signed-in-ok', !!on); }
+  // Result-screen colours: green = a student just signed in, red = membership expired (anyone).
+  // Always cleared the moment the person leaves that screen (any other view/tab/screen, or the page
+  // being hidden), so the next person never sees the last person's colour.
+  const STUDENT_CLASSES = ["UG Student", "Non-UG Student"];
+  function setResultTheme(kind){
+    document.body.classList.toggle('signed-in-ok', kind === 'ok');
+    document.body.classList.toggle('signed-in-expired', kind === 'expired');
+  }
+  function setSignedInTheme(on){ setResultTheme(on ? 'ok' : null); }
+  document.addEventListener('visibilitychange', () => { if(document.hidden) setResultTheme(null); });
+  window.addEventListener('pagehide', () => setResultTheme(null));
   function showView(name){
     setSignedInTheme(false);
     Object.values(views).forEach(v => v.classList.remove('active'));
@@ -2535,7 +2560,7 @@
   function stopWalkinPoll(){
     if(walkinPollTimer){ clearTimeout(walkinPollTimer); walkinPollTimer = null; }
   }
-  function startWalkinStatusWait(idNo, activityForPoll, trackId){
+  function startWalkinStatusWait(idNo, activityForPoll, trackId, memberClass){
     stopWalkinPoll();
     let attempts = 0;
 
@@ -2549,7 +2574,7 @@
     // someone stuck here with truly no way off would be worse).
     function renderPending(){
       document.getElementById('resultBody').innerHTML = `
-        <div class="result-icon">⏳</div>
+        <div class="result-icon"><svg class="ico" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg></div>
         <div class="result-name">Pending Approval</div>
         <p class="error-msg">Wait for the front desk to approve your walk-in — this updates automatically.</p>
       `;
@@ -2565,7 +2590,7 @@
       `;
       document.querySelector('#view-result .result').className = 'result';
       showView('result');
-      setSignedInTheme(true);
+      if(STUDENT_CLASSES.indexOf(memberClass) !== -1) setResultTheme('ok');
       document.getElementById('doneSigninBtn').addEventListener('click', () => {
         resetWalkinForm();
         showView('code');
@@ -2648,6 +2673,7 @@
     walkinSubmitBtn.textContent = "Submitting…";
 
     const now = new Date();
+    const walkinClassAtSubmit = walkinClass.value;
     const _reqStart = Date.now();
     fetchJSON(SCRIPT_URL, {
       method: "POST",
@@ -2670,7 +2696,7 @@
       walkinSubmitBtn.textContent = "Submit Walk-in";
       if(data.status === "ok"){
         const activityForPoll = currentActivity;
-        startWalkinStatusWait(data.idNo, activityForPoll, data.trackId);
+        startWalkinStatusWait(data.idNo, activityForPoll, data.trackId, walkinClassAtSubmit);
       } else {
         renderSigninMessage(true, "Couldn't submit", data.message || "Please try again or tell the front desk.");
       }
@@ -2730,7 +2756,7 @@
         hideWalkinAutofillHint();
         walkinSubmitBtn.disabled = false;
         walkinSubmitBtn.textContent = "Submit Walk-in";
-        startWalkinStatusWait(data.idNo, currentActivity, data.trackId);
+        startWalkinStatusWait(data.idNo, currentActivity, data.trackId, data.class || walkinClass.value);
         return;
       }
 
@@ -2930,8 +2956,8 @@
     `;
     document.querySelector('#view-result .result').className = 'result' + (info.expired ? ' expired' : '');
     showView('result');
-    // Green only when they were actually signed in (not the expired "see front desk" case).
-    if(opts.signedIn && !info.expired) setSignedInTheme(true);
+    if(info.expired || !opts.signedIn) setResultTheme('expired');                      // expired: red, for everyone
+    else if(STUDENT_CLASSES.indexOf(member.class) !== -1) setResultTheme('ok');         // signed in student: green
     document.getElementById('doneBtn').addEventListener('click', resetSignIn);
     attachCopyButtons(document.getElementById('resultBody'));
   }
@@ -3511,6 +3537,7 @@
   }
 
   function resetAllFlows(){
+    setResultTheme(null);
     resetRegisterForm();
     resetSignIn();
     resetSignOut();
