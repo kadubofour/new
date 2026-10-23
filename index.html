@@ -421,8 +421,10 @@
     width:56px; height:56px; border-radius:50%; background:var(--blue-dim); color:var(--blue);
     display:flex; align-items:center; justify-content:center; font-size:28px; margin-bottom:16px;
   }
-  .confirm-icon{ margin-left:auto; margin-right:auto; }
-  .confirm-overlay.error .confirm-icon{ background:var(--danger-dim); color:var(--danger); }
+  /* Just the mark, no circle behind it. */
+  .confirm-icon{ margin-left:auto; margin-right:auto; width:auto; height:auto; background:none; margin-bottom:10px; }
+  .confirm-icon svg{ width:56px; height:56px; stroke-width:2.6; }
+  .confirm-overlay.error .confirm-icon{ background:none; color:var(--danger); }
   .confirm-overlay h2{ font-family:'Bebas Neue',sans-serif; font-size:28px; margin:0 0 6px; letter-spacing:0.02em; }
   .confirm-overlay p{ color:var(--text-dim); font-size:13.5px; margin:0; max-width:320px; }
 
