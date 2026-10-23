@@ -872,7 +872,7 @@
       <div id="approvalWaitPending">
         <div class="approval-wait-spinner"></div>
         <h2>Submitted!</h2>
-        <p id="approvalWaitPendingDetail">Waiting for front desk approval…</p>
+        <p id="approvalWaitPendingDetail">Kindly make payment at the front desk to be approved.</p>
       </div>
       <div id="approvalWaitApproved" style="display:none;">
         <div class="confirm-icon" id="approvalWaitApprovedIcon"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12 9 17 20 6"/></svg></div>
@@ -1042,7 +1042,7 @@
       <div class="renew-option" id="renewOptionSubscription" tabindex="0" role="button">
         <div>
           <div class="renew-option-title">Renew Plan</div>
-          <div class="renew-option-sub" id="renewSubStatus">Extend your plan — needs front-desk approval</div>
+          <div class="renew-option-sub" id="renewSubStatus">Extend your plan — payment needed at the front desk</div>
         </div>
         <span class="renew-option-arrow"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"/></svg></span>
       </div>
@@ -1063,7 +1063,7 @@
         <div class="duration-grid" id="renewDurationGrid"></div>
         <p class="field-error">Please choose a plan.</p>
       </div>
-      <p class="renew-option-sub" style="margin:-6px 0 4px;">Your request goes to the front desk — your current plan keeps working until it's approved.</p>
+      <p class="renew-option-sub" style="margin:-6px 0 4px;">Kindly make payment at the front desk to approve your renewal — your current plan keeps working until then.</p>
       <button type="button" class="btn btn-primary" id="renewConfirmBtn">Submit Renewal Request</button>
     </div>
 
@@ -2196,8 +2196,8 @@
     approvalWaitApprovedIcon.innerHTML = svgIcon('check', 30);
     approvalWaitApprovedTitle.textContent = 'Approved!';
     approvalWaitPendingDetail.textContent = stillPending.length > 1
-      ? `Waiting for the front desk to approve ${stillPending.length} people — this updates automatically.`
-      : "Waiting for the front desk to approve your registration — this updates automatically.";
+      ? `Kindly make payment at the front desk to get all ${stillPending.length} people approved — this updates automatically once you're approved.`
+      : "Kindly make payment at the front desk to get approved — this updates automatically once you're approved.";
     approvalWaitOverlay.classList.remove('error');
     approvalWaitOverlay.classList.add('show');
     scrollCardToTop();
@@ -2231,7 +2231,7 @@
         if(approvedNow.length === 0 && rejectedNow.length === 0){
           if(attempts >= APPROVAL_POLL_MAX_ATTEMPTS){
             stopApprovalPoll();
-            approvalWaitPendingDetail.textContent = "Still waiting on approval — use the Sign In tab with your phone number to check back later.";
+            approvalWaitPendingDetail.textContent = "Approval is waiting on payment — kindly make payment at the front desk, then use the Sign In tab with your phone number to get your code.";
             approvalWaitDoneBtn.style.display = ''; // giving up isn't an outcome, but they still need a way off this screen
           }
           return;
@@ -2254,8 +2254,8 @@
         }
         if(stillPending.length){
           approvalWaitApprovedDetail.textContent = rejectedSoFar.length
-            ? `${approvedSoFar.length} approved, ${rejectedSoFar.length} not approved so far — still waiting on ${stillPending.length} more.`
-            : `${approvedSoFar.length} approved so far — still waiting on ${stillPending.length} more.`;
+            ? `${approvedSoFar.length} approved, ${rejectedSoFar.length} not approved so far — still awaiting payment for ${stillPending.length} more.`
+            : `${approvedSoFar.length} approved so far — still awaiting payment for ${stillPending.length} more.`;
         } else if(rejectedSoFar.length === 0){
           approvalWaitApprovedDetail.textContent = approvedSoFar.length > 1
             ? "Everyone's approved — here are your codes:"
@@ -2597,8 +2597,8 @@
     function renderPending(){
       document.getElementById('resultBody').innerHTML = `
         <div class="result-icon"><svg class="ico" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg></div>
-        <div class="result-name">Pending Approval</div>
-        <p class="error-msg">Wait for the front desk to approve your walk-in — this updates automatically.</p>
+        <div class="result-name">Kindly Make Payment</div>
+        <p class="error-msg">Pay at the front desk to be approved — this updates automatically.</p>
       `;
       document.querySelector('#view-result .result').className = 'result';
       showView('result');
@@ -3109,7 +3109,7 @@
     }
     const members = data.approvedMembers || [];
     if(members.length === 0){
-      renderMessage(false, "Still Pending", `${data.pendingCount} registration${data.pendingCount===1?'':'s'} found on this number — still awaiting front-desk approval, check back soon.`);
+      renderMessage(false, "Still Pending", `${data.pendingCount} registration${data.pendingCount===1?'':'s'} found on this number — kindly make payment at the front desk to be approved.`);
       return;
     }
     // A number connected to more than one activity's subscription (e.g.
@@ -3357,7 +3357,7 @@
     renewSubStatusEl.textContent =
       info.expired
         ? "Your plan has expired — request a renewal at the front desk"
-        : "Extend your plan — needs front-desk approval";
+        : "Extend your plan — payment needed at the front desk";
     renewSubStatusEl.classList.toggle('expired', info.expired);
     showRenewView('menu');
   }
@@ -3527,7 +3527,7 @@
       <div class="result-icon">${svgIcon('check', 34)}</div>
       <div class="result-name">Request submitted</div>
       <div class="result-sub">${escapeHtml(verifiedMember && verifiedMember.name || '')} · ${escapeHtml(duration||'')}</div>
-      <div class="countdown-box"><div class="countdown-label">Pending front-desk approval. Your current plan still works until then.</div></div>
+      <div class="countdown-box"><div class="countdown-label">Kindly make payment at the front desk to approve your renewal. Your current plan still works until then.</div></div>
       <button class="btn btn-secondary" id="doneRenewBtn">Done</button>
     `;
     document.querySelector('#view-renew-result .result').className = 'result';
