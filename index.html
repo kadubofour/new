@@ -440,11 +440,12 @@
 
   /* Sign-in result */
   .result{ text-align:center; }
+  /* Just the mark, no circle behind it (same as the Submitted/Approved messages). */
   .result-icon{
-    width:64px; height:64px; border-radius:50%; background:var(--blue-dim); color:var(--blue);
-    display:flex; align-items:center; justify-content:center; font-size:32px; margin:0 auto 16px;
+    display:flex; align-items:center; justify-content:center; margin:0 auto 12px; color:var(--blue);
   }
-  .result.error .result-icon, .result.expired .result-icon{ background:var(--danger-dim); color:var(--danger); }
+  .result-icon svg{ width:56px; height:56px; stroke-width:2.6; }
+  .result.error .result-icon, .result.expired .result-icon{ color:var(--danger); }
   .result-name{ font-family:'Bebas Neue',sans-serif; font-size:32px; letter-spacing:0.02em; margin:0 0 4px; }
   .result-sub{ font-size:12.5px; color:var(--text-dim); margin:0 0 22px; }
   /* Signed-in success: the whole page and card turn green so it reads from across a desk. */
@@ -460,13 +461,13 @@
   body.signed-in-ok .back-btn, body.signed-in-expired .back-btn{ color:#fff; }
   body.signed-in-ok .back-btn:hover, body.signed-in-expired .back-btn:hover{ background:rgba(255,255,255,0.18); color:#fff; }
   body.signed-in-ok .card h1, body.signed-in-expired .card h1{ color:#fff; }
-  body.signed-in-ok .result-icon, body.signed-in-expired .result-icon{ background:#fff; color:var(--rt-bg); }
+  body.signed-in-ok .result-icon, body.signed-in-expired .result-icon{ color:#fff; }
   body.signed-in-ok .result-name, body.signed-in-ok .result-sub, body.signed-in-ok .error-msg,
   body.signed-in-expired .result-name, body.signed-in-expired .result-sub, body.signed-in-expired .error-msg{ color:#fff; }
   body.signed-in-ok .countdown-box, body.signed-in-expired .countdown-box{ background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.35); }
   body.signed-in-ok .countdown-num, body.signed-in-ok .countdown-label,
   body.signed-in-expired .countdown-num, body.signed-in-expired .countdown-label{ color:#fff; }
-  body.signed-in-expired .result.expired .result-icon{ background:#fff; color:var(--rt-bg); }
+  body.signed-in-expired .result.expired .result-icon{ color:#fff; }
   body.signed-in-expired .countdown-box.expired .countdown-num, body.signed-in-expired .countdown-box.expired .countdown-label,
   body.signed-in-expired .expired-tag{ color:#fff; }
   body.signed-in-expired .countdown-box.expired{ background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.35); }
