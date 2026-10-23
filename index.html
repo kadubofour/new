@@ -92,13 +92,12 @@
   /* The tab you are on turns white (with its colour kept on the text); the ones you are not on are solid colour. */
   .tab-btn.active{
     background:#fff; border-color:var(--tc-line); color:var(--tc-dark); font-weight:800;
-    box-shadow:0 2px 8px var(--tc-shadow);
   }
   .tab-btn.active:hover{ filter:none; }
-  .tab-btn[data-tab="register"]{ --tc:#232559; --tc-dark:#232559; --tc-soft:rgba(35,37,89,0.07); --tc-line:rgba(35,37,89,0.28); --tc-shadow:rgba(35,37,89,0.30); }
-  .tab-btn[data-tab="renew"]{ --tc:#A47A35; --tc-dark:#7A5A24; --tc-soft:rgba(186,143,74,0.14); --tc-line:rgba(186,143,74,0.50); --tc-shadow:rgba(164,122,53,0.35); }
-  .tab-btn[data-tab="signin"]{ --tc:#1F8F52; --tc-dark:#17693C; --tc-soft:rgba(31,143,82,0.10); --tc-line:rgba(31,143,82,0.38); --tc-shadow:rgba(31,143,82,0.32); }
-  .tab-btn[data-tab="signout"]{ --tc:#1E7C9A; --tc-dark:#165E75; --tc-soft:rgba(30,124,154,0.10); --tc-line:rgba(30,124,154,0.38); --tc-shadow:rgba(30,124,154,0.32); }
+  .tab-btn[data-tab="register"]{ --tc:#232559; --tc-dark:#232559; --tc-soft:rgba(35,37,89,0.07); --tc-line:rgba(35,37,89,0.28); }
+  .tab-btn[data-tab="renew"]{ --tc:#A47A35; --tc-dark:#7A5A24; --tc-soft:rgba(186,143,74,0.14); --tc-line:rgba(186,143,74,0.50); }
+  .tab-btn[data-tab="signin"]{ --tc:#1F8F52; --tc-dark:#17693C; --tc-soft:rgba(31,143,82,0.10); --tc-line:rgba(31,143,82,0.38); }
+  .tab-btn[data-tab="signout"]{ --tc:#1E7C9A; --tc-dark:#165E75; --tc-soft:rgba(30,124,154,0.10); --tc-line:rgba(30,124,154,0.38); }
   .tab-panel{display:none;}
   .tab-panel.active{display:block;}
 
@@ -463,7 +462,7 @@
   body.signed-in-ok .tab-bar, body.signed-in-expired .tab-bar{ background:var(--rt-bg); }
   body.signed-in-ok .tab-btn, body.signed-in-expired .tab-btn{ background:rgba(255,255,255,0.14); border-color:transparent; color:#fff; box-shadow:none; }
   body.signed-in-ok .tab-btn:hover, body.signed-in-expired .tab-btn:hover{ filter:none; background:rgba(255,255,255,0.24); }
-  body.signed-in-ok .tab-btn.active, body.signed-in-expired .tab-btn.active{ background:#fff; color:var(--rt-dark); box-shadow:0 2px 8px rgba(0,0,0,0.18); }
+  body.signed-in-ok .tab-btn.active, body.signed-in-expired .tab-btn.active{ background:#fff; color:var(--rt-dark); box-shadow:none; }
   body.signed-in-ok .activity-chip, body.signed-in-expired .activity-chip{ background:var(--rt-bg); color:#fff; }
   body.signed-in-ok .back-btn, body.signed-in-expired .back-btn{ color:#fff; }
   body.signed-in-ok .back-btn:hover, body.signed-in-expired .back-btn:hover{ background:rgba(255,255,255,0.18); color:#fff; }
