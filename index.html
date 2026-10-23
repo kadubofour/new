@@ -2963,7 +2963,7 @@
     const codeChip = opts.showCode ? codeChipWithCopyHtml(member.idNo) : '';
 
     document.getElementById('resultBody').innerHTML = `
-      <div class="result-icon">${info.expired ? svgIcon('warning', 32) : svgIcon('check', 34)}</div>
+      <div class="result-icon">${info.expired ? svgIcon('x', 34) : svgIcon('check', 34)}</div>
       <div class="result-name">${escapeHtml(member.name||'')}</div>
       <div class="result-sub">${escapeHtml(member.class||'')}${opts.subtitle ? ' · ' + opts.subtitle : ''}</div>
       ${codeChip}
