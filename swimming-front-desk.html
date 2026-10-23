@@ -218,13 +218,8 @@
      grid always followed directly underneath it. */
   #registrantsHost .approval-head{ cursor:pointer; margin-bottom:0; }
   #registrantsHost .approval-head:focus-visible{ outline:2px solid var(--blue); outline-offset:2px; border-radius:6px; }
-  .expand-chevron{
-    display:inline-block; color:var(--text-faint); font-size:13px; line-height:1;
-    transition:transform .15s ease;
-  }
   .approval-more{ display:none; margin-top:14px; }
   .approval-card.expanded .approval-more{ display:block; }
-  .approval-card.expanded .expand-chevron{ transform:rotate(180deg); }
   .approve-btn, .reject-btn{
     border:none; border-radius:8px; padding:9px 16px; font-weight:800; font-size:12.5px;
     text-transform:uppercase; letter-spacing:0.03em; cursor:pointer; font-family:'Inter',sans-serif;
@@ -362,9 +357,9 @@
     /* An odd leftover category card spans both columns instead of leaving a hole. */
     .tally .tally-cell:last-child:nth-child(even){ grid-column:1 / -1; }
   }
-  .expand-chevron{ display:inline-block; width:14px; height:14px; font-size:0; background-color:currentColor; -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") center/contain no-repeat; mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E") center/contain no-repeat; }
   /* Registrant cards: badge in the body font (it was inheriting the big condensed name font), and the
      chevron stays on the right of the card's first row on phones instead of dropping to its own line. */
+  .approval-actions:empty{ display:none; }
   .approval-name .badge{ font-family:'Inter',sans-serif; margin-left:4px; vertical-align:middle; }
   @media (max-width:640px){
     #registrantsHost .approval-head{ flex-wrap:nowrap; align-items:flex-start; gap:8px; }
@@ -1110,10 +1105,7 @@
               <div class="approval-sub">${escapeHtml(planText)} · Registered ${escapeHtml(e.date||'')}</div>
             </div>
           </div>
-          <div class="approval-actions">
-            ${expired ? '<span class="status-tag status-expired">Expired / Used Up</span>' : ''}
-            <span class="expand-chevron" aria-hidden="true"></span>
-          </div>
+          ${expired ? '<div class="approval-actions"><span class="status-tag status-expired">Expired / Used Up</span></div>' : ''}
         </div>
         <div class="approval-more">
           ${emergencyCalloutHtml(e)}

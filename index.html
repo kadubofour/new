@@ -413,6 +413,10 @@
   /* Starts near the top, not the vertical middle: the panel behind it can be a whole form tall, and a
      message centred in that landed below the visible part of a phone screen. */
   .confirm-overlay.show{display:flex;}
+  /* While a message is showing, the form behind it is taken out of the layout and the message sits in its
+     place, so the panel is only as tall as the message instead of leaving the form's whole height as blank space. */
+  #tab-register:has(.confirm-overlay.show) > *:not(.confirm-overlay){ display:none; }
+  #tab-register .confirm-overlay.show{ position:relative; top:auto; right:auto; bottom:auto; left:auto; padding:28px 8px 8px; }
   .confirm-icon{
     width:56px; height:56px; border-radius:50%; background:var(--blue-dim); color:var(--blue);
     display:flex; align-items:center; justify-content:center; font-size:28px; margin-bottom:16px;
