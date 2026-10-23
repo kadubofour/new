@@ -79,9 +79,9 @@
   /* Tabs: four separate colours from the app's palette so each one is easy to spot and find again —
      Register navy, Renewal gold, Sign In green, Sign Out teal. Every tab is tinted in its own colour
      with a matching icon; the selected one fills solid. */
-  .tab-bar{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:22px; padding:0; background:transparent; }
+  .tab-bar{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:22px; padding:6px; background:var(--panel-alt); border-radius:14px; }
   .tab-btn{
-    flex:1 1 calc(50% - 4px); display:flex; align-items:center; justify-content:center; gap:7px; white-space:nowrap;
+    flex:1 1 calc(50% - 3px); display:flex; align-items:center; justify-content:center; gap:7px; white-space:nowrap;
     background:var(--tc-soft); border:1.5px solid var(--tc-line); color:var(--tc-dark);
     padding:12px 6px; border-radius:11px; cursor:pointer; font-weight:700; font-size:12.5px;
     font-family:'Inter',sans-serif; text-transform:uppercase; letter-spacing:0.02em;
@@ -462,6 +462,7 @@
   body.signed-in-expired{ --rt-bg:#B3261E; --rt-card:#CC3328; --rt-dark:#8C1D17; }
   body.signed-in-ok, body.signed-in-expired{ background:var(--rt-bg); }
   body.signed-in-ok .card, body.signed-in-expired .card{ background:var(--rt-card); border-color:var(--rt-bg); border-top-color:var(--rt-dark); color:#fff; }
+  body.signed-in-ok .tab-bar, body.signed-in-expired .tab-bar{ background:var(--rt-bg); }
   body.signed-in-ok .tab-btn, body.signed-in-expired .tab-btn{ background:rgba(255,255,255,0.14); border-color:transparent; color:#fff; box-shadow:none; }
   body.signed-in-ok .tab-btn:hover, body.signed-in-expired .tab-btn:hover{ background:rgba(255,255,255,0.24); }
   body.signed-in-ok .tab-btn.active, body.signed-in-expired .tab-btn.active{ background:#fff; color:var(--rt-dark); box-shadow:0 2px 8px rgba(0,0,0,0.18); }
