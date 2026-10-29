@@ -577,12 +577,40 @@ function getOrCreateSheet(name, headers) {
     // sheet, not something that needs re-checking on every read.
     ensureTextFormatForPhoneColumns(sheet, headers);
   }
+  repairBlankHeaders(sheet, headers);
   // No automatic Sheets filter (the dropdown arrows on the header row)
   // — it doesn't play well with the merged date-header banner rows
   // (blank/weird entries in the dropdowns, filtering rows out from
   // under a banner), so it's left off. Add one by hand from the Data
   // menu if you want it for a particular sheet.
   return sheet;
+}
+
+// Every read of a sheet maps its columns by the NAMES in row 1. If one of those header cells has been blanked
+// (or turned into a single space) by hand, that column silently vanishes from every view: the Gym registrations
+// sheet had " " instead of "idNo" in A1, so no gym member had an ID in the app, the date-banner rows weren't
+// recognised (they showed up as 49 blank lines and inflated the Total), and renewals weren't collapsed into one
+// person. Only blank header cells are filled back in (from the expected names); anything else is left alone.
+// Checked at most once per sheet per execution, and remembered in the cache for six hours, so it costs nothing
+// on the normal path.
+const _headerChecked = {};
+function repairBlankHeaders(sheet, headers) {
+  const key = sheet.getName();
+  if (_headerChecked[key]) return;
+  _headerChecked[key] = true;
+  try {
+    const cache = CacheService.getScriptCache();
+    if (cache.get("hdrOk_" + key)) return;
+    const range = sheet.getRange(1, 1, 1, headers.length);
+    const current = range.getValues()[0];
+    let changed = false;
+    const fixed = current.map((v, i) => {
+      if (String(v).trim() === "" && headers[i]) { changed = true; return headers[i]; }
+      return v;
+    });
+    if (changed) range.setValues([fixed]);
+    cache.put("hdrOk_" + key, "1", 21600);
+  } catch (err) { /* never let a header check break a request */ }
 }
 
 // Phone numbers are stored like "+233 24 123 4567", and some ID numbers
@@ -649,11 +677,14 @@ function sheetToObjects(sheet) {
   // the idNo column — fetching notes for every column via
   // range.getNotes() is much more expensive than this single column,
   // for something most sheets never have at all.
-  const idNotes = (idIdx === -1 || values.length === 0)
+  // Banner rows carry their marker as a note on the idNo column; if that column's header is missing, fall back
+  // to the first column (where the idNo column always is) rather than treating every banner as a member.
+  const noteCol = idIdx === -1 ? 0 : idIdx;
+  const idNotes = values.length === 0
     ? []
-    : sheet.getRange(2, idIdx + 1, values.length, 1).getNotes();
+    : sheet.getRange(2, noteCol + 1, values.length, 1).getNotes();
   return values
-    .map((row, i) => ({ row, note: idIdx === -1 ? "" : (idNotes[i] ? idNotes[i][0] : "") }))
+    .map((row, i) => ({ row, note: (idNotes[i] ? idNotes[i][0] : "") }))
     .filter(({ row }) => row.join("") !== "")
     .filter(({ note }) => note.indexOf(DATE_HEADER_MARKER) !== 0)
     .map(({ row }) => {
