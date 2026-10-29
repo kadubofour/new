@@ -1769,7 +1769,10 @@ function getVisibleRegistrations(activity) {
   } catch (err) { /* cache unavailable or corrupt — fall through to a real read */ }
 
   const sheet = getOrCreateSheet(activity.registrationsSheet, REGISTRATIONS_HEADERS);
-  let rows = dedupeRegistrationsByIdNo(sheetToObjects(sheet));
+  // A row with no name AND no ID number isn't a registration — it's an empty-looking row that still holds some
+  // invisible value (a tick box, a stray space, a leftover format). They showed up as a block of blank lines under
+  // "Unknown date" and were counted in the Total, so the Total no longer matched the category counts.
+  let rows = dedupeRegistrationsByIdNo(sheetToObjects(sheet).filter(r => String(r.name || "").trim() !== "" || String(r.idNo || "").trim() !== ""));
   // The tally (Total + per-category counts) is computed from EVERY
   // registration, before the Clear List cutoff below hides any rows —
   // clearing the list tidies the table, it must not wipe the statistics.

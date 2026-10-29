@@ -822,7 +822,8 @@
   }
   function applyDashboardPayload(res, activity){
     const st = storeFor(activity.key);
-    st.registrations = res.registrations || [];
+    // Rows with neither a name nor an ID aren't registrations (blank-looking rows left in the sheet) — never list them.
+    st.registrations = (res.registrations || []).filter(e => String(e.name || '').trim() !== '' || String(e.idNo || '').trim() !== '');
     st.stats = res.stats || null;
     st.alerts = res.alerts || [];
     st.loaded = true;
